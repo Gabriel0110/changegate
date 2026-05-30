@@ -1,0 +1,35 @@
+{
+  "public_entrypoints": [
+    "aws_apigatewayv2_api.public",
+    "aws_cloudfront_distribution.cdn",
+    "aws_db_instance.customer",
+    "aws_lb.admin",
+    "aws_s3_bucket.logs"
+  ],
+  "sensitive_assets": [
+    "aws_db_instance.customer",
+    "aws_kms_key.data",
+    "aws_s3_bucket.logs",
+    "aws_secretsmanager_secret.customer"
+  ],
+  "changed_boundary_crossings": [
+    "aws_db_instance.customer",
+    "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer"
+  ],
+  "blast_radius": {
+    "resource": "aws_lb.admin",
+    "exposed": true,
+    "reachable_workloads": [
+      "aws_ecs_service.admin",
+      "aws_instance.web"
+    ],
+    "sensitive_assets": [
+      "aws_db_instance.customer"
+    ],
+    "paths": [
+      "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin",
+      "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer",
+      "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_instance.web"
+    ]
+  }
+}

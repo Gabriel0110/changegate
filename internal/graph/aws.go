@@ -25,7 +25,8 @@ func inferExplicitDependencies(g *Graph, plan *model.Plan) {
 }
 
 func inferGenericReferences(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if node.Synthetic {
 			continue
 		}
@@ -36,7 +37,8 @@ func inferGenericReferences(g *Graph) {
 }
 
 func inferAWSNetwork(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		switch node.Type {
 		case "aws_security_group":
 			values := resourceValues(g, id)
@@ -69,17 +71,52 @@ func inferAWSNetwork(g *Graph) {
 			if subnet := findByIDLike(g, asString(values["subnet_id"]), "aws_subnet"); subnet != "" {
 				g.addEdge(id, subnet, EdgeContainedIn, evidence(node.Address, "subnet_id", subnet, "resource is placed in subnet"), nil)
 			}
+			for _, subnetID := range nestedStrings(values["network_configuration"], "subnets") {
+				if subnet := findByIDLike(g, subnetID, "aws_subnet"); subnet != "" {
+					g.addEdge(id, subnet, EdgeContainedIn, evidence(node.Address, "network_configuration.subnets", subnet, "resource is placed in subnet"), nil)
+				}
+			}
+			for _, sg := range nestedStrings(values["network_configuration"], "security_groups") {
+				if target := findByIDLike(g, sg, "aws_security_group"); target != "" {
+					g.addEdge(target, id, EdgeAllowsIngress, evidence(node.Address, "network_configuration.security_groups", sg, "security group applies to resource"), nil)
+					g.addEdge(id, target, EdgeAllowsEgress, evidence(node.Address, "network_configuration.security_groups", sg, "resource can send traffic through security group"), nil)
+				}
+			}
 		case "aws_subnet":
 			values := resourceValues(g, id)
 			if vpc := findByIDLike(g, asString(values["vpc_id"]), "aws_vpc"); vpc != "" {
 				g.addEdge(id, vpc, EdgeContainedIn, evidence(node.Address, "vpc_id", vpc, "subnet is contained in VPC"), nil)
+			}
+		case "aws_route_table_association":
+			values := resourceValues(g, id)
+			subnet := findByIDLike(g, asString(values["subnet_id"]), "aws_subnet")
+			routeTable := findByIDLike(g, asString(values["route_table_id"]), "aws_route_table")
+			if subnet != "" && routeTable != "" {
+				g.addEdge(subnet, routeTable, EdgeAttachedTo, evidence(node.Address, "route_table_id", routeTable, "subnet is associated with route table"), nil)
+			}
+		case "aws_route":
+			values := resourceValues(g, id)
+			routeTable := findByIDLike(g, asString(values["route_table_id"]), "aws_route_table")
+			if routeTable != "" {
+				g.addEdge(routeTable, id, EdgeAttachedTo, evidence(node.Address, "route_table_id", routeTable, "route belongs to route table"), nil)
+			}
+			if cidrIsPublic(values["destination_cidr_block"], values["destination_ipv6_cidr_block"]) {
+				if igw := findByIDLike(g, asString(values["gateway_id"]), "aws_internet_gateway"); igw != "" {
+					g.ensureSynthetic(InternetNodeID, "internet", "internet")
+					g.addEdge(id, igw, EdgeRoutesTo, evidence(node.Address, "gateway_id", igw, "route sends public traffic to internet gateway"), nil)
+					g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "destination_cidr_block", "public", "internet can traverse public route"), nil)
+				}
+				if nat := findByIDLike(g, asString(values["nat_gateway_id"]), "aws_nat_gateway"); nat != "" {
+					g.addEdge(id, nat, EdgeRoutesTo, evidence(node.Address, "nat_gateway_id", nat, "route sends broad egress through NAT gateway"), nil)
+				}
 			}
 		}
 	}
 }
 
 func inferAWSLoadBalancing(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		values := resourceValues(g, id)
 		switch node.Type {
 		case "aws_lb":
@@ -108,12 +145,24 @@ func inferAWSLoadBalancing(g *Graph) {
 					g.addEdge(tg, target, EdgeRoutesTo, evidence(node.Address, "target_id", target, "target group routes to attached target"), nil)
 				}
 			}
+		case "aws_cloudfront_distribution":
+			g.ensureSynthetic(InternetNodeID, "internet", "internet")
+			g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "enabled", true, "CloudFront distribution is publicly reachable"), nil)
+			for _, origin := range nestedStrings(values["origin"], "domain_name") {
+				if target := findByIDLike(g, origin, ""); target != "" {
+					g.addEdge(id, target, EdgeRoutesTo, evidence(node.Address, "origin.domain_name", target, "CloudFront routes to origin"), nil)
+				}
+			}
+		case "aws_api_gateway_rest_api", "aws_apigatewayv2_api":
+			g.ensureSynthetic(InternetNodeID, "internet", "internet")
+			g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "api", "public", "API Gateway endpoint is publicly reachable"), nil)
 		}
 	}
 }
 
 func inferAWSECS(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		values := resourceValues(g, id)
 		switch node.Type {
 		case "aws_ecs_service":
@@ -136,7 +185,8 @@ func inferAWSECS(g *Graph) {
 }
 
 func inferAWSLambda(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if node.Type != "aws_lambda_function" {
 			continue
 		}
@@ -148,7 +198,8 @@ func inferAWSLambda(g *Graph) {
 }
 
 func inferAWSRDS(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if node.Type != "aws_db_instance" && node.Type != "aws_rds_cluster" {
 			continue
 		}
@@ -167,7 +218,8 @@ func inferAWSRDS(g *Graph) {
 }
 
 func inferAWSS3(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		values := resourceValues(g, id)
 		switch node.Type {
 		case "aws_s3_bucket_public_access_block":
@@ -186,8 +238,31 @@ func inferAWSS3(g *Graph) {
 	}
 }
 
+func inferAWSDataProtection(g *Graph) {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
+		values := resourceValues(g, id)
+		switch node.Type {
+		case "aws_db_instance", "aws_rds_cluster", "aws_s3_bucket", "aws_efs_file_system", "aws_dynamodb_table", "aws_elasticache_cluster", "aws_elasticache_replication_group", "aws_opensearch_domain", "aws_elasticsearch_domain", "aws_secretsmanager_secret":
+			for _, keyField := range []string{"kms_key_id", "kms_key_arn", "key_id"} {
+				if key := findByARNOrAddress(g, asString(values[keyField]), "aws_kms_key"); key != "" {
+					g.addEdge(id, key, EdgeEncryptsWith, evidence(node.Address, keyField, key, "resource is encrypted with KMS key"), nil)
+				}
+			}
+			if replica := findByIDLike(g, asString(values["replica_kms_key_id"]), "aws_kms_key"); replica != "" {
+				g.addEdge(id, replica, EdgeReplicatesTo, evidence(node.Address, "replica_kms_key_id", replica, "resource replicates encrypted data"), nil)
+			}
+		case "aws_s3_bucket_public_access_block":
+			if bucket := findByIDLike(g, asString(values["bucket"]), "aws_s3_bucket"); bucket != "" {
+				g.addEdge(id, bucket, EdgeProtects, evidence(node.Address, "bucket", bucket, "public access block protects bucket"), nil)
+			}
+		}
+	}
+}
+
 func inferAWSIAM(g *Graph) {
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		values := resourceValues(g, id)
 		switch node.Type {
 		case "aws_iam_role_policy_attachment", "aws_iam_user_policy_attachment", "aws_iam_group_policy_attachment":
@@ -195,6 +270,7 @@ func inferAWSIAM(g *Graph) {
 			principal := iamPrincipalForAttachment(g, node.Type, values)
 			if principal != "" && policy != "" {
 				g.addEdge(principal, policy, EdgeAttachedTo, evidence(node.Address, "policy_arn", policy, "IAM policy is attached to principal"), nil)
+				g.addEdge(policy, principal, EdgeGrantsPermission, evidence(node.Address, "policy_arn", principal, "IAM policy grants permissions to principal"), nil)
 				inferPolicyAccess(g, principal, policy)
 			}
 		case "aws_iam_role_policy", "aws_iam_policy":
@@ -343,9 +419,7 @@ func nestedStrings(value any, key string) []string {
 	out := make([]string, 0)
 	for _, item := range asList(value) {
 		if obj, ok := item.(map[string]any); ok {
-			if text := asString(obj[key]); text != "" && text != "<nil>" {
-				out = append(out, text)
-			}
+			out = append(out, stringList(obj[key])...)
 		}
 	}
 	sort.Strings(out)
@@ -367,7 +441,8 @@ func findByIDLike(g *Graph, value string, resourceType string) ResourceID {
 	if value == "" || value == "<nil>" {
 		return ""
 	}
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if resourceType != "" && node.Type != resourceType {
 			continue
 		}
@@ -408,18 +483,24 @@ func inferPolicyAccess(g *Graph, principal ResourceID, policy ResourceID) {
 
 func inferInlinePolicyAccess(g *Graph, principal ResourceID, resource string, policyJSON string) {
 	lower := strings.ToLower(policyJSON)
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if !isSensitiveDataNode(node) {
 			continue
 		}
 		if strings.Contains(lower, "s3:get") || strings.Contains(lower, "rds:describe") || strings.Contains(lower, "secretsmanager:get") || strings.Contains(lower, "*") {
 			g.addEdge(principal, id, EdgeCanReadData, evidence(resource, "policy", id, "IAM policy allows reading sensitive data resource"), nil)
+			if node.Kind == NodeSecret {
+				g.addEdge(principal, id, EdgeReadsSecret, evidence(resource, "policy", id, "IAM policy allows reading secret value"), nil)
+			}
 		}
 		if strings.Contains(lower, "s3:put") || strings.Contains(lower, "rds:modify") || strings.Contains(lower, "secretsmanager:put") || strings.Contains(lower, "*") {
 			g.addEdge(principal, id, EdgeCanWriteData, evidence(resource, "policy", id, "IAM policy allows writing sensitive data resource"), nil)
+			g.addEdge(principal, id, EdgeWritesTo, evidence(resource, "policy", id, "IAM policy allows writing data resource"), nil)
 		}
 	}
-	for id, node := range g.Nodes {
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
 		if node.Type != "aws_iam_role" {
 			continue
 		}

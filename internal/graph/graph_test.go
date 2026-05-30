@@ -1,7 +1,11 @@
 package graph
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"os"
+	"sort"
 	"strings"
 	"testing"
 
@@ -36,6 +40,17 @@ func TestGraphALBToECSPathAndExposure(t *testing.T) {
 	if len(lines) == 0 {
 		t.Fatalf("expected explanation evidence")
 	}
+
+	exposure := g.Exposure("aws_ecs_service.admin")
+	if !exposure.Exposed {
+		t.Fatalf("expected exposure result to report exposed ECS service")
+	}
+	if len(exposure.Entrypoints) == 0 || exposure.Entrypoints[0].ID != "aws_lb.admin" {
+		t.Fatalf("entrypoints = %#v, want aws_lb.admin first", exposure.Entrypoints)
+	}
+	if got := g.PublicEntrypoints(); !containsResourceID(got, "aws_lb.admin") || !containsResourceID(got, "aws_cloudfront_distribution.cdn") || !containsResourceID(got, "aws_apigatewayv2_api.public") {
+		t.Fatalf("public entrypoints = %#v, missing expected public entrypoint", got)
+	}
 }
 
 func TestGraphSGToInstanceAndRDS(t *testing.T) {
@@ -66,6 +81,9 @@ func TestGraphLambdaAndIAMRelationships(t *testing.T) {
 	if !g.HasSensitiveDataAccess("aws_iam_role.worker") {
 		t.Fatalf("role should have sensitive data access through policy")
 	}
+	if !g.hasEdge("aws_iam_role.worker", "aws_secretsmanager_secret.customer", EdgeReadsSecret) {
+		t.Fatalf("role should have explicit secret-read edge")
+	}
 }
 
 func TestGraphPublicS3(t *testing.T) {
@@ -77,6 +95,82 @@ func TestGraphPublicS3(t *testing.T) {
 	}
 	if !g.HasSensitiveDataAccess(InternetNodeID) {
 		t.Fatalf("internet should have sensitive data access to public bucket")
+	}
+}
+
+func TestGraphV2ClassifiesNodesAndEdgeFamilies(t *testing.T) {
+	t.Parallel()
+
+	g := Build(testPlan())
+	tests := []struct {
+		resource ResourceID
+		kind     NodeKind
+	}{
+		{resource: "aws_lb.admin", kind: NodePublicEntrypoint},
+		{resource: "aws_ecs_service.admin", kind: NodeWorkload},
+		{resource: "aws_db_instance.customer", kind: NodeDataStore},
+		{resource: "aws_secretsmanager_secret.customer", kind: NodeSecret},
+		{resource: "aws_kms_key.data", kind: NodeKMSKey},
+		{resource: "aws_iam_role.worker", kind: NodePrincipal},
+		{resource: "aws_iam_policy.worker", kind: NodePolicy},
+		{resource: "aws_security_group.public", kind: NodeNetworkBoundary},
+	}
+	for _, tt := range tests {
+		node := g.Nodes[tt.resource]
+		if node == nil {
+			t.Fatalf("missing node %s", tt.resource)
+		}
+		if node.Kind != tt.kind {
+			t.Fatalf("%s kind = %s, want %s", tt.resource, node.Kind, tt.kind)
+		}
+	}
+	for _, edge := range []struct {
+		from ResourceID
+		to   ResourceID
+		typ  EdgeType
+	}{
+		{from: "aws_db_instance.customer", to: "aws_kms_key.data", typ: EdgeEncryptsWith},
+		{from: "aws_secretsmanager_secret.customer", to: "aws_kms_key.data", typ: EdgeEncryptsWith},
+		{from: "aws_iam_policy.worker", to: "aws_iam_role.worker", typ: EdgeGrantsPermission},
+		{from: "aws_s3_bucket_public_access_block.logs", to: "aws_s3_bucket.logs", typ: EdgeProtects},
+		{from: InternetNodeID, to: "aws_cloudfront_distribution.cdn", typ: EdgeRoutesTo},
+		{from: InternetNodeID, to: "aws_apigatewayv2_api.public", typ: EdgeRoutesTo},
+	} {
+		if !g.hasEdge(edge.from, edge.to, edge.typ) {
+			t.Fatalf("missing edge %s --%s--> %s", edge.from, edge.typ, edge.to)
+		}
+	}
+}
+
+func TestGraphV2PathsBlastRadiusAndBoundaryCrossings(t *testing.T) {
+	t.Parallel()
+
+	g := Build(testPlan())
+	paths := g.Paths("aws_lb.admin", "aws_db_instance.customer", PathOptions{MaxDepth: 8, MaxPaths: 2, AllowedEdges: reachabilityEdges()})
+	if len(paths) == 0 {
+		t.Fatalf("expected path from public ALB to customer DB")
+	}
+	if got := stringifyPath(paths[0]); got != "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer" {
+		t.Fatalf("path = %s", got)
+	}
+	if shallow := g.Paths("aws_lb.admin", "aws_db_instance.customer", PathOptions{MaxDepth: 2, MaxPaths: 2, AllowedEdges: reachabilityEdges()}); len(shallow) != 0 {
+		t.Fatalf("shallow paths = %d, want 0", len(shallow))
+	}
+
+	radius := g.BlastRadius("aws_lb.admin", BlastRadiusOptions{MaxDepth: 8, MaxPaths: 10})
+	if !containsResourceID(radius.ReachableWorkloads, "aws_ecs_service.admin") {
+		t.Fatalf("reachable workloads = %#v, missing ECS service", radius.ReachableWorkloads)
+	}
+	if !containsResourceID(radius.SensitiveAssets, "aws_db_instance.customer") {
+		t.Fatalf("sensitive assets = %#v, missing DB", radius.SensitiveAssets)
+	}
+
+	crossings := g.ChangedBoundaryCrossings()
+	if len(crossings) == 0 {
+		t.Fatalf("expected changed public-to-sensitive boundary crossing")
+	}
+	if got := stringifyPath(crossings[0]); !strings.Contains(got, "aws_db_instance.customer") {
+		t.Fatalf("boundary crossing path = %s, want sensitive DB", got)
 	}
 }
 
@@ -113,6 +207,63 @@ func TestGraphDeterministicAndUnknownTolerant(t *testing.T) {
 	}
 }
 
+func TestGraphV2GoldenSummary(t *testing.T) {
+	t.Parallel()
+
+	g := Build(testPlan())
+	radius := g.BlastRadius("aws_lb.admin", BlastRadiusOptions{MaxDepth: 8, MaxPaths: 3})
+	got := graphV2GoldenSummary{
+		PublicEntrypoints:        g.PublicEntrypoints(),
+		SensitiveAssets:          g.SensitiveAssets(),
+		ChangedBoundaryCrossings: stringifyPaths(g.ChangedBoundaryCrossings()),
+		BlastRadius: graphV2GoldenBlastRadius{
+			Resource:           radius.Resource,
+			Exposed:            radius.Exposure.Exposed,
+			ReachableWorkloads: radius.ReachableWorkloads,
+			SensitiveAssets:    radius.SensitiveAssets,
+			Paths:              stringifyPaths(radius.Paths),
+		},
+	}
+	var body bytes.Buffer
+	encoder := json.NewEncoder(&body)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", "  ")
+	if err := encoder.Encode(got); err != nil {
+		t.Fatalf("marshal graph v2 summary: %v", err)
+	}
+	assertGraphGolden(t, "testdata/golden/graph-v2-summary.json", body.String())
+}
+
+func BenchmarkGraphV2PathSearchLargeGraph(b *testing.B) {
+	g := &Graph{Nodes: make(map[ResourceID]*Node)}
+	const nodeCount = 1000
+	for i := 0; i < nodeCount; i++ {
+		id := ResourceID(fmt.Sprintf("aws_instance.workload_%04d", i))
+		g.Nodes[id] = &Node{
+			ID:      id,
+			Address: string(id),
+			Type:    "aws_instance",
+			Kind:    NodeWorkload,
+			Name:    fmt.Sprintf("workload_%04d", i),
+		}
+		if i > 0 {
+			from := ResourceID(fmt.Sprintf("aws_instance.workload_%04d", i-1))
+			g.addEdge(from, id, EdgeRoutesTo, nil, nil)
+		}
+	}
+	g.sort()
+
+	from := ResourceID("aws_instance.workload_0000")
+	to := ResourceID("aws_instance.workload_0999")
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		paths := g.Paths(from, to, PathOptions{MaxDepth: nodeCount, MaxPaths: 1, AllowedEdges: []EdgeType{EdgeRoutesTo}})
+		if len(paths) != 1 {
+			b.Fatalf("paths = %d, want 1", len(paths))
+		}
+	}
+}
+
 func TestGraphEnablesContextualFindings(t *testing.T) {
 	t.Parallel()
 
@@ -138,6 +289,51 @@ func stringifyPath(path Path) string {
 		parts = append(parts, string(node))
 	}
 	return strings.Join(parts, " -> ")
+}
+
+func stringifyPaths(paths []Path) []string {
+	out := make([]string, 0, len(paths))
+	for _, path := range paths {
+		out = append(out, stringifyPath(path))
+	}
+	sort.Strings(out)
+	return out
+}
+
+func containsResourceID(values []ResourceID, want ResourceID) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
+}
+
+func assertGraphGolden(t *testing.T, path string, got string) {
+	t.Helper()
+
+	want, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("read golden %s: %v\ngot:\n%s", path, err, got)
+	}
+	if string(want) != got {
+		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", path, string(want), got)
+	}
+}
+
+type graphV2GoldenSummary struct {
+	PublicEntrypoints        []ResourceID             `json:"public_entrypoints"`
+	SensitiveAssets          []ResourceID             `json:"sensitive_assets"`
+	ChangedBoundaryCrossings []string                 `json:"changed_boundary_crossings"`
+	BlastRadius              graphV2GoldenBlastRadius `json:"blast_radius"`
+}
+
+type graphV2GoldenBlastRadius struct {
+	Resource           ResourceID   `json:"resource"`
+	Exposed            bool         `json:"exposed"`
+	ReachableWorkloads []ResourceID `json:"reachable_workloads"`
+	SensitiveAssets    []ResourceID `json:"sensitive_assets"`
+	Paths              []string     `json:"paths"`
 }
 
 func testPlan() *model.Plan {
@@ -190,7 +386,15 @@ func testPlan() *model.Plan {
 				"identifier":             "customer",
 				"publicly_accessible":    true,
 				"vpc_security_group_ids": []any{"sg-public"},
+				"kms_key_id":             "arn:aws:kms:us-east-1:123:key/data",
 				"tags":                   map[string]any{"env": "prod"},
+			}),
+			resource("aws_kms_key.data", "aws_kms_key", "data", map[string]any{
+				"arn": "arn:aws:kms:us-east-1:123:key/data",
+			}),
+			resource("aws_secretsmanager_secret.customer", "aws_secretsmanager_secret", "customer", map[string]any{
+				"arn":        "arn:aws:secretsmanager:us-east-1:123:secret:customer",
+				"kms_key_id": "arn:aws:kms:us-east-1:123:key/data",
 			}),
 			resource("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{
 				"role": "arn:aws:iam::123:role/worker",
@@ -215,10 +419,25 @@ func testPlan() *model.Plan {
 				"bucket": "logs",
 				"tags":   map[string]any{"env": "prod"},
 			}),
+			resource("aws_s3_bucket_public_access_block.logs", "aws_s3_bucket_public_access_block", "logs", map[string]any{
+				"bucket": "logs",
+			}),
 			resource("aws_s3_bucket_policy.logs", "aws_s3_bucket_policy", "logs", map[string]any{
 				"bucket": "logs",
 				"policy": `{"Statement":[{"Effect":"Allow","Principal":"*","Action":"s3:GetObject","Resource":"*"}]}`,
 			}),
+			resource("aws_cloudfront_distribution.cdn", "aws_cloudfront_distribution", "cdn", map[string]any{
+				"enabled": true,
+				"origin":  []any{map[string]any{"domain_name": "logs"}},
+			}),
+			resource("aws_apigatewayv2_api.public", "aws_apigatewayv2_api", "public", map[string]any{
+				"protocol_type": "HTTP",
+			}),
+		},
+		Changes: []model.Change{
+			change("aws_lb.admin", "aws_lb", "admin", []model.Action{model.ActionUpdate}),
+			change("aws_ecs_service.admin", "aws_ecs_service", "admin", []model.Action{model.ActionUpdate}),
+			change("aws_db_instance.customer", "aws_db_instance", "customer", []model.Action{model.ActionUpdate}),
 		},
 	}
 }
@@ -237,5 +456,15 @@ func resource(address string, typ string, name string, values map[string]any) mo
 		Provider: "registry.terraform.io/hashicorp/aws",
 		Values:   values,
 		Tags:     tags,
+	}
+}
+
+func change(address string, typ string, name string, actions []model.Action) model.Change {
+	return model.Change{
+		Address:  address,
+		Type:     typ,
+		Name:     name,
+		Provider: "registry.terraform.io/hashicorp/aws",
+		Actions:  actions,
 	}
 }

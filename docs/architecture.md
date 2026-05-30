@@ -25,7 +25,7 @@ flowchart LR
 | --- | --- |
 | `internal/input/terraform` | Terraform/OpenTofu JSON ingestion and redaction. |
 | `internal/model` | Provider-neutral plan, finding, evidence, policy, and decision types. |
-| `internal/graph` | Resource relationship graph and reachability queries. |
+| `internal/graph` | Resource relationship graph, Graph v2 classification, exposure, path, and blast-radius queries. |
 | `internal/rules` | Built-in rule registry, metadata, runner, and AWS rules. |
 | `internal/policy` | User-facing `.changegate.yaml` loading and validation. |
 | `internal/custompolicy` | YAML and OPA/Rego custom policy support. |
