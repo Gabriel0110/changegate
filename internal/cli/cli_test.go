@@ -59,10 +59,23 @@ func TestGoldenOutput(t *testing.T) {
 			if tt.stream == "stderr" {
 				got = stderr
 			}
+			if tt.golden == "doctor.txt" {
+				got = normalizeDoctorPlatform(got)
+			}
 
 			assertGolden(t, tt.golden, got)
 		})
 	}
+}
+
+func normalizeDoctorPlatform(output string) string {
+	lines := strings.Split(output, "\n")
+	for i, line := range lines {
+		if strings.HasPrefix(line, "Platform: ") {
+			lines[i] = "Platform: <runtime>"
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func TestErrorSnapshots(t *testing.T) {

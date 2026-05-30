@@ -2,4 +2,4 @@ Status: OK
 Default scan mode: offline
 Cloud credentials required: no
 Network calls: none
-Platform: darwin/arm64
+Platform: <runtime>
