@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Gabriel0110/changegate/internal/cloudcontext"
+	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/spf13/cobra"
 )
 
@@ -62,9 +64,13 @@ func newContextAWSIdentityCommand() *cobra.Command {
 
 func newContextAWSSnapshotCommand() *cobra.Command {
 	var outPath string
+	var collectValue string
+	var regionsValue string
+	var profile string
+	var timeoutValue string
 	cmd := &cobra.Command{
 		Use:   "snapshot --out .changegate/aws-context.json",
-		Short: "Create an offline AWS context snapshot shell",
+		Short: "Create an offline AWS context snapshot",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			state, err := appFrom(cmd)
 			if err != nil {
@@ -73,8 +79,10 @@ func newContextAWSSnapshotCommand() *cobra.Command {
 			if outPath == "" {
 				return usageError("context aws snapshot requires --out", "Write the snapshot to .changegate/aws-context.json.")
 			}
-			identity := cloudcontext.DetectAWSIdentity(environMap(os.Environ()))
-			snapshot := cloudcontext.NewAWSSnapshot(identity, time.Now().UTC())
+			snapshot, diagnostics, collected, err := buildAWSSnapshot(cmd, collectValue, regionsValue, profile, timeoutValue)
+			if err != nil {
+				return err
+			}
 			var buf bytes.Buffer
 			if err := cloudcontext.Write(&buf, snapshot); err != nil {
 				return internalError(err.Error(), "Report this as a ChangeGate bug.")
@@ -86,19 +94,72 @@ func newContextAWSSnapshotCommand() *cobra.Command {
 				return inputError(err.Error(), "Check permissions for the context output path.")
 			}
 			result := struct {
-				Path      string `json:"path"`
-				Provider  string `json:"provider"`
-				AccountID string `json:"account_id,omitempty"`
-			}{Path: outPath, Provider: snapshot.Provider, AccountID: snapshot.Account.ID}
+				Path        string `json:"path"`
+				Provider    string `json:"provider"`
+				AccountID   string `json:"account_id,omitempty"`
+				Collected   bool   `json:"collected"`
+				Regions     int    `json:"regions"`
+				Diagnostics int    `json:"diagnostics"`
+			}{Path: outPath, Provider: snapshot.Provider, AccountID: snapshot.Account.ID, Collected: collected, Regions: len(snapshot.Regions), Diagnostics: len(diagnostics)}
 			return writeCommandOutput(state, "context aws snapshot", result, func(r renderer) {
 				r.printf("AWS context snapshot: %s\n", outPath)
-				r.printf("Network calls: none\n")
-				r.printf("Next: enrich the snapshot with read-only inventory data or run scan --context-file %s\n", outPath)
+				if collected {
+					r.printf("Network calls: AWS read-only APIs\n")
+					r.printf("Regions: %d\n", len(snapshot.Regions))
+					if len(diagnostics) > 0 {
+						r.printf("Diagnostics: %d\n", len(diagnostics))
+						for _, diagnostic := range diagnostics {
+							r.printf("Warning: %s\n", strings.TrimSpace(diagnostic.Message))
+						}
+					}
+				} else {
+					r.printf("Network calls: none\n")
+				}
+				r.printf("Next: run scan --context-file %s\n", outPath)
 			})
 		},
 	}
 	cmd.Flags().StringVar(&outPath, "out", "", "context snapshot path to write")
+	cmd.Flags().StringVar(&collectValue, "collect", "", "collect read-only AWS context groups: all, identity, network, edge, iam, data, compute")
+	cmd.Flags().StringVar(&regionsValue, "regions", "", "comma-separated AWS regions to collect")
+	cmd.Flags().StringVar(&profile, "profile", "", "AWS shared config profile to use for collection")
+	cmd.Flags().StringVar(&timeoutValue, "timeout", "2m", "AWS collection timeout")
+	if flag := cmd.Flags().Lookup("collect"); flag != nil {
+		flag.NoOptDefVal = cloudcontext.CollectAll
+	}
 	return cmd
+}
+
+func buildAWSSnapshot(cmd *cobra.Command, collectValue string, regionsValue string, profile string, timeoutValue string) (cloudcontext.Snapshot, []model.Diagnostic, bool, error) {
+	if collectValue == "" {
+		identity := cloudcontext.DetectAWSIdentity(environMap(os.Environ()))
+		return cloudcontext.NewAWSSnapshot(identity, time.Now().UTC()), nil, false, nil
+	}
+	groups, err := cloudcontext.ParseCollectGroups(collectValue)
+	if err != nil {
+		return cloudcontext.Snapshot{}, nil, false, usageError(err.Error(), "Use --collect all or a comma-separated list of identity,network,edge,iam,data,compute.")
+	}
+	timeout, err := time.ParseDuration(timeoutValue)
+	if err != nil || timeout <= 0 {
+		return cloudcontext.Snapshot{}, nil, false, usageError("invalid context aws snapshot --timeout", "Use a positive duration such as 30s or 2m.")
+	}
+	ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
+	defer cancel()
+	req := cloudcontext.AWSCollectRequest{
+		Profile: profile,
+		Regions: cloudcontext.ParseRegions(regionsValue),
+		Groups:  groups,
+		Now:     time.Now().UTC(),
+	}
+	collector, err := cloudcontext.NewAWSCollector(ctx, req)
+	if err != nil {
+		return cloudcontext.Snapshot{}, nil, false, inputError(err.Error(), "Check AWS credentials, profile, and region configuration.")
+	}
+	snapshot, diagnostics, err := collector.Collect(ctx, req)
+	if err != nil {
+		return cloudcontext.Snapshot{}, nil, false, inputError(err.Error(), "Check AWS credentials, profile, and read-only permissions.")
+	}
+	return snapshot, diagnostics, true, nil
 }
 
 func newContextAWSPermissionsTemplateCommand() *cobra.Command {

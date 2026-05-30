@@ -41,6 +41,8 @@ changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
+changegate context aws snapshot --out .changegate/aws-context.json --collect
+changegate context aws snapshot --out .changegate/aws-context.json --collect identity --regions us-east-1,us-west-2 --profile prod-readonly
 changegate review github --report changegate.json --comment
 changegate review github --report changegate.json --annotations
 changegate review github --plan tfplan.json --comment --annotations

@@ -446,6 +446,7 @@ func ReadOnlyPolicyTemplate() string {
       "Effect": "Allow",
       "Action": [
         "sts:GetCallerIdentity",
+        "ec2:DescribeRegions",
         "ec2:DescribeVpcs",
         "ec2:DescribeSubnets",
         "ec2:DescribeRouteTables",
