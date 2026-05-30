@@ -44,6 +44,15 @@ Install it directly:
 changegate ci install github --working-directory infra
 ```
 
+Post a sticky PR review comment from a saved scan report:
+
+```bash
+changegate scan --plan tfplan.json --format json --out changegate.json
+changegate review github --report changegate.json --comment --annotations --step-summary
+```
+
+The GitHub review command uses `GITHUB_TOKEN`, `GITHUB_REPOSITORY`, and `GITHUB_EVENT_PATH` by default. For local or dry-run testing, pass `--repo`, `--pr`, and `--dry-run`.
+
 ## GitLab CI
 
 ```bash

@@ -319,6 +319,73 @@ func TestImpactMultiPlanAndAuditBundle(t *testing.T) {
 	}
 }
 
+func TestGitHubReviewDryRunFromPlan(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI(
+		"--no-color",
+		"review", "github",
+		"--plan", "../input/testdata/terraform-plan.json",
+		"--comment",
+		"--annotations",
+		"--dry-run",
+		"--repo", "owner/repo",
+		"--pr", "42",
+		"--commit-sha", "abcdef1234567890",
+		"--artifact", "Audit bundle=https://example.test/changegate-audit.zip",
+	)
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	for _, want := range []string{
+		"ChangeGate GitHub review actions",
+		"dry-run emit workflow annotations",
+		"dry-run upsert sticky comment for commit abcdef123456",
+		"owner/repo#42",
+	} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("stdout missing %q:\n%s", want, stdout)
+		}
+	}
+}
+
+func TestGitHubReviewDryRunJSONFromReport(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	reportPath := filepath.Join(tempDir, "changegate.json")
+	stdout, stderr, code := runCLI("--format", "json", "--out", reportPath, "scan", "--plan", "../input/testdata/terraform-plan.json")
+	if code != exitBlocked {
+		t.Fatalf("scan exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if stdout != "" || stderr != "" {
+		t.Fatalf("scan stdout/stderr = %q/%q, want empty", stdout, stderr)
+	}
+
+	stdout, stderr, code = runCLI(
+		"--format", "json",
+		"review", "github",
+		"--report", reportPath,
+		"--comment",
+		"--dry-run",
+		"--repo", "owner/repo",
+		"--pr", "42",
+	)
+	if code != exitBlocked {
+		t.Fatalf("review exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	assertValidJSON(t, stdout)
+	if !strings.Contains(stdout, `"command": "review github"`) || !strings.Contains(stdout, `"body_bytes"`) {
+		t.Fatalf("unexpected dry-run JSON:\n%s", stdout)
+	}
+}
+
 func TestScanParsesPlanFile(t *testing.T) {
 	t.Parallel()
 

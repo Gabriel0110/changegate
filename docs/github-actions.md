@@ -11,6 +11,8 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
+  issues: write
   security-events: write
 
 jobs:
@@ -38,9 +40,21 @@ jobs:
         working-directory: infra
         run: |
           status=0
-          changegate scan --plan tfplan.json --format sarif --out changegate.sarif --audit-bundle changegate-audit.zip || status=$?
-          changegate scan --plan tfplan.json --format github-step-summary --out "$GITHUB_STEP_SUMMARY" || true
+          changegate scan --plan tfplan.json --format json --out changegate.json --audit-bundle changegate-audit.zip || status=$?
+          changegate scan --plan tfplan.json --format sarif --out changegate.sarif || true
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+      - name: Post ChangeGate review
+        if: always()
+        working-directory: infra
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          changegate review github \
+            --report changegate.json \
+            --comment \
+            --annotations \
+            --step-summary \
+            --artifact "Audit bundle=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@4c50b6f6fd9dc6fe03111c2d045c8be2a724cce1 # v3.28.11
@@ -78,3 +92,15 @@ changegate scan --plan tfplan.json --mode audit --audit-bundle changegate-audit.
 ```
 
 Audit mode records the decision and evidence but does not return the blocking exit code.
+
+## Pull Request Review Bot
+
+`changegate review github` updates one sticky PR comment marked with `<!-- changegate-review -->`, so rerunning CI updates the existing review instead of posting duplicates. It detects `GITHUB_REPOSITORY`, `GITHUB_EVENT_PATH`, `GITHUB_SHA`, and `GITHUB_TOKEN` in GitHub Actions. Outside Actions, pass `--repo owner/repo`, `--pr 123`, and `--token env:MY_TOKEN`.
+
+Use `--dry-run` to validate configuration without calling the GitHub API:
+
+```bash
+changegate review github --report changegate.json --comment --dry-run --repo owner/repo --pr 123
+```
+
+For untrusted fork pull requests, avoid running arbitrary Terraform or repository scripts with a write token. Prefer generating the plan in a read-only `pull_request` workflow, or use `pull_request_target` only with a reviewed checkout strategy and least-privilege permissions.

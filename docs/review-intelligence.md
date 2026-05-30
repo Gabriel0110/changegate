@@ -50,7 +50,16 @@ changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
 ```
 
-The PR/MR comment renderer is implemented as a pure internal renderer over the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details. The publishing commands below will use this renderer when they are wired in the next tranches.
+The PR/MR comment renderer is implemented as a pure internal renderer over the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details.
+
+GitHub PR review publishing is available through `changegate review github`. It can consume a saved scan JSON report or build the report directly from plan input, update one sticky pull request comment, emit GitHub Actions workflow annotations, and write the same review summary to `GITHUB_STEP_SUMMARY`.
+
+```bash
+changegate review github --report changegate.json --comment
+changegate review github --report changegate.json --annotations
+changegate review github --plan tfplan.json --comment --annotations
+changegate review github --report changegate.json --comment --dry-run --repo owner/repo --pr 123
+```
 
 Planned commands still in progress:
 
@@ -62,7 +71,6 @@ changegate attack-paths --plan tfplan.json --to-sensitive-data
 
 changegate context aws snapshot --out .changegate/aws-context.json --collect
 
-changegate review github --report changegate.json --comment --annotations
 changegate review gitlab --report changegate.json --comment
 
 changegate test
