@@ -44,6 +44,8 @@ changegate graph export --plan tfplan.json --format json
 changegate review github --report changegate.json --comment
 changegate review github --report changegate.json --annotations
 changegate review github --plan tfplan.json --comment --annotations
+changegate review gitlab --report changegate.json --comment
+changegate review gitlab --plan tfplan.json --comment
 ```
 
 ## Developer Commands

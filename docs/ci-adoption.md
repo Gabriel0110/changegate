@@ -61,6 +61,15 @@ changegate ci gitlab --working-directory infra
 
 The generated job emits GitLab Code Quality and JUnit artifacts.
 
+Post a sticky MR review note from a saved scan report:
+
+```bash
+changegate scan --plan tfplan.json --format json --out changegate.json
+changegate review gitlab --report changegate.json --comment
+```
+
+The GitLab review command uses `GITLAB_TOKEN`, `CI_API_V4_URL`, `CI_PROJECT_ID`, and `CI_MERGE_REQUEST_IID` by default. For local or dry-run testing, pass `--api-url`, `--project`, `--merge-request`, and `--dry-run`.
+
 ## Other CI Systems
 
 Examples are available in [../examples/ci](../examples/ci):

@@ -61,6 +61,14 @@ changegate review github --plan tfplan.json --comment --annotations
 changegate review github --report changegate.json --comment --dry-run --repo owner/repo --pr 123
 ```
 
+GitLab MR review publishing is available through `changegate review gitlab`. It can consume a saved scan JSON report or build the report directly from plan input, update one sticky merge request note, and include GitLab Code Quality artifact links.
+
+```bash
+changegate review gitlab --report changegate.json --comment
+changegate review gitlab --plan tfplan.json --comment
+changegate review gitlab --report changegate.json --comment --dry-run --project 123 --merge-request 456
+```
+
 Planned commands still in progress:
 
 ```bash
@@ -70,8 +78,6 @@ changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actio
 changegate attack-paths --plan tfplan.json --to-sensitive-data
 
 changegate context aws snapshot --out .changegate/aws-context.json --collect
-
-changegate review gitlab --report changegate.json --comment
 
 changegate test
 changegate test ./changegate-tests
