@@ -37,6 +37,10 @@ changegate impact --plan dev.json --plan prod.json --format markdown --out impac
 changegate impact --plan tfplan.json --baseline .changegate/baseline.json --new-only
 changegate impact --plan tfplan.json --context-file .changegate/aws-context.json
 changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
+changegate graph summary --plan tfplan.json
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
+changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
+changegate graph export --plan tfplan.json --format json
 ```
 
 ## Developer Commands

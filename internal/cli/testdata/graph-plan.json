@@ -1,0 +1,173 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.6.6",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_security_group.public",
+          "mode": "managed",
+          "type": "aws_security_group",
+          "name": "public",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "id": "sg-public",
+            "ingress": [
+              {
+                "cidr_blocks": ["0.0.0.0/0"],
+                "from_port": 443,
+                "to_port": 443
+              }
+            ],
+            "tags": {
+              "env": "prod"
+            }
+          }
+        },
+        {
+          "address": "aws_lb.admin",
+          "mode": "managed",
+          "type": "aws_lb",
+          "name": "admin",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:123:loadbalancer/app/admin/1",
+            "scheme": "internet-facing",
+            "load_balancer_type": "application",
+            "security_groups": ["sg-public"],
+            "tags": {
+              "env": "prod"
+            }
+          }
+        },
+        {
+          "address": "aws_lb_listener.admin",
+          "mode": "managed",
+          "type": "aws_lb_listener",
+          "name": "admin",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:us-east-1:123:loadbalancer/app/admin/1",
+            "default_action": [
+              {
+                "type": "forward",
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/admin/1"
+              }
+            ]
+          }
+        },
+        {
+          "address": "aws_lb_target_group.admin",
+          "mode": "managed",
+          "type": "aws_lb_target_group",
+          "name": "admin",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/admin/1"
+          }
+        },
+        {
+          "address": "aws_ecs_service.admin",
+          "mode": "managed",
+          "type": "aws_ecs_service",
+          "name": "admin",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "load_balancer": [
+              {
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/admin/1"
+              }
+            ],
+            "security_groups": ["sg-public"],
+            "tags": {
+              "env": "prod"
+            }
+          }
+        },
+        {
+          "address": "aws_db_instance.customer",
+          "mode": "managed",
+          "type": "aws_db_instance",
+          "name": "customer",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "id": "db-customer",
+            "identifier": "customer-prod",
+            "vpc_security_group_ids": ["sg-public"],
+            "tags": {
+              "env": "prod"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_lb.admin",
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "admin",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "scheme": "internal"
+        },
+        "after": {
+          "scheme": "internet-facing",
+          "load_balancer_type": "application",
+          "security_groups": ["sg-public"],
+          "tags": {
+            "env": "prod"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_ecs_service.admin",
+      "mode": "managed",
+      "type": "aws_ecs_service",
+      "name": "admin",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "security_groups": []
+        },
+        "after": {
+          "load_balancer": [
+            {
+              "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123:targetgroup/admin/1"
+            }
+          ],
+          "security_groups": ["sg-public"],
+          "tags": {
+            "env": "prod"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_db_instance.customer",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "customer",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "vpc_security_group_ids": []
+        },
+        "after": {
+          "id": "db-customer",
+          "identifier": "customer-prod",
+          "vpc_security_group_ids": ["sg-public"],
+          "tags": {
+            "env": "prod"
+          }
+        }
+      }
+    }
+  ]
+}

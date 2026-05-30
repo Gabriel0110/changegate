@@ -19,6 +19,10 @@ changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip --format 
 changegate impact --plan tfplan.json --format markdown --out impact.md
 changegate impact --plan tfplan.json --format json --out impact.json
 changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
+changegate graph summary --plan tfplan.json --format json
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format json
+changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin --format json
+changegate graph export --plan tfplan.json --format json --out graph.json
 ```
 
 ## Canonical JSON
@@ -52,6 +56,10 @@ The impact audit bundle is deterministic and contains:
 * `changegate-impact/impact-statement.json`
 * `changegate-impact/impact-statement.md`
 * `changegate-impact/scan-report.json`
+
+## Graph JSON
+
+`changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation. `changegate graph export` emits the full graph as JSON and requires `--format json`.
 
 ## SARIF
 

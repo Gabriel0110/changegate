@@ -1,0 +1,17 @@
+Graph Summary
+Plan: testdata/graph-plan.json
+Tool: terraform
+Resources: 6
+Changes: 3
+Nodes: 7
+Edges: 12
+Public entrypoints: 1
+Sensitive assets: 1
+Changed boundary crossings: 1
+
+Node kinds:
+  data_store: 1
+  network_boundary: 1
+  public_entrypoint: 2
+  unknown: 2
+  workload: 1

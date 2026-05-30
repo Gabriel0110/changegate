@@ -1,0 +1,11 @@
+Path: found
+From: aws_lb.admin
+To: aws_db_instance.customer
+Paths: 1
+
+1. aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
+   aws_lb.admin --routes_to--> aws_lb_listener.admin
+   aws_lb_listener.admin --routes_to--> aws_lb_target_group.admin
+   aws_lb_target_group.admin --routes_to--> aws_ecs_service.admin
+   aws_ecs_service.admin --allows_egress--> aws_security_group.public
+   aws_security_group.public --allows_ingress--> aws_db_instance.customer

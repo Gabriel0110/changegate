@@ -1,0 +1,4 @@
+Error: unknown graph resource "aws_lb.admn" for --from
+Fix: Known nearby resources: aws_lb.admin, aws_lb_listener.admin, internet, aws_ecs_service.admin, aws_lb_target_group.admin
+Help: docs/troubleshooting.md
+Exit code: 2

@@ -51,6 +51,34 @@ func TestGoldenOutput(t *testing.T) {
 			stream:   "stdout",
 		},
 		{
+			name:     "graph help",
+			args:     []string{"graph", "--help"},
+			golden:   "graph-help.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
+			name:     "graph summary",
+			args:     []string{"--no-color", "graph", "summary", "--plan", "testdata/graph-plan.json"},
+			golden:   "graph-summary.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
+			name:     "graph path",
+			args:     []string{"--no-color", "graph", "path", "--plan", "testdata/graph-plan.json", "--from", "aws_lb.admin", "--to", "aws_db_instance.customer", "--max-paths", "1"},
+			golden:   "graph-path.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
+			name:     "graph exposure",
+			args:     []string{"--no-color", "graph", "exposure", "--plan", "testdata/graph-plan.json", "--resource", "aws_ecs_service.admin", "--max-paths", "3"},
+			golden:   "graph-exposure.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
 			name:     "impact markdown",
 			args:     []string{"--no-color", "--format", "markdown", "impact", "--plan", "../input/testdata/terraform-plan.json"},
 			golden:   "impact-markdown.md",
@@ -119,6 +147,12 @@ func TestErrorSnapshots(t *testing.T) {
 			golden:   "invalid-format.txt",
 			wantCode: exitUsage,
 		},
+		{
+			name:     "graph unknown resource",
+			args:     []string{"--no-color", "graph", "path", "--plan", "testdata/graph-plan.json", "--from", "aws_lb.admn", "--to", "aws_db_instance.customer"},
+			golden:   "graph-unknown-resource.txt",
+			wantCode: exitUsage,
+		},
 	}
 
 	for _, tt := range tests {
@@ -153,6 +187,47 @@ func TestJSONSuccessOutputIsValid(t *testing.T) {
 		t.Fatalf("stderr = %q, want empty", stderr)
 	}
 	assertValidJSON(t, stdout)
+}
+
+func TestGraphJSONOutputsAreValid(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "graph", "summary", "--plan", "testdata/graph-plan.json")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var summary struct {
+		Version           int      `json:"version"`
+		PublicEntrypoints []string `json:"public_entrypoints"`
+		SensitiveAssets   []string `json:"sensitive_assets"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &summary); err != nil {
+		t.Fatalf("invalid graph summary JSON: %v\n%s", err, stdout)
+	}
+	if summary.Version != 1 || len(summary.PublicEntrypoints) != 1 || len(summary.SensitiveAssets) != 1 {
+		t.Fatalf("unexpected graph summary: %#v", summary)
+	}
+
+	stdout, stderr, code = runCLI("--format", "json", "graph", "export", "--plan", "testdata/graph-plan.json")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var exported struct {
+		Nodes map[string]any `json:"nodes"`
+		Edges []any          `json:"edges"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &exported); err != nil {
+		t.Fatalf("invalid graph export JSON: %v\n%s", err, stdout)
+	}
+	if len(exported.Nodes) == 0 || len(exported.Edges) == 0 {
+		t.Fatalf("exported graph missing nodes or edges: %#v", exported)
+	}
 }
 
 func TestImpactJSONOutputIsStableAndRoundTrips(t *testing.T) {

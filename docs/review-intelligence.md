@@ -41,15 +41,18 @@ changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 
 `changegate impact` is available now. It reuses the same scan engine as `changegate scan`, including policy config, baselines, waivers, cloud context files, external scanner imports, and multi-plan input. Markdown is intended for pull requests and approval workflows; JSON is the stable machine contract.
 
-Blast-Radius Graph v2 core APIs are also available internally. They classify public entrypoints, workloads, data stores, secrets, KMS keys, principals, policies, and network boundaries, then expose deterministic path, exposure, blast-radius, sensitive-asset, and changed-boundary-crossing queries for rules and upcoming CLI commands. See [Blast-Radius Graph](graph.md).
-
-Planned commands still in progress:
+Blast-Radius Graph v2 is available through `changegate graph`. It classifies public entrypoints, workloads, data stores, secrets, KMS keys, principals, policies, and network boundaries, then exposes deterministic path, exposure, blast-radius, sensitive-asset, and changed-boundary-crossing queries. See [Blast-Radius Graph](graph.md).
 
 ```bash
 changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
+```
+
+Planned commands still in progress:
+
+```bash
 
 changegate attack-paths --plan tfplan.json
 changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actions

@@ -29,7 +29,16 @@ The internal graph API supports:
 * sensitive asset enumeration
 * changed public-to-sensitive boundary crossings
 
-The next tranche exposes these APIs through `changegate graph` commands. Until then, they are available to rules, impact rendering, and tests.
+These APIs are exposed through:
+
+```bash
+changegate graph summary --plan tfplan.json
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
+changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
+changegate graph export --plan tfplan.json --format json
+```
+
+`summary`, `path`, and `exposure` render human-readable output by default and support `--format json` for automation. `export` writes the full graph and requires `--format json`.
 
 ## AWS Coverage
 

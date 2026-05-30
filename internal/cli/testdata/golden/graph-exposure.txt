@@ -1,0 +1,13 @@
+Exposure: HIGH
+
+Public entrypoints:
+  aws_lb.admin
+
+Reachable workloads:
+  aws_ecs_service.admin
+
+Sensitive downstream assets:
+  aws_db_instance.customer
+
+Top path:
+  internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
