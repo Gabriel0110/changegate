@@ -74,6 +74,11 @@ The GitLab review command uses `GITLAB_TOKEN`, `CI_API_V4_URL`, `CI_PROJECT_ID`,
 
 Examples are available in [../examples/ci](../examples/ci):
 
+* GitHub comment-only: sticky PR review without SARIF upload.
+* GitHub SARIF and annotations: sticky PR review, workflow annotations, SARIF, and audit bundle.
+* GitLab Code Quality and MR note: native Code Quality widget plus sticky merge request note.
+* Audit-only rollout: non-blocking review mode for first adoption.
+* Blocking rollout: default enforcement mode with review artifacts.
 * CircleCI: publish JUnit and Markdown artifacts.
 * Buildkite: use GitHub-style annotation output or upload Markdown artifacts.
 * Jenkins: publish JUnit XML and archive Markdown/JSON artifacts.

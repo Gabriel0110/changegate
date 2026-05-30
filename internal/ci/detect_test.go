@@ -71,14 +71,14 @@ func TestSnippets(t *testing.T) {
 	t.Parallel()
 
 	github := GitHubWorkflow(SnippetOptions{WorkingDirectory: "infra/prod", PlanPath: "tfplan.json", AuditFirst: true})
-	for _, want := range []string{"infrastructure-risk", "changegate scan --plan tfplan.json --mode audit", "upload-sarif"} {
+	for _, want := range []string{"infrastructure-risk", "pull-requests: write", "changegate scan --plan tfplan.json --mode audit", "changegate review github", "upload-sarif", "changegate-audit.zip"} {
 		if !strings.Contains(github, want) {
 			t.Fatalf("GitHub snippet missing %q:\n%s", want, github)
 		}
 	}
 
 	gitlab := GitLabCI(SnippetOptions{WorkingDirectory: "infra/prod"})
-	for _, want := range []string{"gl-code-quality-report.json", "changegate.junit.xml", "terraform show -json"} {
+	for _, want := range []string{"changegate.json", "gl-code-quality-report.json", "changegate review gitlab", "changegate.junit.xml", "terraform show -json"} {
 		if !strings.Contains(gitlab, want) {
 			t.Fatalf("GitLab snippet missing %q:\n%s", want, gitlab)
 		}

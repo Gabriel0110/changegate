@@ -44,7 +44,7 @@ jobs:
           changegate scan --plan tfplan.json --format sarif --out changegate.sarif || true
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
       - name: Post ChangeGate review
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         working-directory: infra
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -54,7 +54,7 @@ jobs:
             --comment \
             --annotations \
             --step-summary \
-            --artifact "Audit bundle=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            --artifact "Audit bundle=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
       - name: Upload SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@4c50b6f6fd9dc6fe03111c2d045c8be2a724cce1 # v3.28.11

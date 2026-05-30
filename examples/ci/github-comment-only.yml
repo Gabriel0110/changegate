@@ -1,4 +1,4 @@
-name: infrastructure-risk
+name: changegate-review
 
 on:
   pull_request:
@@ -9,7 +9,6 @@ permissions:
   contents: read
   pull-requests: write
   issues: write
-  security-events: write
 
 jobs:
   changegate:
@@ -17,12 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: hashicorp/setup-terraform@v3
-      - name: Terraform plan
-        working-directory: infra
-        run: |
-          terraform init
-          terraform plan -out=tfplan
-          terraform show -json tfplan > tfplan.json
       - name: Install ChangeGate
         env:
           CHANGEGATE_VERSION: vX.Y.Z
@@ -30,17 +23,22 @@ jobs:
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
           bash /tmp/install-changegate.sh
-          echo "${CHANGEGATE_INSTALL_DIR}" >> "${GITHUB_PATH}"
+          echo "$CHANGEGATE_INSTALL_DIR" >> "$GITHUB_PATH"
+      - name: Terraform plan
+        working-directory: infra
+        run: |
+          terraform init
+          terraform plan -out=tfplan
+          terraform show -json tfplan > tfplan.json
       - name: ChangeGate scan
         id: changegate
         working-directory: infra
         run: |
           status=0
           changegate scan --plan tfplan.json --format json --out changegate.json --audit-bundle changegate-audit.zip || status=$?
-          changegate scan --plan tfplan.json --format sarif --out changegate.sarif || true
           echo "exit_code=$status" >> "$GITHUB_OUTPUT"
       - name: Post ChangeGate review
-        if: always() && github.event_name == 'pull_request'
+        if: always()
         working-directory: infra
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -48,14 +46,7 @@ jobs:
           changegate review github \
             --report changegate.json \
             --comment \
-            --annotations \
-            --step-summary \
             --artifact "Audit bundle=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" || true
-      - name: Upload SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@4c50b6f6fd9dc6fe03111c2d045c8be2a724cce1 # v3.28.11
-        with:
-          sarif_file: infra/changegate.sarif
       - name: Upload audit bundle
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
