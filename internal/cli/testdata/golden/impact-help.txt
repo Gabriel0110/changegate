@@ -1,0 +1,36 @@
+Generate a Security Impact Statement from the same plan, policy,
+baseline, waiver, import, and cloud-context inputs used by changegate scan.
+
+Usage:
+  changegate impact --plan tfplan.json [flags]
+
+Flags:
+      --audit-bundle string          write a deterministic impact evidence bundle zip to this path
+      --baseline string              baseline file used to classify and suppress existing findings
+      --branch string                branch name for branch-specific policy thresholds
+      --cloud-context string         optional cloud context provider: aws
+      --context-file string          offline cloud context snapshot file
+      --fail-on-import-error         fail when an external scanner output cannot be imported
+  -h, --help                         help for impact
+      --import-checkov stringArray   import Checkov JSON findings as external evidence; repeatable
+      --import-grype stringArray     import Grype JSON findings as external evidence; repeatable
+      --import-json stringArray      import generic ChangeGate JSON findings as external evidence; repeatable
+      --import-kics stringArray      import KICS JSON findings as external evidence; repeatable
+      --import-sarif stringArray     import SARIF 2.1.0 findings as external evidence; repeatable
+      --import-trivy stringArray     import Trivy JSON findings as external evidence; repeatable
+      --max-findings int             maximum findings to include in the impact statement; 0 uses the default
+      --max-paths int                maximum graph and attack paths to include; 0 uses the default
+      --new-only                     only enforce findings not present in the baseline unless existing risk worsened
+      --plan stringArray             path to Terraform/OpenTofu plan JSON produced by show -json; repeat for multiple plans
+      --timeout string               overall impact analysis timeout such as 30s, 2m, or 5m
+
+Global Flags:
+      --cache-dir string   cache directory for policy packs and cloud context
+      --debug              enable debug diagnostics without secrets
+      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle (default "table")
+      --mode string        enforcement mode: block, warn, audit (default "block")
+      --no-color           disable ANSI color output
+      --out string         write output to a file
+      --policy string      path to .changegate.yaml policy file
+      --quiet              suppress non-essential human output
+      --verbose            enable informational diagnostics

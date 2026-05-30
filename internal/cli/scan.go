@@ -94,38 +94,8 @@ applies policy thresholds, and emits terminal or CI-friendly output.`,
 				return writeJSON(state.renderer.out, graphpkg.Build(plan))
 			}
 
-			policyConfig, selection, registry, err := loadPolicyForScan(state.opts)
+			report, err := buildScanReport(cmd, state, scanOpts)
 			if err != nil {
-				return err
-			}
-			if err := applyBaselineOptions(&policyConfig, scanOpts.baselinePath, scanOpts.newOnly); err != nil {
-				return err
-			}
-			if scanOpts.changedOnly {
-				policyConfig.ChangedResourcesOnly = true
-			}
-			scanCtx, cancel, err := scanContext(cmd.Context(), scanOpts.timeout)
-			if err != nil {
-				return err
-			}
-			defer cancel()
-			contextSnapshot, contextDiagnostics, err := loadCloudContext(state.opts.cacheDir, scanOpts.cloudContext, scanOpts.contextFile)
-			if err != nil {
-				return err
-			}
-			imports := scanImportRequests(scanOpts)
-			report, err := scanPlans(scanCtx, state.stdin, scanOpts.planPaths, scanOpts.branch, state.opts, registry, selection, policyConfig, contextSnapshot, imports, scanOpts.failImport)
-			if err != nil {
-				return err
-			}
-			if err := scanCtx.Err(); err != nil && scanOpts.timeout != "" {
-				return inputError(fmt.Sprintf("scan timed out after %s", scanOpts.timeout), "Increase --timeout or reduce scan scope.")
-			}
-			report.Diagnostics = append(report.Diagnostics, contextDiagnostics...)
-			if err := limitReportFindings(&report, scanOpts.maxFindings); err != nil {
-				return err
-			}
-			if err := attachAuditEvidence(&report, scanOpts, state.opts, contextSnapshot); err != nil {
 				return err
 			}
 			if report.Decision == model.DecisionBlock {
@@ -161,6 +131,50 @@ applies policy thresholds, and emits terminal or CI-friendly output.`,
 	cmd.Flags().IntVar(&scanOpts.maxFindings, "max-findings", 0, "maximum findings to include in output; 0 includes all findings")
 	cmd.Flags().BoolVar(&scanOpts.changedOnly, "changed-only", false, "only enforce findings on resources changed by the plan")
 	return cmd
+}
+
+func buildScanReport(cmd *cobra.Command, state *appState, scanOpts *scanOptions) (output.Report, error) {
+	if len(scanOpts.planPaths) == 0 {
+		return output.Report{}, usageError("missing required --plan path", "Generate plan JSON with terraform show -json tfplan > tfplan.json, then run changegate scan --plan tfplan.json.")
+	}
+	if err := prepareCache(state.opts.cacheDir); err != nil {
+		return output.Report{}, err
+	}
+	policyConfig, selection, registry, err := loadPolicyForScan(state.opts)
+	if err != nil {
+		return output.Report{}, err
+	}
+	if err := applyBaselineOptions(&policyConfig, scanOpts.baselinePath, scanOpts.newOnly); err != nil {
+		return output.Report{}, err
+	}
+	if scanOpts.changedOnly {
+		policyConfig.ChangedResourcesOnly = true
+	}
+	scanCtx, cancel, err := scanContext(cmd.Context(), scanOpts.timeout)
+	if err != nil {
+		return output.Report{}, err
+	}
+	defer cancel()
+	contextSnapshot, contextDiagnostics, err := loadCloudContext(state.opts.cacheDir, scanOpts.cloudContext, scanOpts.contextFile)
+	if err != nil {
+		return output.Report{}, err
+	}
+	imports := scanImportRequests(scanOpts)
+	report, err := scanPlans(scanCtx, state.stdin, scanOpts.planPaths, scanOpts.branch, state.opts, registry, selection, policyConfig, contextSnapshot, imports, scanOpts.failImport)
+	if err != nil {
+		return output.Report{}, err
+	}
+	if err := scanCtx.Err(); err != nil && scanOpts.timeout != "" {
+		return output.Report{}, inputError(fmt.Sprintf("scan timed out after %s", scanOpts.timeout), "Increase --timeout or reduce scan scope.")
+	}
+	report.Diagnostics = append(report.Diagnostics, contextDiagnostics...)
+	if err := limitReportFindings(&report, scanOpts.maxFindings); err != nil {
+		return output.Report{}, err
+	}
+	if err := attachAuditEvidence(&report, scanOpts, state.opts, contextSnapshot); err != nil {
+		return output.Report{}, err
+	}
+	return report, nil
 }
 
 func scanImportRequests(opts *scanOptions) []adapters.ImportRequest {

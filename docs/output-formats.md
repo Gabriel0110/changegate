@@ -16,6 +16,9 @@ changegate scan --plan tfplan.json --format gitlab-code-quality --out gl-code-qu
 changegate scan --plan tfplan.json --format pr-comment --out changegate-pr-comment.md
 changegate scan --plan tfplan.json --format audit-bundle --out changegate-audit.zip
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip --format json --out changegate.json
+changegate impact --plan tfplan.json --format markdown --out impact.md
+changegate impact --plan tfplan.json --format json --out impact.json
+changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 ```
 
 ## Canonical JSON
@@ -34,6 +37,21 @@ changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip --format 
 * optional run metadata with CLI version, policy pack versions, plan/config digests, redaction status, and compliance mapping metadata
 
 All finding evidence is normalized through the model redaction path before rendering. Sensitive evidence values are emitted as `(sensitive)`.
+
+## Security Impact Statement
+
+`changegate impact` emits a canonical Security Impact Statement derived from the same scan report used by `changegate scan`.
+
+Supported impact formats:
+
+* `--format markdown` for pull requests, merge requests, and approval workflows
+* `--format json` for automation and archival
+
+The impact audit bundle is deterministic and contains:
+
+* `changegate-impact/impact-statement.json`
+* `changegate-impact/impact-statement.md`
+* `changegate-impact/scan-report.json`
 
 ## SARIF
 

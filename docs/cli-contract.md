@@ -31,6 +31,12 @@ changegate scan --plan tfplan.json --context-file .changegate/aws-context.json
 changegate scan --plan tfplan.json --import-sarif checkov.sarif --import-trivy trivy.json
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip
 changegate scan --plan tfplan.json --timeout 2m --max-findings 100 --changed-only
+changegate impact --plan tfplan.json --format markdown
+changegate impact --plan tfplan.json --format json
+changegate impact --plan dev.json --plan prod.json --format markdown --out impact.md
+changegate impact --plan tfplan.json --baseline .changegate/baseline.json --new-only
+changegate impact --plan tfplan.json --context-file .changegate/aws-context.json
+changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 ```
 
 ## Developer Commands

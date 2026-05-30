@@ -35,7 +35,15 @@ The active implementation cycle targets these commands:
 ```bash
 changegate impact --plan tfplan.json --format markdown
 changegate impact --plan tfplan.json --format json
+changegate impact --plan tfplan.json --baseline .changegate/baseline.json --new-only
+changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
+```
 
+`changegate impact` is available now. It reuses the same scan engine as `changegate scan`, including policy config, baselines, waivers, cloud context files, external scanner imports, and multi-plan input. Markdown is intended for pull requests and approval workflows; JSON is the stable machine contract.
+
+Planned commands still in progress:
+
+```bash
 changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin

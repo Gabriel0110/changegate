@@ -2,6 +2,10 @@
 package impact
 
 import (
+	"archive/zip"
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"sort"
 	"strconv"
 	"strings"
@@ -46,6 +50,124 @@ type Options struct {
 	TopFindingsLimit   int
 	TopGraphPathsLimit int
 	AttackPathsLimit   int
+}
+
+// RenderJSON renders a canonical impact statement JSON document.
+func RenderJSON(statement Statement) ([]byte, error) {
+	return json.MarshalIndent(statement, "", "  ")
+}
+
+// RenderMarkdown renders a human-readable Security Impact Statement.
+func RenderMarkdown(statement Statement) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "# Security Impact Statement\n\n")
+	fmt.Fprintf(&b, "Decision: %s\n", strings.ToUpper(string(statement.Decision)))
+	if statement.ReviewRequired {
+		b.WriteString("Review required: Yes\n\n")
+	} else {
+		b.WriteString("Review required: No\n\n")
+	}
+
+	b.WriteString("This change introduces:\n")
+	fmt.Fprintf(&b, "- %d public entrypoint%s\n", statement.Summary.PublicEntrypointsAdded, plural(statement.Summary.PublicEntrypointsAdded))
+	fmt.Fprintf(&b, "- %d sensitive asset%s touched\n", statement.Summary.SensitiveAssetsTouched, plural(statement.Summary.SensitiveAssetsTouched))
+	fmt.Fprintf(&b, "- %d IAM permission change%s\n", statement.Summary.IAMPermissionChanges, plural(statement.Summary.IAMPermissionChanges))
+	fmt.Fprintf(&b, "- %d network path change%s\n", statement.Summary.NetworkPathChanges, plural(statement.Summary.NetworkPathChanges))
+	fmt.Fprintf(&b, "- %d data path change%s\n", statement.Summary.DataPathChanges, plural(statement.Summary.DataPathChanges))
+	fmt.Fprintf(&b, "- %d active waiver%s\n\n", statement.Waivers.Active, plural(statement.Waivers.Active))
+
+	fmt.Fprintf(&b, "## Risk Movement\n\n")
+	fmt.Fprintf(&b, "| Metric | Count |\n| --- | ---: |\n")
+	fmt.Fprintf(&b, "| New critical risks | %d |\n", statement.RiskMovement.NewCritical)
+	fmt.Fprintf(&b, "| New high risks | %d |\n", statement.RiskMovement.NewHigh)
+	fmt.Fprintf(&b, "| New medium risks | %d |\n", statement.RiskMovement.NewMedium)
+	fmt.Fprintf(&b, "| Existing unchanged risks | %d |\n", statement.RiskMovement.ExistingUnchanged)
+	fmt.Fprintf(&b, "| Existing worsened risks | %d |\n", statement.RiskMovement.ExistingWorsened)
+	fmt.Fprintf(&b, "| Existing improved risks | %d |\n", statement.RiskMovement.ExistingImproved)
+	fmt.Fprintf(&b, "| Resolved high risks | %d |\n\n", statement.RiskMovement.ResolvedHigh)
+
+	if len(statement.TopGraphPaths) > 0 {
+		fmt.Fprintf(&b, "## Top Graph Paths\n\n")
+		for _, path := range statement.TopGraphPaths {
+			fmt.Fprintf(&b, "- `%s`: %s\n", path.Resource, strings.Join(path.Path, " -> "))
+		}
+		b.WriteString("\n")
+	}
+
+	if len(statement.AttackPaths) > 0 {
+		fmt.Fprintf(&b, "## Attack Paths\n\n")
+		for _, path := range statement.AttackPaths {
+			fmt.Fprintf(&b, "- `%s` `%s/%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Title)
+			for _, step := range path.Steps {
+				fmt.Fprintf(&b, "  - %s\n", step)
+			}
+		}
+		b.WriteString("\n")
+	}
+
+	if len(statement.TopFindings) > 0 {
+		fmt.Fprintf(&b, "## Top Findings\n\n")
+		for _, finding := range statement.TopFindings {
+			fmt.Fprintf(&b, "- `%s` `%s/%s` %s on `%s`\n", finding.RuleID, finding.Severity, finding.Confidence, finding.Title, finding.ResourceAddress)
+		}
+		b.WriteString("\n")
+	}
+
+	if len(statement.RequiredReviewers) > 0 {
+		fmt.Fprintf(&b, "## Required Review\n\n")
+		for _, reviewer := range statement.RequiredReviewers {
+			fmt.Fprintf(&b, "- `%s`: %s\n", reviewer.Reviewer, reviewer.Reason)
+		}
+	}
+
+	return b.String()
+}
+
+func plural(count int) string {
+	if count == 1 {
+		return ""
+	}
+	return "s"
+}
+
+// RenderAuditBundle renders a deterministic ZIP containing impact evidence.
+func RenderAuditBundle(statement Statement, report output.Report) ([]byte, error) {
+	statementJSON, err := RenderJSON(statement)
+	if err != nil {
+		return nil, err
+	}
+	reportJSON, err := output.RenderJSON(report)
+	if err != nil {
+		return nil, err
+	}
+	files := map[string][]byte{
+		"changegate-impact/impact-statement.json": statementJSON,
+		"changegate-impact/impact-statement.md":   []byte(RenderMarkdown(statement)),
+		"changegate-impact/scan-report.json":      reportJSON,
+	}
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	var buf bytes.Buffer
+	zw := zip.NewWriter(&buf)
+	for _, name := range names {
+		header := &zip.FileHeader{Name: name, Method: zip.Deflate}
+		header.Modified = time.Unix(0, 0).UTC()
+		writer, err := zw.CreateHeader(header)
+		if err != nil {
+			return nil, err
+		}
+		if _, err := writer.Write(files[name]); err != nil {
+			return nil, err
+		}
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // Statement is the canonical Security Impact Statement model.

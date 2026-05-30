@@ -43,6 +43,20 @@ func TestGoldenOutput(t *testing.T) {
 			wantCode: exitAllowed,
 			stream:   "stdout",
 		},
+		{
+			name:     "impact help",
+			args:     []string{"impact", "--help"},
+			golden:   "impact-help.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
+			name:     "impact markdown",
+			args:     []string{"--no-color", "--format", "markdown", "impact", "--plan", "../input/testdata/terraform-plan.json"},
+			golden:   "impact-markdown.md",
+			wantCode: exitBlocked,
+			stream:   "stdout",
+		},
 	}
 
 	for _, tt := range tests {
@@ -139,6 +153,95 @@ func TestJSONSuccessOutputIsValid(t *testing.T) {
 		t.Fatalf("stderr = %q, want empty", stderr)
 	}
 	assertValidJSON(t, stdout)
+}
+
+func TestImpactJSONOutputIsStableAndRoundTrips(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "impact", "--plan", "../input/testdata/terraform-plan.json", "--max-findings", "1", "--max-paths", "1")
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var statement struct {
+		Version     int    `json:"version"`
+		Decision    string `json:"decision"`
+		TopFindings []any  `json:"top_findings"`
+		Source      struct {
+			Plan struct {
+				Path string `json:"path"`
+			} `json:"plan"`
+		} `json:"source"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &statement); err != nil {
+		t.Fatalf("invalid impact JSON: %v\n%s", err, stdout)
+	}
+	if statement.Version != 1 || statement.Decision != "block" || statement.Source.Plan.Path != "../input/testdata/terraform-plan.json" {
+		t.Fatalf("unexpected impact statement: %#v", statement)
+	}
+	if len(statement.TopFindings) != 1 {
+		t.Fatalf("top findings = %d, want 1", len(statement.TopFindings))
+	}
+}
+
+func TestImpactMultiPlanAndAuditBundle(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	bundlePath := filepath.Join(tempDir, "impact-audit.zip")
+	stdout, stderr, code := runCLI(
+		"--format", "json",
+		"impact",
+		"--plan", "../input/testdata/terraform-plan.json",
+		"--plan", "../input/testdata/opentofu-plan.json",
+		"--audit-bundle", bundlePath,
+		"--max-findings", "2",
+	)
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var statement struct {
+		Summary struct {
+			PlansScanned int `json:"plans_scanned"`
+		} `json:"summary"`
+		Source struct {
+			Plan struct {
+				Path string `json:"path"`
+			} `json:"plan"`
+		} `json:"source"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &statement); err != nil {
+		t.Fatalf("invalid impact JSON: %v\n%s", err, stdout)
+	}
+	if statement.Summary.PlansScanned != 2 || statement.Source.Plan.Path != "multiple" {
+		t.Fatalf("unexpected multi-plan statement: %#v", statement)
+	}
+	body, err := os.ReadFile(bundlePath)
+	if err != nil {
+		t.Fatalf("read impact audit bundle: %v", err)
+	}
+	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
+	if err != nil {
+		t.Fatalf("open impact audit bundle: %v", err)
+	}
+	names := make([]string, 0, len(reader.File))
+	for _, file := range reader.File {
+		names = append(names, file.Name)
+	}
+	sort.Strings(names)
+	want := []string{
+		"changegate-impact/impact-statement.json",
+		"changegate-impact/impact-statement.md",
+		"changegate-impact/scan-report.json",
+	}
+	if strings.Join(names, "\n") != strings.Join(want, "\n") {
+		t.Fatalf("bundle files = %v, want %v", names, want)
+	}
 }
 
 func TestScanParsesPlanFile(t *testing.T) {
