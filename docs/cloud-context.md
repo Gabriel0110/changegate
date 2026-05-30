@@ -37,9 +37,11 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 ## Snapshot schema
 
+Cloud context snapshots use schema version 2. The supported JSON Schema is published in [`schemas/cloud-context.schema.json`](../schemas/cloud-context.schema.json). Version 1 snapshots are not accepted; regenerate old snapshots with the current CLI or inventory job.
+
 ```json
 {
-  "version": 1,
+  "version": 2,
   "provider": "aws",
   "generated_at": "2026-05-29T00:00:00Z",
   "account": {
@@ -56,24 +58,90 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
     "secrets_manager": true,
     "eks": true
   },
-  "resources": {
-    "aws_lb.edge": {
-      "address": "aws_lb.edge",
-      "region": "us-east-1",
-      "compensating_controls": ["expected_public_tls_edge"]
-    },
-    "aws_lb.public": {
-      "address": "aws_lb.public",
-      "related_sensitive_data": ["aws_db_instance.customer"],
-      "drift": {
-        "publicly_accessible": "actual true, plan false"
+  "edge": {
+    "resources": {
+      "aws_lb.edge": {
+        "terraform_address": "aws_lb.edge",
+        "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/edge/abc123",
+        "account_id": "123456789012",
+        "type": "aws_lb",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "edge"
+        },
+        "public": true,
+        "compensating_controls": ["expected_public_tls_edge"]
       }
     }
-  }
+  },
+  "data": {
+    "resources": {
+      "aws_db_instance.customer": {
+        "terraform_address": "aws_db_instance.customer",
+        "arn": "arn:aws:rds:us-east-1:123456789012:db:customer",
+        "type": "aws_db_instance",
+        "region": "us-east-1",
+        "sensitivity": {
+          "data": true,
+          "reason": "customer data"
+        },
+        "deletion_protection": true
+      }
+    }
+  },
+  "network": {
+    "resources": {
+      "aws_security_group.admin": {
+        "terraform_address": "aws_security_group.admin",
+        "id": "sg-1234567890abcdef0",
+        "type": "aws_security_group",
+        "region": "us-east-1",
+        "drift": {
+          "ingress": "actual allows 0.0.0.0/0"
+        }
+      }
+    }
+  },
+  "relationships": [
+    {
+      "from": "aws_lb.edge",
+      "to": "aws_db_instance.customer",
+      "type": "network_reaches",
+      "source": "aws-elbv2+ec2",
+      "confidence": "high"
+    },
+    {
+      "from": "aws_security_group.admin",
+      "to": "aws_db_instance.customer",
+      "type": "protects",
+      "source": "ec2",
+      "confidence": "high"
+    }
+  ]
 }
 ```
 
-Resource entries are keyed by Terraform/OpenTofu address. Sensitive tag values and sensitive-looking string fields are redacted on load.
+Top-level resource domains are:
+
+* `network`: VPCs, subnets, route tables, security groups, route targets, and related reachability inventory.
+* `iam`: principals, trust policies, permission policies, role attachments, and high-signal permission summaries.
+* `data`: RDS, S3, Secrets Manager, KMS, OpenSearch, ElastiCache, and other sensitive data assets.
+* `compute`: ECS, EKS, Lambda, EC2, task definitions, instance profiles, and workload identity.
+* `edge`: ALB/NLB, CloudFront, API Gateway, public DNS, public IPs, and other entrypoints.
+
+Resource entries are keyed by Terraform/OpenTofu address when available. Enrichment also indexes `terraform_address`, `arn`, `id`, selected known attributes such as `name` and `resource_id`, and selected tags such as `Name` and `terraform_address`. Sensitive tag values, sensitive-looking map values, drift values, and relationship source values are redacted on load/write.
+
+Relationships use a uniform edge shape:
+
+```json
+{
+  "from": "aws_lb.edge",
+  "to": "aws_ecs_service.admin",
+  "type": "routes_to",
+  "source": "aws-elbv2",
+  "confidence": "high"
+}
+```
 
 ## Enrichment behavior
 

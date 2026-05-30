@@ -120,8 +120,8 @@ func BenchmarkCloudContextCacheLoad(b *testing.B) {
 		if err != nil {
 			b.Fatalf("load cached snapshot: %v", err)
 		}
-		if len(loaded.Resources) != len(snapshot.Resources) {
-			b.Fatalf("resources = %d, want %d", len(loaded.Resources), len(snapshot.Resources))
+		if len(loaded.Data.Resources) != len(snapshot.Data.Resources) {
+			b.Fatalf("resources = %d, want %d", len(loaded.Data.Resources), len(snapshot.Data.Resources))
 		}
 	}
 }

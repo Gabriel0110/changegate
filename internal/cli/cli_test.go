@@ -1072,7 +1072,7 @@ func TestCloudContextCommandsAndScanEnrichment(t *testing.T) {
 		t.Fatalf("snapshot output missing no-network guarantee:\n%s", stdout)
 	}
 	body := `{
-  "version": 1,
+  "version": 2,
   "provider": "aws",
   "generated_at": "2026-05-29T00:00:00Z",
   "account": {"id": "123456789012"},
@@ -1087,12 +1087,14 @@ func TestCloudContextCommandsAndScanEnrichment(t *testing.T) {
     "secrets_manager": true,
     "eks": true
   },
-  "resources": {
-    "aws_s3_bucket.logs": {
-      "address": "aws_s3_bucket.logs",
-      "region": "us-east-1",
-      "related_sensitive_data": ["aws_db_instance.customer"],
-      "drift": {"logging": "actual disabled"}
+  "data": {
+    "resources": {
+      "aws_s3_bucket.logs": {
+        "terraform_address": "aws_s3_bucket.logs",
+        "region": "us-east-1",
+        "related_sensitive_data": ["aws_db_instance.customer"],
+        "drift": {"logging": "actual disabled"}
+      }
     }
   }
 }`
@@ -1137,7 +1139,7 @@ func TestCloudContextCacheAndDisabledNoNetwork(t *testing.T) {
 	if err := os.MkdirAll(filepath.Dir(cachePath), 0o755); err != nil {
 		t.Fatalf("mkdir cache: %v", err)
 	}
-	if err := os.WriteFile(cachePath, []byte(`{"version":1,"provider":"aws","generated_at":"2026-05-29T00:00:00Z","account":{"id":"123"},"resources":{}}`), 0o644); err != nil {
+	if err := os.WriteFile(cachePath, []byte(`{"version":2,"provider":"aws","generated_at":"2026-05-29T00:00:00Z","account":{"id":"123"}}`), 0o644); err != nil {
 		t.Fatalf("write cache: %v", err)
 	}
 	stdout, stderr, code = runCLI("--format", "json", "--cache-dir", cacheDir, "scan", "--plan", "../input/testdata/terraform-plan.json", "--cloud-context", "aws")

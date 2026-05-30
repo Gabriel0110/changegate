@@ -1,0 +1,114 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://changegate.dev/schemas/cloud-context.schema.json",
+  "title": "ChangeGate AWS Cloud Context Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "provider", "generated_at", "account"],
+  "properties": {
+    "version": { "const": 2 },
+    "provider": { "const": "aws" },
+    "generated_at": { "type": "string", "format": "date-time" },
+    "account": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string" },
+        "arn": { "type": "string" },
+        "alias": { "type": "string" }
+      }
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["name", "enabled"],
+        "properties": {
+          "name": { "type": "string" },
+          "enabled": { "type": "boolean" }
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": { "type": "boolean" },
+        "network": { "type": "boolean" },
+        "security_groups": { "type": "boolean" },
+        "iam": { "type": "boolean" },
+        "s3": { "type": "boolean" },
+        "rds": { "type": "boolean" },
+        "kms": { "type": "boolean" },
+        "secrets_manager": { "type": "boolean" },
+        "eks": { "type": "boolean" }
+      }
+    },
+    "network": { "$ref": "#/$defs/resource_set" },
+    "iam": { "$ref": "#/$defs/resource_set" },
+    "data": { "$ref": "#/$defs/resource_set" },
+    "compute": { "$ref": "#/$defs/resource_set" },
+    "edge": { "$ref": "#/$defs/resource_set" },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["from", "to", "type"],
+        "properties": {
+          "from": { "type": "string" },
+          "to": { "type": "string" },
+          "type": { "type": "string" },
+          "source": { "type": "string" },
+          "confidence": { "type": "string", "enum": ["low", "medium", "high"] }
+        }
+      }
+    },
+    "diagnostics": { "type": "array" }
+  },
+  "$defs": {
+    "resource_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resources": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/resource" }
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "terraform_address": { "type": "string" },
+        "arn": { "type": "string" },
+        "id": { "type": "string" },
+        "account_id": { "type": "string" },
+        "type": { "type": "string" },
+        "region": { "type": "string" },
+        "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+        "sensitivity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "data": { "type": "boolean" },
+            "reason": { "type": "string" }
+          }
+        },
+        "attributes": { "type": "object", "additionalProperties": { "type": "string" } },
+        "public": { "type": "boolean" },
+        "encryption_enabled": { "type": "boolean" },
+        "public_access_blocked": { "type": "boolean" },
+        "deletion_protection": { "type": "boolean" },
+        "endpoint_public_access": { "type": "boolean" },
+        "sensitive_data": { "type": "boolean" },
+        "related_sensitive_data": { "type": "array", "items": { "type": "string" } },
+        "compensating_controls": { "type": "array", "items": { "type": "string" } },
+        "observed_policy_actions": { "type": "array", "items": { "type": "string" } },
+        "drift": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

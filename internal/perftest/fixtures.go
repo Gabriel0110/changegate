@@ -107,7 +107,7 @@ func CloudSnapshot(plan *model.Plan) cloudcontext.Snapshot {
 	for _, resource := range plan.Resources {
 		falseValue := false
 		resources[resource.Address] = cloudcontext.Resource{
-			Address:             resource.Address,
+			TerraformAddress:    resource.Address,
 			Type:                resource.Type,
 			Region:              "us-east-1",
 			EncryptionEnabled:   &falseValue,
@@ -120,6 +120,6 @@ func CloudSnapshot(plan *model.Plan) cloudcontext.Snapshot {
 		Provider:    cloudcontext.ProviderAWS,
 		GeneratedAt: "2026-05-30T00:00:00Z",
 		Account:     cloudcontext.Account{ID: "123456789012"},
-		Resources:   resources,
+		Data:        cloudcontext.ResourceSet{Resources: resources},
 	}
 }

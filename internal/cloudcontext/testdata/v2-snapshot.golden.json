@@ -1,0 +1,49 @@
+{
+  "version": 2,
+  "provider": "aws",
+  "generated_at": "2026-05-29T00:00:00Z",
+  "account": {
+    "id": "123456789012"
+  },
+  "network": {
+    "resources": {
+      "aws_security_group.admin": {
+        "terraform_address": "aws_security_group.admin",
+        "arn": "arn:aws:ec2:us-east-1:123456789012:security-group/sg-123",
+        "id": "sg-123",
+        "account_id": "123456789012",
+        "type": "aws_security_group",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "admin-sg",
+          "token": "(sensitive)"
+        },
+        "public": true
+      }
+    }
+  },
+  "data": {
+    "resources": {
+      "aws_db_instance.customer": {
+        "terraform_address": "aws_db_instance.customer",
+        "arn": "arn:aws:rds:us-east-1:123456789012:db:customer",
+        "type": "aws_db_instance",
+        "region": "us-east-1",
+        "sensitivity": {
+          "data": true,
+          "reason": "customer records"
+        },
+        "sensitive_data": true
+      }
+    }
+  },
+  "relationships": [
+    {
+      "from": "aws_security_group.admin",
+      "to": "aws_db_instance.customer",
+      "type": "network_reaches",
+      "source": "ec2",
+      "confidence": "high"
+    }
+  ]
+}

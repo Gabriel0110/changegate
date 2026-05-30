@@ -15,21 +15,73 @@ import (
 
 const (
 	// Version is the current cloud context snapshot version.
-	Version = 1
+	Version = 2
 	// ProviderAWS is the AWS cloud context provider name.
 	ProviderAWS = "aws"
 )
 
 // Snapshot is an offline, redacted cloud context file.
 type Snapshot struct {
-	Version      int                 `json:"version"`
-	Provider     string              `json:"provider"`
-	GeneratedAt  string              `json:"generated_at"`
-	Account      Account             `json:"account"`
-	Regions      []Region            `json:"regions,omitempty"`
-	Capabilities Capabilities        `json:"capabilities,omitempty"`
-	Resources    map[string]Resource `json:"resources,omitempty"`
-	Diagnostics  []model.Diagnostic  `json:"diagnostics,omitempty"`
+	Version       int                `json:"version"`
+	Provider      string             `json:"provider"`
+	GeneratedAt   string             `json:"generated_at"`
+	Account       Account            `json:"account"`
+	Regions       []Region           `json:"regions,omitempty"`
+	Capabilities  Capabilities       `json:"capabilities,omitempty"`
+	Network       ResourceSet        `json:"network,omitempty"`
+	IAM           ResourceSet        `json:"iam,omitempty"`
+	Data          ResourceSet        `json:"data,omitempty"`
+	Compute       ResourceSet        `json:"compute,omitempty"`
+	Edge          ResourceSet        `json:"edge,omitempty"`
+	Relationships []Relationship     `json:"relationships,omitempty"`
+	Diagnostics   []model.Diagnostic `json:"diagnostics,omitempty"`
+}
+
+// MarshalJSON emits compact v2 snapshots by omitting empty domain sections.
+func (s Snapshot) MarshalJSON() ([]byte, error) {
+	type snapshotJSON struct {
+		Version       int                `json:"version"`
+		Provider      string             `json:"provider"`
+		GeneratedAt   string             `json:"generated_at"`
+		Account       Account            `json:"account"`
+		Regions       []Region           `json:"regions,omitempty"`
+		Capabilities  *Capabilities      `json:"capabilities,omitempty"`
+		Network       *ResourceSet       `json:"network,omitempty"`
+		IAM           *ResourceSet       `json:"iam,omitempty"`
+		Data          *ResourceSet       `json:"data,omitempty"`
+		Compute       *ResourceSet       `json:"compute,omitempty"`
+		Edge          *ResourceSet       `json:"edge,omitempty"`
+		Relationships []Relationship     `json:"relationships,omitempty"`
+		Diagnostics   []model.Diagnostic `json:"diagnostics,omitempty"`
+	}
+	out := snapshotJSON{
+		Version:       s.Version,
+		Provider:      s.Provider,
+		GeneratedAt:   s.GeneratedAt,
+		Account:       s.Account,
+		Regions:       s.Regions,
+		Relationships: s.Relationships,
+		Diagnostics:   s.Diagnostics,
+	}
+	if !capabilitiesEmpty(s.Capabilities) {
+		out.Capabilities = &s.Capabilities
+	}
+	if !resourceSetEmpty(s.Network) {
+		out.Network = &s.Network
+	}
+	if !resourceSetEmpty(s.IAM) {
+		out.IAM = &s.IAM
+	}
+	if !resourceSetEmpty(s.Data) {
+		out.Data = &s.Data
+	}
+	if !resourceSetEmpty(s.Compute) {
+		out.Compute = &s.Compute
+	}
+	if !resourceSetEmpty(s.Edge) {
+		out.Edge = &s.Edge
+	}
+	return json.Marshal(out)
 }
 
 // Account describes non-secret account identity metadata.
@@ -58,12 +110,17 @@ type Capabilities struct {
 	EKS            bool `json:"eks"`
 }
 
-// Resource contains provider-specific resource context keyed by Terraform address.
+// Resource contains v2 provider resource identity and context.
 type Resource struct {
-	Address               string            `json:"address"`
+	TerraformAddress      string            `json:"terraform_address,omitempty"`
+	ARN                   string            `json:"arn,omitempty"`
+	ID                    string            `json:"id,omitempty"`
+	AccountID             string            `json:"account_id,omitempty"`
 	Type                  string            `json:"type,omitempty"`
 	Region                string            `json:"region,omitempty"`
 	Tags                  map[string]string `json:"tags,omitempty"`
+	Sensitivity           Sensitivity       `json:"sensitivity,omitempty"`
+	Attributes            map[string]string `json:"attributes,omitempty"`
 	Public                *bool             `json:"public,omitempty"`
 	EncryptionEnabled     *bool             `json:"encryption_enabled,omitempty"`
 	PublicAccessBlocked   *bool             `json:"public_access_blocked,omitempty"`
@@ -74,6 +131,75 @@ type Resource struct {
 	CompensatingControls  []string          `json:"compensating_controls,omitempty"`
 	ObservedPolicyActions []string          `json:"observed_policy_actions,omitempty"`
 	Drift                 map[string]string `json:"drift,omitempty"`
+}
+
+// MarshalJSON omits empty nested resource metadata.
+func (r Resource) MarshalJSON() ([]byte, error) {
+	type resourceJSON struct {
+		TerraformAddress      string            `json:"terraform_address,omitempty"`
+		ARN                   string            `json:"arn,omitempty"`
+		ID                    string            `json:"id,omitempty"`
+		AccountID             string            `json:"account_id,omitempty"`
+		Type                  string            `json:"type,omitempty"`
+		Region                string            `json:"region,omitempty"`
+		Tags                  map[string]string `json:"tags,omitempty"`
+		Sensitivity           *Sensitivity      `json:"sensitivity,omitempty"`
+		Attributes            map[string]string `json:"attributes,omitempty"`
+		Public                *bool             `json:"public,omitempty"`
+		EncryptionEnabled     *bool             `json:"encryption_enabled,omitempty"`
+		PublicAccessBlocked   *bool             `json:"public_access_blocked,omitempty"`
+		DeletionProtection    *bool             `json:"deletion_protection,omitempty"`
+		EndpointPublicAccess  *bool             `json:"endpoint_public_access,omitempty"`
+		SensitiveData         bool              `json:"sensitive_data,omitempty"`
+		RelatedSensitiveData  []string          `json:"related_sensitive_data,omitempty"`
+		CompensatingControls  []string          `json:"compensating_controls,omitempty"`
+		ObservedPolicyActions []string          `json:"observed_policy_actions,omitempty"`
+		Drift                 map[string]string `json:"drift,omitempty"`
+	}
+	out := resourceJSON{
+		TerraformAddress:      r.TerraformAddress,
+		ARN:                   r.ARN,
+		ID:                    r.ID,
+		AccountID:             r.AccountID,
+		Type:                  r.Type,
+		Region:                r.Region,
+		Tags:                  r.Tags,
+		Attributes:            r.Attributes,
+		Public:                r.Public,
+		EncryptionEnabled:     r.EncryptionEnabled,
+		PublicAccessBlocked:   r.PublicAccessBlocked,
+		DeletionProtection:    r.DeletionProtection,
+		EndpointPublicAccess:  r.EndpointPublicAccess,
+		SensitiveData:         r.SensitiveData,
+		RelatedSensitiveData:  r.RelatedSensitiveData,
+		CompensatingControls:  r.CompensatingControls,
+		ObservedPolicyActions: r.ObservedPolicyActions,
+		Drift:                 r.Drift,
+	}
+	if !sensitivityEmpty(r.Sensitivity) {
+		out.Sensitivity = &r.Sensitivity
+	}
+	return json.Marshal(out)
+}
+
+// ResourceSet groups live cloud resources by provider domain.
+type ResourceSet struct {
+	Resources map[string]Resource `json:"resources,omitempty"`
+}
+
+// Sensitivity describes whether a cloud resource should be treated as sensitive.
+type Sensitivity struct {
+	Data   bool   `json:"data,omitempty"`
+	Reason string `json:"reason,omitempty"`
+}
+
+// Relationship describes a v2 cloud-context edge with provenance.
+type Relationship struct {
+	From       string `json:"from"`
+	To         string `json:"to"`
+	Type       string `json:"type"`
+	Source     string `json:"source,omitempty"`
+	Confidence string `json:"confidence,omitempty"`
 }
 
 // Identity is safe AWS identity metadata detected from environment.
@@ -108,11 +234,7 @@ func Load(r io.Reader) (Snapshot, error) {
 	if snapshot.Provider != ProviderAWS {
 		return Snapshot{}, fmt.Errorf("unsupported context provider %q", snapshot.Provider)
 	}
-	for key, resource := range snapshot.Resources {
-		resource.Address = firstNonEmpty(resource.Address, key)
-		resource.Tags = redactTags(resource.Tags)
-		snapshot.Resources[key] = resource
-	}
+	Normalize(&snapshot)
 	return snapshot, nil
 }
 
@@ -124,9 +246,34 @@ func Write(w io.Writer, snapshot Snapshot) error {
 	if snapshot.Provider == "" {
 		snapshot.Provider = ProviderAWS
 	}
+	Normalize(&snapshot)
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(snapshot)
+}
+
+// Normalize redacts and sorts all cloud context fields in place.
+func Normalize(snapshot *Snapshot) {
+	if snapshot == nil {
+		return
+	}
+	if snapshot.Version == 0 {
+		snapshot.Version = Version
+	}
+	normalizeResourceSet(&snapshot.Network)
+	normalizeResourceSet(&snapshot.IAM)
+	normalizeResourceSet(&snapshot.Data)
+	normalizeResourceSet(&snapshot.Compute)
+	normalizeResourceSet(&snapshot.Edge)
+	for index, relationship := range snapshot.Relationships {
+		relationship.Source = redactValue("relationship.source", relationship.Source)
+		snapshot.Relationships[index] = relationship
+	}
+	sort.Slice(snapshot.Relationships, func(i int, j int) bool {
+		left := snapshot.Relationships[i]
+		right := snapshot.Relationships[j]
+		return left.From+"\x00"+left.To+"\x00"+left.Type < right.From+"\x00"+right.To+"\x00"+right.Type
+	})
 }
 
 // NewAWSSnapshot returns an empty redacted AWS snapshot with identity metadata.
@@ -145,8 +292,7 @@ func NewAWSSnapshot(identity Identity, now time.Time) Snapshot {
 		Account: Account{
 			ID: identity.AccountID,
 		},
-		Regions:   regions,
-		Resources: map[string]Resource{},
+		Regions: regions,
 		Diagnostics: []model.Diagnostic{{
 			Severity: model.DiagnosticWarning,
 			Code:     "CLOUD_CONTEXT_SNAPSHOT_EMPTY",
@@ -199,11 +345,13 @@ func ValidatePermissions(snapshot Snapshot) []model.Diagnostic {
 
 // EnrichFindings adds cloud-context evidence and context-driven severity changes.
 func EnrichFindings(findings []model.Finding, snapshot Snapshot) ([]model.Finding, []model.Diagnostic) {
+	Normalize(&snapshot)
 	out := make([]model.Finding, 0, len(findings))
 	diagnostics := append([]model.Diagnostic{}, snapshot.Diagnostics...)
+	resources := indexedResources(snapshot)
 	for _, finding := range findings {
 		current := model.NormalizeFinding(finding)
-		resource, ok := snapshot.Resources[current.ResourceAddress]
+		resource, ok := resources[current.ResourceAddress]
 		if !ok {
 			out = append(out, current)
 			continue
@@ -235,6 +383,58 @@ func EnrichFindings(findings []model.Finding, snapshot Snapshot) ([]model.Findin
 		out = append(out, model.NormalizeFinding(current))
 	}
 	return out, diagnostics
+}
+
+func indexedResources(snapshot Snapshot) map[string]Resource {
+	out := make(map[string]Resource)
+	for _, set := range []ResourceSet{snapshot.Network, snapshot.IAM, snapshot.Data, snapshot.Compute, snapshot.Edge} {
+		for key, resource := range set.Resources {
+			addResourceIndex(out, key, resource)
+		}
+	}
+	return out
+}
+
+func addResourceIndex(index map[string]Resource, key string, resource Resource) {
+	for _, candidate := range []string{
+		key,
+		resource.TerraformAddress,
+		resource.ARN,
+		resource.ID,
+		resource.Attributes["name"],
+		resource.Attributes["resource_id"],
+		resource.Tags["Name"],
+		resource.Tags["name"],
+		resource.Tags["terraform_address"],
+		resource.Tags["TerraformAddress"],
+	} {
+		if candidate == "" {
+			continue
+		}
+		if _, exists := index[candidate]; !exists {
+			index[candidate] = resource
+		}
+	}
+}
+
+func capabilitiesEmpty(capabilities Capabilities) bool {
+	return !capabilities.Identity &&
+		!capabilities.Network &&
+		!capabilities.SecurityGroups &&
+		!capabilities.IAM &&
+		!capabilities.S3 &&
+		!capabilities.RDS &&
+		!capabilities.KMS &&
+		!capabilities.SecretsManager &&
+		!capabilities.EKS
+}
+
+func resourceSetEmpty(set ResourceSet) bool {
+	return len(set.Resources) == 0
+}
+
+func sensitivityEmpty(sensitivity Sensitivity) bool {
+	return !sensitivity.Data && sensitivity.Reason == ""
 }
 
 // ReadOnlyPolicyTemplate returns an IAM policy template for context collection.
@@ -308,18 +508,56 @@ func evidence(resource string, path string, value any, message string) model.Evi
 }
 
 func redactTags(tags map[string]string) map[string]string {
-	if tags == nil {
+	return redactMap(tags)
+}
+
+func normalizeResourceSet(set *ResourceSet) {
+	if set.Resources == nil {
+		return
+	}
+	for key, resource := range set.Resources {
+		resource.TerraformAddress = firstNonEmpty(resource.TerraformAddress, key)
+		resource.Tags = redactTags(resource.Tags)
+		resource.Attributes = redactMap(resource.Attributes)
+		resource.RelatedSensitiveData = redactStringSlice("related_sensitive_data", resource.RelatedSensitiveData)
+		resource.CompensatingControls = redactStringSlice("compensating_controls", resource.CompensatingControls)
+		resource.ObservedPolicyActions = redactStringSlice("observed_policy_actions", resource.ObservedPolicyActions)
+		resource.Drift = redactMap(resource.Drift)
+		resource.Sensitivity.Reason = redactValue("sensitivity.reason", resource.Sensitivity.Reason)
+		if resource.Sensitivity.Data {
+			resource.SensitiveData = true
+		}
+		set.Resources[key] = resource
+	}
+}
+
+func redactMap(values map[string]string) map[string]string {
+	if values == nil {
 		return nil
 	}
-	out := make(map[string]string, len(tags))
-	for key, value := range tags {
-		if looksSensitive(key) || looksSensitive(value) {
-			out[key] = "(sensitive)"
-			continue
-		}
-		out[key] = value
+	out := make(map[string]string, len(values))
+	for key, value := range values {
+		out[key] = redactValue(key, value)
 	}
 	return out
+}
+
+func redactStringSlice(key string, values []string) []string {
+	if values == nil {
+		return nil
+	}
+	out := make([]string, len(values))
+	for index, value := range values {
+		out[index] = redactValue(key, value)
+	}
+	return out
+}
+
+func redactValue(key string, value string) string {
+	if looksSensitive(key) || looksSensitive(value) {
+		return "(sensitive)"
+	}
+	return value
 }
 
 func looksSensitive(value string) bool {
