@@ -17,6 +17,7 @@ flowchart LR
   "Policy evaluator" --> "Scan report"
   "Scan report" --> "Report renderers"
   "Scan report" --> "Impact statement"
+  "Impact statement" --> "Review comment renderer"
 ```
 
 ## Packages
@@ -33,6 +34,7 @@ flowchart LR
 | `internal/waiver` | Reviewed, expiring exception governance. |
 | `internal/output` | Console, JSON, SARIF, JUnit, Markdown, PR, GitLab, and audit-bundle rendering. |
 | `internal/impact` | Canonical Security Impact Statement model built from scan reports. |
+| `internal/review` | Deterministic GitHub/GitLab review comment rendering from impact statements. |
 | `internal/cli` | Cobra command surface and user-facing error handling. |
 
 ## Determinism

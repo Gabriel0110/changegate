@@ -50,6 +50,8 @@ changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
 ```
 
+The PR/MR comment renderer is implemented as a pure internal renderer over the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details. The publishing commands below will use this renderer when they are wired in the next tranches.
+
 Planned commands still in progress:
 
 ```bash
