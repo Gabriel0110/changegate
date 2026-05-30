@@ -18,8 +18,14 @@ github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.25 h1:r1+/l6m+WaUJF9HISE
 github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.25/go.mod h1:cKf+D+NMDK1LndD7BowHbBZPgR9V0/5HubH0PFWvA+c=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.26 h1:A1PmWU2zfkIm9EyFlJncFXL4W4phML+h8KjltUsCvNQ=
 github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.26/go.mod h1:dY4MRzXEizrD4hqtpKvWVGPX7QleSGGVY+EBolo1RmM=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.35.2 h1:orEsWRJcc3WI3/r8ASkJ3cQZI+5c1fnewz7Sk2wrtXI=
+github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.35.2/go.mod h1:b9uJ/VaoDF142EPlU7pJbIq0BKUduGV9IIwKyaLMDnU=
+github.com/aws/aws-sdk-go-v2/service/cloudfront v1.64.2 h1:zDNNzwo9NgHjQnsG6dBTcZJOxHjGASISmVGeh8p9c5Q=
+github.com/aws/aws-sdk-go-v2/service/cloudfront v1.64.2/go.mod h1:ayc0OxRNuG6n7DfgtOT8Cai9/oF4C/3NyslqT1FenAA=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.304.2 h1:puQq1j5XHH/zaeAJS8ngKUaBAlg70VStCvhwH69Vr4o=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.304.2/go.mod h1:BmEhUktSbAPK6oedmAp9w/j4Yaa2WqTmNTQ4ovydhX4=
+github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.14 h1:OrWZhXbvIuUUoPP/iKJTk0oK1bQIMP+rDeX+WovV3I4=
+github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.54.14/go.mod h1:z4WCOQa6Hvgz9es0erR40tJQe1hDHRLPeDlhoUQrGAg=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.10 h1:d5/908OJ4bXg8lyjeMPvXetEKqoDoLi5Owy1zNue3yg=
 github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.10/go.mod h1:a57l7Hwh+FWI+we50g5NPJHYUKeJKfXbc4w8SyXu8Ig=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.25 h1:dD3dhHNglpd98gs72my22Ndqi1hqQGllFFg1F+twfxg=

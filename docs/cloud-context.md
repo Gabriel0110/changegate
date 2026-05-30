@@ -11,7 +11,7 @@ To collect real read-only AWS context, opt in with `--collect`:
 
 ```bash
 changegate context aws snapshot --out .changegate/aws-context.json --collect
-changegate context aws snapshot --out .changegate/aws-context.json --collect identity --regions us-east-1,us-west-2 --profile prod-readonly
+changegate context aws snapshot --out .changegate/aws-context.json --collect network,edge --regions us-east-1,us-west-2 --profile prod-readonly
 ```
 
 Or through an explicit provider flag with a cached snapshot:
@@ -36,7 +36,7 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 `identity` reads non-secret AWS metadata from environment variables such as `AWS_ACCOUNT_ID`, `AWS_REGION`, and `AWS_PROFILE`. It does not call AWS APIs.
 
-`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect the foundation slice: caller identity and enabled-region metadata. Later collector tranches add network, edge, IAM, compute, and data inventory. Partial AWS permission failures are written as snapshot diagnostics instead of crashing the command.
+`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect caller identity, enabled regions, network inventory, and edge inventory. Network collection covers VPCs, subnets, route tables, internet gateways, NAT gateways, security groups, and network interfaces. Edge collection covers ALB/NLB listener and target-group routing, CloudFront distributions, and API Gateway v2 APIs/routes. Later collector tranches add IAM, compute, and data inventory. Partial AWS permission failures are written as snapshot diagnostics instead of crashing the command.
 
 `permissions-template` prints a read-only IAM policy template for context collection.
 

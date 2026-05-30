@@ -10,6 +10,7 @@ import (
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
@@ -55,6 +56,15 @@ type AWSCallerIdentity struct {
 type AWSClientSet interface {
 	CallerIdentity(ctx context.Context) (AWSCallerIdentity, error)
 	EnabledRegions(ctx context.Context) ([]Region, error)
+	NetworkInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
+	EdgeInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
+}
+
+// AWSInventory is a normalized slice of provider inventory for one or more AWS APIs.
+type AWSInventory struct {
+	Network       ResourceSet
+	Edge          ResourceSet
+	Relationships []Relationship
 }
 
 // AWSCollector is the production AWS cloud-context collector.
@@ -166,6 +176,29 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 	} else {
 		snapshot.Regions = regionsFromNames(regions)
 	}
+	for _, region := range enabledRegionNames(snapshot.Regions) {
+		if hasGroup(groups, CollectNetwork) {
+			inventory, err := c.clients.NetworkInventory(ctx, region, snapshot.Account.ID)
+			if err != nil {
+				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_NETWORK_FAILED", "collect AWS network inventory for "+region+": "+err.Error()))
+			} else {
+				mergeResourceSet(&snapshot.Network, inventory.Network)
+				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+				snapshot.Capabilities.Network = true
+				snapshot.Capabilities.SecurityGroups = true
+			}
+		}
+		if hasGroup(groups, CollectEdge) {
+			inventory, err := c.clients.EdgeInventory(ctx, region, snapshot.Account.ID)
+			if err != nil {
+				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_EDGE_FAILED", "collect AWS edge inventory for "+region+": "+err.Error()))
+			} else {
+				mergeResourceSet(&snapshot.Edge, inventory.Edge)
+				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+				snapshot.Capabilities.Network = true
+			}
+		}
+	}
 	diagnostics = append(diagnostics, pendingGroupDiagnostics(groups)...)
 	sortRegions(snapshot.Regions)
 	snapshot.Diagnostics = diagnostics
@@ -174,14 +207,18 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 }
 
 type sdkAWSClientSet struct {
-	sts *sts.Client
-	ec2 *ec2.Client
+	cfg        aws.Config
+	sts        *sts.Client
+	ec2        *ec2.Client
+	cloudfront *cloudfront.Client
 }
 
 func newSDKAWSClientSet(cfg aws.Config) *sdkAWSClientSet {
 	return &sdkAWSClientSet{
-		sts: sts.NewFromConfig(cfg),
-		ec2: ec2.NewFromConfig(cfg),
+		cfg:        cfg,
+		sts:        sts.NewFromConfig(cfg),
+		ec2:        ec2.NewFromConfig(cfg),
+		cloudfront: cloudfront.NewFromConfig(cfg),
 	}
 }
 
@@ -247,9 +284,9 @@ func pendingGroupDiagnostics(groups []string) []model.Diagnostic {
 	diagnostics := make([]model.Diagnostic, 0)
 	for _, group := range groups {
 		switch group {
-		case CollectIdentity, CollectNetwork:
+		case CollectIdentity, CollectNetwork, CollectEdge:
 			continue
-		case CollectEdge, CollectIAM, CollectData, CollectCompute:
+		case CollectIAM, CollectData, CollectCompute:
 			diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_GROUP_PENDING", "collector group "+group+" is selected but implemented in a later tranche"))
 		}
 	}
@@ -272,6 +309,29 @@ func sortRegions(regions []Region) {
 	sort.Slice(regions, func(i int, j int) bool {
 		return regions[i].Name < regions[j].Name
 	})
+}
+
+func enabledRegionNames(regions []Region) []string {
+	names := make([]string, 0, len(regions))
+	for _, region := range regions {
+		if region.Enabled && region.Name != "" {
+			names = append(names, region.Name)
+		}
+	}
+	sort.Strings(names)
+	return names
+}
+
+func mergeResourceSet(target *ResourceSet, source ResourceSet) {
+	if len(source.Resources) == 0 {
+		return
+	}
+	if target.Resources == nil {
+		target.Resources = make(map[string]Resource, len(source.Resources))
+	}
+	for key, resource := range source.Resources {
+		target.Resources[key] = resource
+	}
 }
 
 func warningDiagnostic(code string, message string) model.Diagnostic {
