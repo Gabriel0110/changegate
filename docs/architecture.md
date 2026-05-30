@@ -14,7 +14,9 @@ flowchart LR
   "Cloud context snapshot" --> "Findings"
   "Findings" --> "Policy evaluator"
   "Baseline and waivers" --> "Policy evaluator"
-  "Policy evaluator" --> "Report renderers"
+  "Policy evaluator" --> "Scan report"
+  "Scan report" --> "Report renderers"
+  "Scan report" --> "Impact statement"
 ```
 
 ## Packages
@@ -30,6 +32,7 @@ flowchart LR
 | `internal/baseline` | Existing-risk baseline files and diffs. |
 | `internal/waiver` | Reviewed, expiring exception governance. |
 | `internal/output` | Console, JSON, SARIF, JUnit, Markdown, PR, GitLab, and audit-bundle rendering. |
+| `internal/impact` | Canonical Security Impact Statement model built from scan reports. |
 | `internal/cli` | Cobra command surface and user-facing error handling. |
 
 ## Determinism

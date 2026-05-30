@@ -1,0 +1,301 @@
+{
+  "version": 1,
+  "section_ids": {
+    "attack_paths": "attack-paths",
+    "baseline": "baseline",
+    "decision": "decision",
+    "ownership": "ownership",
+    "required_reviews": "required-reviews",
+    "risk_movement": "risk-movement",
+    "summary": "summary",
+    "top_findings": "top-findings",
+    "top_graph_paths": "top-graph-paths",
+    "waivers": "waivers"
+  },
+  "decision": "block",
+  "decision_reasons": [
+    {
+      "finding_id": "CHG-AB70D31821075A45",
+      "resource": "aws_lb.admin",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    }
+  ],
+  "summary": {
+    "plans_scanned": 1,
+    "resources_changed": 4,
+    "resources_created": 0,
+    "resources_updated": 0,
+    "resources_deleted": 0,
+    "public_entrypoints_added": 1,
+    "sensitive_assets_touched": 2,
+    "iam_permission_changes": 1,
+    "network_path_changes": 1,
+    "data_path_changes": 2
+  },
+  "risk_movement": {
+    "new_critical": 0,
+    "new_high": 2,
+    "new_medium": 0,
+    "resolved_critical": 0,
+    "resolved_high": 0,
+    "existing_unchanged": 1,
+    "existing_worsened": 0,
+    "existing_improved": 0,
+    "waived_active": 1,
+    "waived_expired": 0
+  },
+  "top_findings": [
+    {
+      "id": "CHG-F6FC07CFE58FE184",
+      "rule_id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
+      "title": "Deploy role can pass privileged role and mutate compute",
+      "resource_address": "aws_iam_role.deploy",
+      "provider": "aws",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "iam",
+          "resource": "aws_iam_role.deploy",
+          "path": "policy.Statement[0].Action",
+          "value": [
+            "iam:PassRole",
+            "lambda:UpdateFunctionCode"
+          ],
+          "message": "Policy allows PassRole and function code mutation."
+        }
+      ],
+      "remediation": {
+        "summary": ""
+      },
+      "fingerprint": "f6fc07cfe58fe184b104808ee2e3ea28322e15218f974065dcac9866ff60cecb",
+      "deduplication_key": "AWS_PASSROLE_WITH_COMPUTE_MUTATION|aws_iam_role.deploy|aws|privilege_escalation|",
+      "decision_reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ]
+    },
+    {
+      "id": "CHG-AB70D31821075A45",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Public admin service",
+      "policy_pack": "aws-public-exposure",
+      "title": "Public admin service reaches customer data",
+      "description": "The admin load balancer can reach a sensitive datastore.",
+      "resource_address": "aws_lb.admin",
+      "provider": "aws",
+      "environment": "prod",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "graph_path",
+          "resource": "aws_lb.admin",
+          "path": "graph.path",
+          "value": [
+            "internet",
+            "aws_lb.admin",
+            "aws_ecs_service.admin",
+            "aws_db_instance.customer"
+          ],
+          "message": "Public entrypoint routes to an admin workload and customer database."
+        },
+        {
+          "type": "attribute",
+          "resource": "aws_lb.admin",
+          "path": "tags.secret",
+          "value": "(sensitive)",
+          "sensitive": true,
+          "message": "Sensitive tag value was redacted."
+        }
+      ],
+      "remediation": {
+        "summary": "",
+        "owner_hints": [
+          "platform-security"
+        ]
+      },
+      "fingerprint": "ab70d31821075a45e6cbc5f9c424cb57435a70b8b280f3d88b602824ebdcd3d4",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb.admin|aws|public_exposure|prod",
+      "decision_reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-AB70D31821075A45",
+          "resource": "aws_lb.admin",
+          "code": "MEETS_BLOCK_THRESHOLD",
+          "reason": "high severity and high confidence meets block threshold"
+        }
+      ]
+    },
+    {
+      "id": "CHG-AA9FDFEEE6C8C6B9",
+      "rule_id": "AWS_PUBLIC_RDS_INSTANCE",
+      "title": "AWS_PUBLIC_RDS_INSTANCE",
+      "resource_address": "aws_db_instance.legacy",
+      "provider": "aws",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "attribute",
+          "resource": "aws_db_instance.legacy",
+          "path": "example",
+          "value": "safe",
+          "message": "example evidence"
+        }
+      ],
+      "remediation": {
+        "summary": ""
+      },
+      "fingerprint": "aa9fdfeee6c8c6b988619b7876f0893bf983944bd872f55f7d096b5bd5827945",
+      "deduplication_key": "AWS_PUBLIC_RDS_INSTANCE|aws_db_instance.legacy|aws|sensitive_data|",
+      "suppressions": [
+        {
+          "kind": "waiver",
+          "reason": "approved migration exception",
+          "active": true
+        }
+      ],
+      "decision_reason_codes": [
+        "SUPPRESSED"
+      ]
+    },
+    {
+      "id": "CHG-3ABD547483CE2CE4",
+      "rule_id": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
+      "title": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "aws",
+      "category": "sensitive_data",
+      "severity": "medium",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "attribute",
+          "resource": "aws_s3_bucket.logs",
+          "path": "example",
+          "value": "safe",
+          "message": "example evidence"
+        }
+      ],
+      "remediation": {
+        "summary": ""
+      },
+      "fingerprint": "3abd547483ce2ce4e7e536a1ec612647fd69dce00e370019f29e298d2e64194a",
+      "deduplication_key": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD|aws_s3_bucket.logs|aws|sensitive_data|",
+      "suppressions": [
+        {
+          "kind": "existing_risk",
+          "reason": "finding fingerprint exists in baseline",
+          "active": true
+        }
+      ],
+      "decision_reason_codes": [
+        "EXISTING_RISK",
+        "SUPPRESSED"
+      ]
+    }
+  ],
+  "top_graph_paths": [
+    {
+      "id": "graph-path-ab70d31821075a45-1",
+      "finding_id": "CHG-AB70D31821075A45",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "resource": "aws_lb.admin",
+      "title": "Public admin service reaches customer data",
+      "severity": "high",
+      "confidence": "high",
+      "path": [
+        "internet",
+        "aws_lb.admin",
+        "aws_ecs_service.admin",
+        "aws_db_instance.customer"
+      ],
+      "description": "Public entrypoint routes to an admin workload and customer database."
+    }
+  ],
+  "attack_paths": [
+    {
+      "id": "attack-path-f6fc07cfe58fe184-1",
+      "finding_id": "CHG-F6FC07CFE58FE184",
+      "rule_id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
+      "resource": "aws_iam_role.deploy",
+      "type": "iam_passrole_escalation",
+      "title": "Deploy role can pass privileged role and mutate compute",
+      "severity": "high",
+      "confidence": "high",
+      "steps": [
+        "Policy allows PassRole and function code mutation."
+      ],
+      "decision": "block",
+      "reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ]
+    }
+  ],
+  "waivers": {
+    "active": 1,
+    "expired": 0,
+    "total": 1
+  },
+  "baseline": {
+    "existing_findings": 1,
+    "new_findings": 3
+  },
+  "ownership": [
+    {
+      "owner": "platform-security",
+      "resource": "aws_lb.admin",
+      "finding_id": "CHG-AB70D31821075A45",
+      "source": "remediation.owner_hints"
+    }
+  ],
+  "review_required": true,
+  "required_reviewers": [
+    {
+      "reviewer": "security",
+      "reason": "deployment decision is block",
+      "source": "decision"
+    },
+    {
+      "reviewer": "cloud-security",
+      "reason": "IAM permission change affects review impact",
+      "source": "summary"
+    },
+    {
+      "reviewer": "data-owner",
+      "reason": "sensitive asset is affected",
+      "source": "summary"
+    }
+  ],
+  "generated_at": "2026-05-30T16:00:00Z",
+  "source": {
+    "report_schema_version": "changegate.scan.report.v1",
+    "plan": {
+      "path": "tfplan.json",
+      "tool": "terraform",
+      "format_version": "1.0",
+      "resources": 9,
+      "changes": 4
+    },
+    "graph": {
+      "nodes": 9,
+      "edges": 12
+    }
+  },
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "TEST_DIAGNOSTIC",
+      "message": "test warning"
+    }
+  ],
+  "reason_codes": [
+    "MEETS_BLOCK_THRESHOLD"
+  ]
+}
