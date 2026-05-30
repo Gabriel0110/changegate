@@ -36,6 +36,7 @@ Experimental features must be documented as experimental in release notes when t
 
 Planned work after the initial public release includes:
 
+* ChangeGate Review Intelligence; see [implementation plan](review-intelligence-plan.md)
 * additional AWS graph-aware rules based on false-positive data
 * provider support beyond AWS
 * stronger policy-pack versioning and compatibility reports
