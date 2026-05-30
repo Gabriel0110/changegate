@@ -13,7 +13,7 @@ import (
 	"github.com/Gabriel0110/changegate/internal/graph"
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/Gabriel0110/changegate/internal/rules"
-	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/v1/rego"
 )
 
 const (

@@ -1071,7 +1071,7 @@ func TestRegoPolicyScan(t *testing.T) {
 	regoPath := filepath.Join(tempDir, "queue.rego")
 	regoBody := `package changegate
 
-findings[f] {
+findings contains f if {
 	change := input.changes[_]
 	change.type == "aws_sqs_queue"
 	f := {

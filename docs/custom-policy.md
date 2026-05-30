@@ -116,7 +116,7 @@ Rego modules should return a finding object or a collection of finding objects:
 ```rego
 package changegate
 
-findings[f] {
+findings contains f if {
   change := input.changes[_]
   change.type == "aws_sqs_queue"
   f := {

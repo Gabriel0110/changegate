@@ -18,7 +18,7 @@ func TestRegoRuleEvaluatesFindings(t *testing.T) {
 	regoPath := filepath.Join(tempDir, "policy.rego")
 	body := `package changegate
 
-findings[f] {
+findings contains f if {
 	change := input.changes[_]
 	change.type == "aws_sqs_queue"
 	f := {
@@ -67,7 +67,7 @@ func TestRegoRuleRejectsUnsafeBuiltins(t *testing.T) {
 	tempDir := t.TempDir()
 	regoPath := filepath.Join(tempDir, "policy.rego")
 	if err := os.WriteFile(regoPath, []byte(`package changegate
-allow { http.send({"method": "get", "url": "https://example.com"}) }`), 0o644); err != nil {
+allow if { http.send({"method": "get", "url": "https://example.com"}) }`), 0o644); err != nil {
 		t.Fatalf("write rego: %v", err)
 	}
 	rule, diagnostics := LoadRegoRule(RegoOptions{PolicyPath: filepath.Join(tempDir, ".changegate.yaml"), Files: []string{"policy.rego"}})

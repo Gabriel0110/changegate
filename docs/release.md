@@ -4,7 +4,7 @@ ChangeGate releases are designed to be repeatable and verifiable because the bin
 
 ## Go version policy
 
-The minimum source compatibility version is Go 1.24, matching `go.mod`. Release and vulnerability-scan jobs use a patched Go toolchain, currently Go 1.26.3, so release artifacts do not ship known standard-library CVEs from older local toolchains.
+The minimum source compatibility version is Go 1.25, matching `go.mod`. Release and vulnerability-scan jobs use a patched Go toolchain, currently Go 1.26.3, so release artifacts do not ship known standard-library CVEs from older local toolchains.
 
 ## Release process
 
