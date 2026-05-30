@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Gabriel0110/changegate/internal/baseline"
 	"github.com/Gabriel0110/changegate/internal/model"
 )
 
@@ -117,6 +118,7 @@ type Report struct {
 	Graph         GraphSummary               `json:"graph"`
 	Imports       *ImportSummary             `json:"imports,omitempty"`
 	RiskSummary   model.RiskSummary          `json:"risk_summary"`
+	RiskMovement  *baseline.RiskMovement     `json:"risk_movement,omitempty"`
 	ReasonCodes   []model.DecisionReasonCode `json:"reason_codes"`
 	Reasons       []model.DecisionReason     `json:"reasons"`
 	Findings      []model.Finding            `json:"findings"`

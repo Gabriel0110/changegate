@@ -36,6 +36,8 @@ changegate scan \
 
 Findings whose fingerprints already exist in the baseline are marked with `EXISTING_RISK`, suppressed, and counted under `suppressed`. New or changed findings are evaluated normally and can still block.
 
+ChangeGate also tracks baseline risk movement. `--new-only` suppresses existing unchanged risk, but it must not suppress a finding whose stable fingerprint lineage has worsened. A finding is treated as worsened when severity increases, confidence reaches high, decision impact increases, graph evidence newly reaches sensitive data, cloud context adds stronger evidence, or a prior waiver no longer applies.
+
 ## Compare current findings to a baseline
 
 ```bash
@@ -52,8 +54,13 @@ Diff categories:
 * `unchanged`: matching fingerprint in the baseline
 * `changed`: similar rule/category/provider/severity/confidence but changed fingerprint, commonly caused by a resource rename or changed evidence path
 * `stale`: present in the baseline, absent from current findings
+* `new_risk`: absent from the baseline and enforceable as new risk
+* `existing_unchanged`: existing risk with no material movement
+* `existing_worsened`: existing risk whose impact increased and should remain visible/enforceable
+* `existing_improved`: existing risk whose impact decreased
+* `resolved`: baseline risk absent from current findings
 
-Stale entries should be removed from the baseline as resources are fixed or deleted.
+Stale or resolved entries should be removed from the baseline as resources are fixed or deleted.
 
 ## Policy integration
 

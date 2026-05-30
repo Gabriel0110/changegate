@@ -61,6 +61,52 @@ func TestContextualSuppressions(t *testing.T) {
 	}
 }
 
+func TestNewOnlyDoesNotSuppressWorsenedExistingRisk(t *testing.T) {
+	t.Parallel()
+
+	oldFinding := sampleFinding()
+	oldFinding.Evidence = []Evidence{{
+		Type:     "graph_path",
+		Resource: oldFinding.ResourceAddress,
+		Path:     "graph.path",
+		Value:    []string{"internet", oldFinding.ResourceAddress},
+		Message:  "old graph path",
+	}}
+	oldFinding = NormalizeFinding(oldFinding)
+	oldContext := RiskContextFromFinding(oldFinding)
+
+	worsened := sampleFinding()
+	worsened.Evidence = []Evidence{{
+		Type:     "graph_path",
+		Resource: worsened.ResourceAddress,
+		Path:     "graph.path",
+		Value:    []string{"internet", worsened.ResourceAddress, "aws_db_instance.customer"},
+		Message:  "new graph path reaches sensitive data",
+	}}
+	worsened = NormalizeFinding(worsened)
+	if oldFinding.Fingerprint != worsened.Fingerprint {
+		t.Fatalf("test requires stable fingerprint lineage, got %s and %s", oldFinding.Fingerprint, worsened.Fingerprint)
+	}
+
+	config := DefaultPolicyConfig()
+	config.NewRiskOnly = true
+	config.ExistingFingerprints = map[string]bool{worsened.Fingerprint: true}
+	config.ExistingRisks = map[string]RiskContext{worsened.Fingerprint: oldContext}
+	outcome := EvaluatePolicy([]Finding{worsened}, config)
+	if outcome.Decision != DecisionBlock {
+		t.Fatalf("Decision = %q, want block for worsened existing risk", outcome.Decision)
+	}
+	if outcome.Summary.Suppressed != 0 {
+		t.Fatalf("Suppressed = %d, want 0", outcome.Summary.Suppressed)
+	}
+	if outcome.Summary.Upgraded != 1 {
+		t.Fatalf("Upgraded = %d, want 1", outcome.Summary.Upgraded)
+	}
+	if len(outcome.Findings) == 0 || !hasReason(outcome.Findings[0], ReasonUpgraded) {
+		t.Fatalf("worsened finding missing upgraded reason: %#v", outcome.Findings)
+	}
+}
+
 func TestContextualUpgradeDowngradeAndCorrelation(t *testing.T) {
 	t.Parallel()
 

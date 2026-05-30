@@ -219,6 +219,7 @@ func loadPolicyForScan(opts *options) (model.PolicyConfig, rules.Selection, *rul
 			return model.PolicyConfig{}, rules.Selection{}, nil, err
 		}
 		modelConfig.ExistingFingerprints = mergeExistingFingerprints(modelConfig.ExistingFingerprints, baseline.Fingerprints(file))
+		modelConfig.ExistingRisks = mergeExistingRisks(modelConfig.ExistingRisks, baseline.Contexts(file))
 		modelConfig.BaselineWarnings = append(modelConfig.BaselineWarnings, baseline.Diagnostics(file, time.Now().UTC(), config.Baseline.MaxAgeDays, config.Baseline.RequireExpiration)...)
 	}
 	if config.Waivers.File != "" {
@@ -330,6 +331,7 @@ func applyBaselineOptions(config *model.PolicyConfig, baselinePath string, newOn
 		return inputError(err.Error(), "Check the baseline path or recreate it with changegate baseline create.")
 	}
 	config.ExistingFingerprints = mergeExistingFingerprints(config.ExistingFingerprints, baseline.Fingerprints(file))
+	config.ExistingRisks = mergeExistingRisks(config.ExistingRisks, baseline.Contexts(file))
 	if newOnly {
 		config.NewRiskOnly = true
 	}
@@ -375,6 +377,16 @@ func mergeExistingFingerprints(existing map[string]bool, incoming map[string]boo
 	}
 	for fingerprint := range incoming {
 		existing[fingerprint] = true
+	}
+	return existing
+}
+
+func mergeExistingRisks(existing map[string]model.RiskContext, incoming map[string]model.RiskContext) map[string]model.RiskContext {
+	if existing == nil {
+		existing = make(map[string]model.RiskContext, len(incoming))
+	}
+	for fingerprint, context := range incoming {
+		existing[fingerprint] = context
 	}
 	return existing
 }
@@ -831,6 +843,7 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 				return inputError(err.Error(), "Check baseline.file in the policy.")
 			}
 			report.Audit.Baseline = baselineReport
+			report.RiskMovement = &baselineReport.RiskMovement
 		}
 	}
 	if scanOpts.baselinePath != "" {
@@ -839,6 +852,7 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 			return inputError(err.Error(), "Check --baseline or recreate the baseline.")
 		}
 		report.Audit.Baseline = baselineReport
+		report.RiskMovement = &baselineReport.RiskMovement
 	}
 	complianceReport := compliance.BuildReport(report.Findings)
 	report.Compliance = &complianceReport

@@ -132,6 +132,10 @@ func newBaselineDiffCommand() *cobra.Command {
 				r.printf("Unchanged: %d\n", result.Summary.Unchanged)
 				r.printf("Changed: %d\n", result.Summary.Changed)
 				r.printf("Stale: %d\n", result.Summary.Stale)
+				r.printf("New high risks: %d\n", result.RiskMovement.NewHigh)
+				r.printf("Existing unchanged risks: %d\n", result.RiskMovement.ExistingUnchanged)
+				r.printf("Existing worsened risks: %d\n", result.RiskMovement.ExistingWorsened)
+				r.printf("Resolved high risks: %d\n", result.RiskMovement.ResolvedHigh)
 				for _, warning := range result.Warnings {
 					r.printf("Warning: %s\n", warning)
 				}
@@ -144,6 +148,12 @@ func newBaselineDiffCommand() *cobra.Command {
 						continue
 					}
 					r.printf("Changed finding: %s %s\n", entry.RuleID, entry.Resource)
+				}
+				for _, entry := range result.ExistingWorsened {
+					r.printf("Worsened existing risk: %s %s\n", entry.RuleID, entry.Resource)
+				}
+				for _, entry := range result.ExistingImproved {
+					r.printf("Improved existing risk: %s %s\n", entry.RuleID, entry.Resource)
 				}
 				for _, entry := range result.Stale {
 					r.printf("Stale baseline entry: %s %s\n", entry.RuleID, entry.Resource)

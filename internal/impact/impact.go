@@ -173,7 +173,7 @@ func Build(report output.Report, opts Options) (Statement, error) {
 		Decision:        report.Decision,
 		DecisionReasons: sortedDecisionReasons(report.Reasons),
 		Summary:         buildSummary(report, findings, opts),
-		RiskMovement:    buildRiskMovement(findings),
+		RiskMovement:    buildRiskMovement(report, findings),
 		TopFindings:     limitFindings(findings, opts.TopFindingsLimit),
 		TopGraphPaths:   limitGraphPaths(buildGraphPaths(findings), opts.TopGraphPathsLimit),
 		AttackPaths:     limitAttackPaths(buildAttackPaths(findings, report.Decision), opts.AttackPathsLimit),
@@ -275,7 +275,21 @@ func buildSummary(report output.Report, findings []model.Finding, opts Options) 
 	return summary
 }
 
-func buildRiskMovement(findings []model.Finding) RiskMovement {
+func buildRiskMovement(report output.Report, findings []model.Finding) RiskMovement {
+	if report.RiskMovement != nil {
+		return RiskMovement{
+			NewCritical:       report.RiskMovement.NewCritical,
+			NewHigh:           report.RiskMovement.NewHigh,
+			NewMedium:         report.RiskMovement.NewMedium,
+			ResolvedCritical:  report.RiskMovement.ResolvedCritical,
+			ResolvedHigh:      report.RiskMovement.ResolvedHigh,
+			ExistingUnchanged: report.RiskMovement.ExistingUnchanged,
+			ExistingWorsened:  report.RiskMovement.ExistingWorsened,
+			ExistingImproved:  report.RiskMovement.ExistingImproved,
+			WaivedActive:      report.RiskMovement.WaivedActive,
+			WaivedExpired:     report.RiskMovement.WaivedExpired,
+		}
+	}
 	var movement RiskMovement
 	for _, finding := range findings {
 		if hasActiveSuppression(finding, "waiver") {

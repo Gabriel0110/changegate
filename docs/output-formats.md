@@ -27,6 +27,7 @@ changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip --format 
 * plan and graph summaries
 * optional external import summary with imported, deduplicated, correlated, downgraded, and upgraded counts
 * risk summary, including suppressed and downgraded counts
+* optional risk movement when a baseline is configured
 * decision reason codes and human-readable reasons
 * findings with evidence, remediation, fingerprints, and suppression context
 * rule metadata used by integrations

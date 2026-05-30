@@ -207,21 +207,33 @@ const (
 
 // PolicyConfig is the decision model input.
 type PolicyConfig struct {
-	Mode                  PolicyMode            `json:"mode"`
-	BlockOn               Threshold             `json:"block_on"`
-	WarnOn                Threshold             `json:"warn_on"`
-	Overrides             map[string]Override   `json:"overrides,omitempty"`
-	EnvironmentThresholds map[string]Thresholds `json:"environment_thresholds,omitempty"`
-	BranchThresholds      map[string]Thresholds `json:"branch_thresholds,omitempty"`
-	Branch                string                `json:"branch,omitempty"`
-	ChangedResourcesOnly  bool                  `json:"changed_resources_only,omitempty"`
-	ChangedResources      map[string]bool       `json:"changed_resources,omitempty"`
-	NewRiskOnly           bool                  `json:"new_risk_only,omitempty"`
-	ExistingFingerprints  map[string]bool       `json:"existing_fingerprints,omitempty"`
-	BaselineWarnings      []string              `json:"baseline_warnings,omitempty"`
-	WaiverFile            string                `json:"waiver_file,omitempty"`
-	FailExpiredWaivers    bool                  `json:"fail_expired_waivers,omitempty"`
-	DocumentationLinks    map[string]string     `json:"documentation_links,omitempty"`
+	Mode                  PolicyMode             `json:"mode"`
+	BlockOn               Threshold              `json:"block_on"`
+	WarnOn                Threshold              `json:"warn_on"`
+	Overrides             map[string]Override    `json:"overrides,omitempty"`
+	EnvironmentThresholds map[string]Thresholds  `json:"environment_thresholds,omitempty"`
+	BranchThresholds      map[string]Thresholds  `json:"branch_thresholds,omitempty"`
+	Branch                string                 `json:"branch,omitempty"`
+	ChangedResourcesOnly  bool                   `json:"changed_resources_only,omitempty"`
+	ChangedResources      map[string]bool        `json:"changed_resources,omitempty"`
+	NewRiskOnly           bool                   `json:"new_risk_only,omitempty"`
+	ExistingFingerprints  map[string]bool        `json:"existing_fingerprints,omitempty"`
+	ExistingRisks         map[string]RiskContext `json:"existing_risks,omitempty"`
+	BaselineWarnings      []string               `json:"baseline_warnings,omitempty"`
+	WaiverFile            string                 `json:"waiver_file,omitempty"`
+	FailExpiredWaivers    bool                   `json:"fail_expired_waivers,omitempty"`
+	DocumentationLinks    map[string]string      `json:"documentation_links,omitempty"`
+}
+
+// RiskContext captures non-secret movement signals for a finding.
+type RiskContext struct {
+	Severity             Severity   `json:"severity,omitempty"`
+	Confidence           Confidence `json:"confidence,omitempty"`
+	Decision             Decision   `json:"decision,omitempty"`
+	GraphSensitiveData   bool       `json:"graph_sensitive_data,omitempty"`
+	CloudContextEvidence bool       `json:"cloud_context_evidence,omitempty"`
+	ActiveWaiver         bool       `json:"active_waiver,omitempty"`
+	AnyActiveSuppression bool       `json:"any_active_suppression,omitempty"`
 }
 
 // Thresholds contains block and warn thresholds for a contextual scope.
@@ -635,6 +647,31 @@ func meetsThreshold(severity Severity, confidence Confidence, threshold Threshol
 		confidenceRank(confidence) >= confidenceRank(threshold.MinConfidence)
 }
 
+func decisionImpact(f Finding) Decision {
+	if hasReason(f, ReasonMeetsBlockThreshold) {
+		return DecisionBlock
+	}
+	if hasReason(f, ReasonBelowBlockThreshold) {
+		return DecisionWarn
+	}
+	return DecisionAllow
+}
+
+func decisionRank(decision Decision) int {
+	switch decision {
+	case DecisionError:
+		return 4
+	case DecisionBlock:
+		return 3
+	case DecisionWarn:
+		return 2
+	case DecisionAllow:
+		return 1
+	default:
+		return 0
+	}
+}
+
 func severityRank(severity Severity) int {
 	switch severity {
 	case SeverityCritical:
@@ -686,6 +723,45 @@ func mergeThreshold(target *Threshold, source Threshold) {
 	}
 }
 
+func findingGraphReachesSensitiveData(f Finding) bool {
+	for _, evidence := range f.Evidence {
+		lower := strings.ToLower(evidence.Type + " " + evidence.Path + " " + evidence.Message + " " + fmt.Sprint(evidence.Value))
+		if strings.Contains(lower, "graph") && containsSensitiveAsset(lower) {
+			return true
+		}
+	}
+	return false
+}
+
+func findingHasCloudContext(f Finding) bool {
+	for _, evidence := range f.Evidence {
+		if strings.Contains(strings.ToLower(evidence.Type+" "+evidence.Path), "cloud_context") {
+			return true
+		}
+	}
+	return false
+}
+
+func containsSensitiveAsset(value string) bool {
+	for _, token := range []string{
+		"aws_db_instance",
+		"aws_rds_cluster",
+		"aws_secretsmanager_secret",
+		"secretsmanager",
+		"secret",
+		"rds",
+		"dynamodb",
+		"opensearch",
+		"elasticache",
+		"s3_bucket",
+	} {
+		if strings.Contains(value, token) {
+			return true
+		}
+	}
+	return false
+}
+
 func applyContext(f Finding, config PolicyConfig) Finding {
 	if config.ChangedResourcesOnly && !config.ChangedResources[f.ResourceAddress] {
 		f.Suppressions = append(f.Suppressions, Suppression{
@@ -697,6 +773,11 @@ func applyContext(f Finding, config PolicyConfig) Finding {
 		f.DecisionReasons = append(f.DecisionReasons, DecisionReason{FindingID: f.ID, Resource: f.ResourceAddress, Code: ReasonChangedResourceOnly, Reason: "suppressed because changed-resource-only mode is enabled"})
 	}
 	if config.NewRiskOnly && config.ExistingFingerprints[f.Fingerprint] {
+		if existing, ok := config.ExistingRisks[f.Fingerprint]; ok && RiskContextWorsened(RiskContextFromFinding(f), existing) {
+			f.DecisionReasonCodes = appendUniqueReason(f.DecisionReasonCodes, ReasonUpgraded)
+			f.DecisionReasons = append(f.DecisionReasons, DecisionReason{FindingID: f.ID, Resource: f.ResourceAddress, Code: ReasonUpgraded, Reason: "existing baseline risk worsened; new-risk-only does not suppress it"})
+			return NormalizeFinding(f)
+		}
 		f.Suppressions = append(f.Suppressions, Suppression{
 			Kind:   "existing_risk",
 			Reason: "finding fingerprint exists in baseline",
@@ -720,6 +801,58 @@ func applyContext(f Finding, config PolicyConfig) Finding {
 		}
 	}
 	return NormalizeFinding(f)
+}
+
+// RiskContextFromFinding extracts non-secret movement signals from a finding.
+func RiskContextFromFinding(f Finding) RiskContext {
+	return RiskContext{
+		Severity:             f.Severity,
+		Confidence:           f.Confidence,
+		Decision:             decisionImpact(f),
+		GraphSensitiveData:   findingGraphReachesSensitiveData(f),
+		CloudContextEvidence: findingHasCloudContext(f),
+		ActiveWaiver:         activeSuppressionKind(f.Suppressions, "waiver"),
+		AnyActiveSuppression: activeSuppression(f.Suppressions),
+	}
+}
+
+// RiskContextWorsened reports whether current context is materially worse than baseline context.
+func RiskContextWorsened(current RiskContext, baseline RiskContext) bool {
+	if severityRank(current.Severity) > severityRank(baseline.Severity) {
+		return true
+	}
+	if current.Confidence == ConfidenceHigh && baseline.Confidence != ConfidenceHigh {
+		return true
+	}
+	if baseline.Decision != "" && decisionRank(current.Decision) > decisionRank(baseline.Decision) {
+		return true
+	}
+	if current.GraphSensitiveData && !baseline.GraphSensitiveData {
+		return true
+	}
+	if current.CloudContextEvidence && !baseline.CloudContextEvidence {
+		return true
+	}
+	if baseline.ActiveWaiver && !current.ActiveWaiver {
+		return true
+	}
+	if baseline.AnyActiveSuppression && !current.AnyActiveSuppression && decisionRank(current.Decision) > decisionRank(DecisionAllow) {
+		return true
+	}
+	return false
+}
+
+// RiskContextImproved reports whether current context is materially better than baseline context.
+func RiskContextImproved(current RiskContext, baseline RiskContext) bool {
+	if RiskContextWorsened(current, baseline) {
+		return false
+	}
+	return severityRank(current.Severity) < severityRank(baseline.Severity) ||
+		confidenceRank(current.Confidence) < confidenceRank(baseline.Confidence) ||
+		(baseline.Decision != "" && decisionRank(current.Decision) < decisionRank(baseline.Decision)) ||
+		(!current.GraphSensitiveData && baseline.GraphSensitiveData) ||
+		(!current.CloudContextEvidence && baseline.CloudContextEvidence) ||
+		(!baseline.ActiveWaiver && current.ActiveWaiver)
 }
 
 func correlateFindings(findings []Finding) {
@@ -793,6 +926,20 @@ func activeSuppression(suppressions []Suppression) bool {
 	now := time.Now().UTC()
 	for _, suppression := range suppressions {
 		if !suppression.Active {
+			continue
+		}
+		if suppression.ExpiresAt != nil && suppression.ExpiresAt.Before(now) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func activeSuppressionKind(suppressions []Suppression, kind string) bool {
+	now := time.Now().UTC()
+	for _, suppression := range suppressions {
+		if suppression.Kind != kind || !suppression.Active {
 			continue
 		}
 		if suppression.ExpiresAt != nil && suppression.ExpiresAt.Before(now) {

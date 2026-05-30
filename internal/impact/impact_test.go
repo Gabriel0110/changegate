@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Gabriel0110/changegate/internal/baseline"
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/Gabriel0110/changegate/internal/output"
 )
@@ -165,6 +166,11 @@ func sampleReport() output.Report {
 			Reason:    "finding meets block threshold",
 		}},
 		Findings: findings,
+		RiskMovement: &baseline.RiskMovement{
+			NewHigh:           2,
+			ExistingUnchanged: 1,
+			WaivedActive:      1,
+		},
 		Diagnostics: []model.Diagnostic{{
 			Severity: model.DiagnosticWarning,
 			Code:     "TEST_DIAGNOSTIC",
