@@ -125,3 +125,112 @@ func TestValidatePolicyPackVersionPinsAndSigningGuard(t *testing.T) {
 		t.Fatalf("diagnostics = %d, want 2: %#v", len(invalid.Diagnostics), invalid.Diagnostics)
 	}
 }
+
+func TestReviewIntelligenceConfigDefaultsAndOverrides(t *testing.T) {
+	t.Parallel()
+
+	registry, err := rules.DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	result := Validate(Config{}, registry, rules.DefaultPolicyPacks())
+	if !result.Valid {
+		t.Fatalf("empty policy invalid: %#v", result.Diagnostics)
+	}
+	if result.Policy.Review.Enabled == nil || !*result.Policy.Review.Enabled {
+		t.Fatalf("review.enabled default was not true")
+	}
+	if result.Policy.Review.MaxCommentFindings == nil || *result.Policy.Review.MaxCommentFindings != 10 {
+		t.Fatalf("review.max_comment_findings = %v, want 10", result.Policy.Review.MaxCommentFindings)
+	}
+	if result.Policy.Review.MaxGraphPaths == nil || *result.Policy.Review.MaxGraphPaths != 5 {
+		t.Fatalf("review.max_graph_paths = %v, want 5", result.Policy.Review.MaxGraphPaths)
+	}
+	if result.Policy.Review.StickyCommentMarker != "<!-- changegate-review -->" {
+		t.Fatalf("review.sticky_comment_marker = %q", result.Policy.Review.StickyCommentMarker)
+	}
+	if result.Policy.Impact.IncludeExistingRisks == nil || !*result.Policy.Impact.IncludeExistingRisks {
+		t.Fatalf("impact.include_existing_risks default was not true")
+	}
+	if result.Policy.Impact.IncludeResolvedRisks == nil || !*result.Policy.Impact.IncludeResolvedRisks {
+		t.Fatalf("impact.include_resolved_risks default was not true")
+	}
+	if result.Policy.Impact.IncludeWaivers == nil || !*result.Policy.Impact.IncludeWaivers {
+		t.Fatalf("impact.include_waivers default was not true")
+	}
+	if result.Policy.AttackPaths.Enabled == nil || !*result.Policy.AttackPaths.Enabled {
+		t.Fatalf("attack_paths.enabled default was not true")
+	}
+	if result.Policy.AttackPaths.BlockHighConfidence == nil || !*result.Policy.AttackPaths.BlockHighConfidence {
+		t.Fatalf("attack_paths.block_high_confidence default was not true")
+	}
+
+	body := `
+version: 1
+review:
+  enabled: false
+  max_comment_findings: 0
+  max_graph_paths: 0
+  sticky_comment_marker: "<!-- custom-changegate-review -->"
+impact:
+  include_existing_risks: false
+  include_resolved_risks: false
+  include_waivers: false
+attack_paths:
+  enabled: false
+  block_high_confidence: false
+`
+	config, err := Load(strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+	result = Validate(config, registry, rules.DefaultPolicyPacks())
+	if !result.Valid {
+		t.Fatalf("policy invalid: %#v", result.Diagnostics)
+	}
+	if result.Policy.Review.Enabled == nil || *result.Policy.Review.Enabled {
+		t.Fatalf("review.enabled override was not false")
+	}
+	if result.Policy.Review.MaxCommentFindings == nil || *result.Policy.Review.MaxCommentFindings != 0 {
+		t.Fatalf("review.max_comment_findings = %v, want 0", result.Policy.Review.MaxCommentFindings)
+	}
+	if result.Policy.Review.MaxGraphPaths == nil || *result.Policy.Review.MaxGraphPaths != 0 {
+		t.Fatalf("review.max_graph_paths = %v, want 0", result.Policy.Review.MaxGraphPaths)
+	}
+	if result.Policy.Impact.IncludeExistingRisks == nil || *result.Policy.Impact.IncludeExistingRisks {
+		t.Fatalf("impact.include_existing_risks override was not false")
+	}
+	if result.Policy.Impact.IncludeResolvedRisks == nil || *result.Policy.Impact.IncludeResolvedRisks {
+		t.Fatalf("impact.include_resolved_risks override was not false")
+	}
+	if result.Policy.Impact.IncludeWaivers == nil || *result.Policy.Impact.IncludeWaivers {
+		t.Fatalf("impact.include_waivers override was not false")
+	}
+	if result.Policy.AttackPaths.Enabled == nil || *result.Policy.AttackPaths.Enabled {
+		t.Fatalf("attack_paths.enabled override was not false")
+	}
+	if result.Policy.AttackPaths.BlockHighConfidence == nil || *result.Policy.AttackPaths.BlockHighConfidence {
+		t.Fatalf("attack_paths.block_high_confidence override was not false")
+	}
+}
+
+func TestValidateReviewIntelligenceRejectsInvalidLimits(t *testing.T) {
+	t.Parallel()
+
+	registry, err := rules.DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	result := Validate(Config{
+		Review: ReviewConfig{
+			MaxCommentFindings: intPtr(-1),
+			MaxGraphPaths:      intPtr(-1),
+		},
+	}, registry, rules.DefaultPolicyPacks())
+	if result.Valid {
+		t.Fatalf("policy unexpectedly valid")
+	}
+	if len(result.Diagnostics) != 2 {
+		t.Fatalf("diagnostics = %d, want 2: %#v", len(result.Diagnostics), result.Diagnostics)
+	}
+}

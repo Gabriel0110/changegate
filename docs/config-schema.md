@@ -71,6 +71,21 @@ docs:
     default: https://docs.example.com/security/changegate
     public_exposure: https://docs.example.com/security/public-exposure
     AWS_PUBLIC_ADMIN_SERVICE: https://docs.example.com/security/admin-services
+
+review:
+  enabled: true
+  max_comment_findings: 10
+  max_graph_paths: 5
+  sticky_comment_marker: "<!-- changegate-review -->"
+
+impact:
+  include_existing_risks: true
+  include_resolved_risks: true
+  include_waivers: true
+
+attack_paths:
+  enabled: true
+  block_high_confidence: true
 ```
 
 ## Fields
@@ -112,6 +127,15 @@ docs:
 | `rego.timeout` | duration | no | Maximum Rego evaluation time. Defaults to `250ms`; maximum `5s`. |
 | `rego.max_input_bytes` | integer | no | Maximum serialized Rego input size. Defaults to 5 MiB. |
 | `docs.links` | map | no | Documentation links keyed by rule ID, risk category, provider, or `default`; added to remediation output. |
+| `review.enabled` | boolean | no | Enables Review Intelligence PR/MR review features when those commands are used. Defaults to `true`. Existing `scan` behavior is unchanged. |
+| `review.max_comment_findings` | integer | no | Maximum findings to show in the sticky PR/MR summary comment. Defaults to `10`; must be non-negative. |
+| `review.max_graph_paths` | integer | no | Maximum graph or attack paths to include in review summaries. Defaults to `5`; must be non-negative. |
+| `review.sticky_comment_marker` | string | no | Hidden marker used to update one stable review comment instead of posting duplicates. Defaults to `<!-- changegate-review -->`. |
+| `impact.include_existing_risks` | boolean | no | Include unchanged baseline risks in Security Impact Statements. Defaults to `true`. |
+| `impact.include_resolved_risks` | boolean | no | Include resolved baseline risks in Security Impact Statements. Defaults to `true`. |
+| `impact.include_waivers` | boolean | no | Include waiver state and waiver counts in Security Impact Statements. Defaults to `true`. |
+| `attack_paths.enabled` | boolean | no | Enables attack path detection when attack path or Review Intelligence commands are used. Defaults to `true`. Existing `scan` behavior is unchanged until attack path integration is enabled in later tranches. |
+| `attack_paths.block_high_confidence` | boolean | no | Allows high-confidence attack paths to affect deployment decisions once policy integration ships. Defaults to `true`. |
 
 ## Enum Values
 

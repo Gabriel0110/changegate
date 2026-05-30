@@ -59,4 +59,25 @@ docs:
     default: https://internal.example.com/changegate
 ```
 
+## Review Intelligence
+
+Review Intelligence settings control upcoming Security Impact Statement, PR/MR review, and attack path commands. They are accepted by the strict policy schema now, but they do not change existing `changegate scan` behavior.
+
+```yaml
+review:
+  enabled: true
+  max_comment_findings: 10
+  max_graph_paths: 5
+  sticky_comment_marker: "<!-- changegate-review -->"
+
+impact:
+  include_existing_risks: true
+  include_resolved_risks: true
+  include_waivers: true
+
+attack_paths:
+  enabled: true
+  block_high_confidence: true
+```
+
 The complete field reference is in [config schema](config-schema.md).

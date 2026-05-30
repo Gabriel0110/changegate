@@ -23,6 +23,7 @@ Stable capabilities are intended for normal CI use:
 
 Experimental capabilities may change before v1:
 
+* ChangeGate Review Intelligence; see [overview](review-intelligence.md) and [implementation plan](review-intelligence-plan.md)
 * broader cloud-context enrichment
 * external scanner adapter normalization
 * custom Rego policy workflows
@@ -36,7 +37,6 @@ Experimental features must be documented as experimental in release notes when t
 
 Planned work after the initial public release includes:
 
-* ChangeGate Review Intelligence; see [implementation plan](review-intelligence-plan.md)
 * additional AWS graph-aware rules based on false-positive data
 * provider support beyond AWS
 * stronger policy-pack versioning and compatibility reports

@@ -29,6 +29,9 @@ type Config struct {
 	CustomRules        CustomRulesConfig            `json:"custom_rules" yaml:"custom_rules"`
 	Rego               RegoConfig                   `json:"rego" yaml:"rego"`
 	Docs               DocsConfig                   `json:"docs" yaml:"docs"`
+	Review             ReviewConfig                 `json:"review" yaml:"review"`
+	Impact             ImpactConfig                 `json:"impact" yaml:"impact"`
+	AttackPaths        AttackPathsConfig            `json:"attack_paths" yaml:"attack_paths"`
 }
 
 // DecisionConfig contains global policy thresholds.
@@ -111,6 +114,27 @@ type DocsConfig struct {
 	Links map[string]string `json:"links" yaml:"links"`
 }
 
+// ReviewConfig controls pull request and merge request review output.
+type ReviewConfig struct {
+	Enabled             *bool  `json:"enabled" yaml:"enabled"`
+	MaxCommentFindings  *int   `json:"max_comment_findings" yaml:"max_comment_findings"`
+	MaxGraphPaths       *int   `json:"max_graph_paths" yaml:"max_graph_paths"`
+	StickyCommentMarker string `json:"sticky_comment_marker" yaml:"sticky_comment_marker"`
+}
+
+// ImpactConfig controls Security Impact Statement rendering.
+type ImpactConfig struct {
+	IncludeExistingRisks *bool `json:"include_existing_risks" yaml:"include_existing_risks"`
+	IncludeResolvedRisks *bool `json:"include_resolved_risks" yaml:"include_resolved_risks"`
+	IncludeWaivers       *bool `json:"include_waivers" yaml:"include_waivers"`
+}
+
+// AttackPathsConfig controls attack path detection and enforcement.
+type AttackPathsConfig struct {
+	Enabled             *bool `json:"enabled" yaml:"enabled"`
+	BlockHighConfidence *bool `json:"block_high_confidence" yaml:"block_high_confidence"`
+}
+
 // ValidationResult is returned by policy validation commands.
 type ValidationResult struct {
 	Valid       bool               `json:"valid"`
@@ -142,6 +166,7 @@ func Load(r io.Reader) (Config, error) {
 // Validate validates policy config against registered rules and packs.
 func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack) ValidationResult {
 	diagnostics := make([]model.Diagnostic, 0)
+	config = applyReviewIntelligenceDefaults(config)
 
 	if config.Version != 0 && config.Version != 1 {
 		diagnostics = append(diagnostics, errorDiagnostic("POLICY_VERSION_UNSUPPORTED", "policy version must be 1"))
@@ -201,6 +226,15 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 	}
 	if config.Rego.Query == "" && len(config.Rego.Files) > 0 {
 		config.Rego.Query = "data.changegate.findings"
+	}
+	if config.Review.MaxCommentFindings != nil && *config.Review.MaxCommentFindings < 0 {
+		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_MAX_COMMENT_FINDINGS_INVALID", "review.max_comment_findings must be non-negative"))
+	}
+	if config.Review.MaxGraphPaths != nil && *config.Review.MaxGraphPaths < 0 {
+		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_MAX_GRAPH_PATHS_INVALID", "review.max_graph_paths must be non-negative"))
+	}
+	if reviewEnabled(config.Review) && config.Review.StickyCommentMarker == "" {
+		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_STICKY_COMMENT_MARKER_INVALID", "review.sticky_comment_marker must be non-empty when review is enabled"))
 	}
 
 	return ValidationResult{
@@ -324,6 +358,50 @@ func toThreshold(config ThresholdConfig) model.Threshold {
 		MinSeverity:   severity,
 		MinConfidence: confidence,
 	}
+}
+
+func applyReviewIntelligenceDefaults(config Config) Config {
+	if config.Review.Enabled == nil {
+		enabled := true
+		config.Review.Enabled = &enabled
+	}
+	if config.Review.MaxCommentFindings == nil {
+		config.Review.MaxCommentFindings = intPtr(10)
+	}
+	if config.Review.MaxGraphPaths == nil {
+		config.Review.MaxGraphPaths = intPtr(5)
+	}
+	if config.Review.StickyCommentMarker == "" {
+		config.Review.StickyCommentMarker = "<!-- changegate-review -->"
+	}
+	if config.Impact.IncludeExistingRisks == nil {
+		config.Impact.IncludeExistingRisks = boolPtr(true)
+	}
+	if config.Impact.IncludeResolvedRisks == nil {
+		config.Impact.IncludeResolvedRisks = boolPtr(true)
+	}
+	if config.Impact.IncludeWaivers == nil {
+		config.Impact.IncludeWaivers = boolPtr(true)
+	}
+	if config.AttackPaths.Enabled == nil {
+		config.AttackPaths.Enabled = boolPtr(true)
+	}
+	if config.AttackPaths.BlockHighConfidence == nil {
+		config.AttackPaths.BlockHighConfidence = boolPtr(true)
+	}
+	return config
+}
+
+func reviewEnabled(config ReviewConfig) bool {
+	return config.Enabled == nil || *config.Enabled
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func intPtr(value int) *int {
+	return &value
 }
 
 func mergeThreshold(target *model.Threshold, source model.Threshold) {
