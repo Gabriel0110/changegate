@@ -59,7 +59,9 @@ The impact audit bundle is deterministic and contains:
 
 ## Graph JSON
 
-`changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation. `changegate graph export` emits the full graph as JSON and requires `--format json`.
+`changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation and emit graph result `version: 2`. `changegate graph export` emits the full graph v2 JSON artifact and requires `--format json`.
+
+Graph v2 is documented by [../schemas/changegate-graph.schema.json](../schemas/changegate-graph.schema.json). Pre-release graph v1 JSON is not emitted; regenerate old artifacts with `changegate graph export --plan tfplan.json --format json`.
 
 ## SARIF
 

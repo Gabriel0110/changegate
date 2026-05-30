@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://changegate.dev/schemas/changegate-graph.schema.json",
+  "title": "ChangeGate Blast-Radius Graph v2",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "nodes", "edges"],
+  "properties": {
+    "version": { "const": 2 },
+    "nodes": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/node" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["id", "address", "type", "kind", "name"],
+      "properties": {
+        "id": { "type": "string" },
+        "address": { "type": "string" },
+        "type": { "type": "string" },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "public_entrypoint",
+            "workload",
+            "data_store",
+            "secret",
+            "kms_key",
+            "principal",
+            "policy",
+            "network_boundary",
+            "unknown"
+          ]
+        },
+        "name": { "type": "string" },
+        "provider": { "type": "string" },
+        "module_path": { "type": "array", "items": { "type": "string" } },
+        "environment": { "type": "string" },
+        "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+        "values": { "type": "object" },
+        "changed": { "type": "boolean" },
+        "actions": { "type": "array", "items": { "type": "string" } },
+        "synthetic": { "type": "boolean" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "type"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "type": { "type": "string" },
+        "evidence": { "type": "array" },
+        "metadata": { "type": "object", "additionalProperties": { "type": "string" } }
+      }
+    }
+  }
+}

@@ -265,6 +265,7 @@ Reference:
 * [Decision model](docs/decision-model.md)
 * [Performance and scale](docs/performance.md)
 * [JSON report schema](schemas/changegate-report.schema.json)
+* [Graph JSON schema](schemas/changegate-graph.schema.json)
 * [OPA input schema](schemas/changegate-opa-input.schema.json)
 
 ## Contributing

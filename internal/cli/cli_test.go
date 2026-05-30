@@ -207,7 +207,7 @@ func TestGraphJSONOutputsAreValid(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &summary); err != nil {
 		t.Fatalf("invalid graph summary JSON: %v\n%s", err, stdout)
 	}
-	if summary.Version != 1 || len(summary.PublicEntrypoints) != 1 || len(summary.SensitiveAssets) != 1 {
+	if summary.Version != 2 || len(summary.PublicEntrypoints) != 1 || len(summary.SensitiveAssets) != 1 {
 		t.Fatalf("unexpected graph summary: %#v", summary)
 	}
 
@@ -219,13 +219,14 @@ func TestGraphJSONOutputsAreValid(t *testing.T) {
 		t.Fatalf("stderr = %q, want empty", stderr)
 	}
 	var exported struct {
-		Nodes map[string]any `json:"nodes"`
-		Edges []any          `json:"edges"`
+		Version int            `json:"version"`
+		Nodes   map[string]any `json:"nodes"`
+		Edges   []any          `json:"edges"`
 	}
 	if err := json.Unmarshal([]byte(stdout), &exported); err != nil {
 		t.Fatalf("invalid graph export JSON: %v\n%s", err, stdout)
 	}
-	if len(exported.Nodes) == 0 || len(exported.Edges) == 0 {
+	if exported.Version != 2 || len(exported.Nodes) == 0 || len(exported.Edges) == 0 {
 		t.Fatalf("exported graph missing nodes or edges: %#v", exported)
 	}
 }

@@ -18,6 +18,8 @@ Graph v2 adds first-class security classification for nodes:
 
 Graph v2 also adds richer relationship edges, including routing, ingress, egress, attachment, role assumption, pass-role, permission grants, secret reads, KMS encryption, writes, replication, and protective controls.
 
+Graph v2 is the only supported graph contract. Pre-release graph v1 JSON is not loaded or emitted; regenerate graph artifacts with the current CLI.
+
 ## Query Model
 
 The internal graph API supports:
@@ -39,6 +41,30 @@ changegate graph export --plan tfplan.json --format json
 ```
 
 `summary`, `path`, and `exposure` render human-readable output by default and support `--format json` for automation. `export` writes the full graph and requires `--format json`.
+
+`graph export` emits the canonical v2 artifact documented by [`schemas/changegate-graph.schema.json`](../schemas/changegate-graph.schema.json):
+
+```json
+{
+  "version": 2,
+  "nodes": {
+    "aws_lb.admin": {
+      "id": "aws_lb.admin",
+      "address": "aws_lb.admin",
+      "type": "aws_lb",
+      "kind": "public_entrypoint",
+      "name": "admin"
+    }
+  },
+  "edges": [
+    {
+      "from": "internet",
+      "to": "aws_lb.admin",
+      "type": "routes_to"
+    }
+  ]
+}
+```
 
 ## AWS Coverage
 

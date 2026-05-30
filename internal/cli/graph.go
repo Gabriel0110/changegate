@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const graphOutputVersion = 1
+const graphOutputVersion = 2
 
 type graphOptions struct {
 	planPath string
@@ -50,6 +50,12 @@ type graphExposureResult struct {
 	BlastRadius graphpkg.BlastRadius    `json:"blast_radius"`
 	Level       string                  `json:"level"`
 	TopPath     []graphpkg.ResourceID   `json:"top_path,omitempty"`
+}
+
+type graphExportResult struct {
+	Version int                                    `json:"version"`
+	Nodes   map[graphpkg.ResourceID]*graphpkg.Node `json:"nodes"`
+	Edges   []graphpkg.Edge                        `json:"edges"`
 }
 
 type graphPlanSummary struct {
@@ -206,7 +212,12 @@ func newGraphExportCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return writeGraphJSON(state, resourceGraph)
+			result := graphExportResult{
+				Version: graphOutputVersion,
+				Nodes:   resourceGraph.Nodes,
+				Edges:   resourceGraph.Edges,
+			}
+			return writeGraphJSON(state, result)
 		},
 	}
 	addGraphPlanFlag(cmd, opts)
