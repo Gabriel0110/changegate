@@ -1,0 +1,51 @@
+{
+  "id": "CHG-362CC55B55EF3053",
+  "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+  "rule_name": "Public admin service",
+  "policy_pack": "aws-public-exposure",
+  "policy_pack_version": "0.1.0",
+  "title": "Internet-facing admin service",
+  "description": "An internet-facing load balancer routes to a production admin service.",
+  "resource_address": "aws_lb.admin",
+  "provider": "registry.terraform.io/hashicorp/aws",
+  "environment": "production",
+  "category": "public_exposure",
+  "severity": "high",
+  "confidence": "high",
+  "evidence": [
+    {
+      "type": "attribute",
+      "resource": "aws_lb.admin",
+      "path": "scheme",
+      "value": "internet-facing",
+      "message": "load balancer is internet-facing"
+    },
+    {
+      "type": "secret",
+      "resource": "aws_ecs_service.admin",
+      "path": "task_definition.container_definitions.0.environment.ADMIN_TOKEN",
+      "value": "(sensitive)",
+      "sensitive": true,
+      "message": "admin token is present in service configuration"
+    },
+    {
+      "type": "tag",
+      "resource": "aws_ecs_service.admin",
+      "path": "tags.env",
+      "value": {
+        "env": "prod",
+        "secret": "(sensitive)"
+      },
+      "message": "service is tagged as production"
+    }
+  ],
+  "remediation": {
+    "summary": "Restrict ingress to a trusted network or authenticated proxy.",
+    "steps": [
+      "Change the load balancer scheme to internal.",
+      "Require authenticated access before admin routes."
+    ]
+  },
+  "fingerprint": "362cc55b55ef3053536c2ead30526c441e4b209ca85e833e6bd766b238134638",
+  "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb.admin|registry.terraform.io/hashicorp/aws|public_exposure|production"
+}

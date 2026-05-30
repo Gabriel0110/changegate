@@ -1,0 +1,150 @@
+# Config Schema
+
+The default policy file is `.changegate.yaml`. ChangeGate decodes this file with strict field checking, so unknown fields fail validation instead of being silently ignored.
+
+This is the human-readable schema contract for policy version `1`.
+
+## Example
+
+```yaml
+version: 1
+mode: block
+
+decision:
+  block_on:
+    min_severity: high
+    min_confidence: high
+  warn_on:
+    min_severity: medium
+    min_confidence: medium
+
+policy_packs:
+  - aws-core
+  - aws-public-exposure
+  - aws-iam-escalation
+
+policy_pack_versions:
+  aws-core: 0.1.0
+  aws-public-exposure: 0.1.0
+  aws-iam-escalation: 0.1.0
+
+rules:
+  disabled:
+    - AWS_PUBLIC_EKS_ENDPOINT_PROD
+
+overrides:
+  AWS_PUBLIC_RDS_INSTANCE:
+    severity: high
+    confidence: high
+    reason: "Keep public database findings as blocking in production."
+
+environments:
+  production:
+    decision:
+      block_on:
+        min_severity: high
+        min_confidence: high
+
+branches:
+  main:
+    decision:
+      warn_on:
+        min_severity: medium
+        min_confidence: medium
+
+scope:
+  changed_resources_only: true
+
+baseline:
+  mode: new-risk-only
+  fingerprints: []
+  max_age_days: 30
+  require_expiration: true
+
+waivers:
+  require_expiration: true
+  max_duration_days: 90
+  fail_expired: true
+
+docs:
+  links:
+    default: https://docs.example.com/security/changegate
+    public_exposure: https://docs.example.com/security/public-exposure
+    AWS_PUBLIC_ADMIN_SERVICE: https://docs.example.com/security/admin-services
+```
+
+## Fields
+
+| Field | Type | Required | Contract |
+| --- | --- | --- | --- |
+| `version` | integer | no | Config schema version. Current value is `1`; omitted also means version `1`. |
+| `mode` | enum | no | One of `block`, `warn`, or `audit`. Defaults to `block`. |
+| `decision.block_on.min_severity` | enum | no | Minimum severity eligible to block. Defaults to `high`. |
+| `decision.block_on.min_confidence` | enum | no | Minimum confidence eligible to block. Defaults to `high`. |
+| `decision.warn_on.min_severity` | enum | no | Minimum severity eligible to warn. Defaults to `medium`. |
+| `decision.warn_on.min_confidence` | enum | no | Minimum confidence eligible to warn. Defaults to `medium`. |
+| `policy_packs` | string array | no | Built-in policy packs to enable. Omitted enables the default stable packs. |
+| `policy_pack_versions` | map | no | Optional built-in policy pack version pins. Validation fails on mismatch. |
+| `policy_pack_signing.require_signed` | boolean | no | Reserved for future remote policy packs. Setting it to `true` currently fails validation. |
+| `policy_pack_signing.trusted_keys` | string array | no | Reserved trusted key identifiers for future signed remote packs. |
+| `rules.enabled` | string array | no | Explicit built-in rule IDs to enable. |
+| `rules.disabled` | string array | no | Built-in rule IDs to disable. |
+| `overrides.<rule_id>.severity` | enum | no | Override severity for a known rule. |
+| `overrides.<rule_id>.confidence` | enum | no | Override confidence for a known rule. |
+| `overrides.<rule_id>.reason` | string | no | Review note explaining the override. |
+| `environments.<name>.decision` | object | no | Environment-specific thresholds selected from detected plan environment. |
+| `branches.<name>.decision` | object | no | Branch-specific thresholds selected from the `--branch` scan flag. |
+| `scope.changed_resources_only` | boolean | no | Only enforce findings on resources changed by the plan. |
+| `baseline.file` | string | no | Baseline file path. |
+| `baseline.mode` | enum | no | `new-risk-only` or `new-findings-only`; both suppress matching existing findings. |
+| `baseline.fingerprints` | string array | no | Inline existing-risk fingerprints. File-based baselines are preferred. |
+| `baseline.max_age_days` | integer | no | Warn when a loaded baseline is older than this many days. |
+| `baseline.require_expiration` | boolean | no | Warn when a loaded baseline has no `expires_at` value. |
+| `waivers.file` | string | no | Waiver file path. |
+| `waivers.require_expiration` | boolean | no | Require waiver expiration dates. Defaults to `true`. |
+| `waivers.max_duration_days` | integer | no | Maximum allowed waiver duration. |
+| `waivers.fail_expired` | boolean | no | Fail scans when the waiver file contains expired waivers. |
+| `custom_rules.files` | string array | no | Declarative YAML rule files or globs, resolved relative to this policy file. |
+| `custom_rules.required` | boolean | no | Fail validation if a configured custom rule glob matches no files. |
+| `custom_rules.max_file_size` | integer | no | Maximum custom YAML rule file size in bytes. Defaults to 1 MiB. |
+| `rego.files` | string array | no | Optional OPA/Rego module files or globs. Rego is disabled when omitted. |
+| `rego.query` | string | no | Rego query to evaluate. Defaults to `data.changegate.findings`. |
+| `rego.timeout` | duration | no | Maximum Rego evaluation time. Defaults to `250ms`; maximum `5s`. |
+| `rego.max_input_bytes` | integer | no | Maximum serialized Rego input size. Defaults to 5 MiB. |
+| `docs.links` | map | no | Documentation links keyed by rule ID, risk category, provider, or `default`; added to remediation output. |
+
+## Enum Values
+
+Severity values:
+
+```text
+critical
+high
+medium
+low
+info
+```
+
+Confidence values:
+
+```text
+high
+medium
+low
+unknown
+```
+
+Mode values:
+
+```text
+block
+warn
+audit
+```
+
+Baseline mode values:
+
+```text
+new-risk-only
+new-findings-only
+```

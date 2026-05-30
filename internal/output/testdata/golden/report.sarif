@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "ChangeGate",
+          "informationUri": "https://github.com/Gabriel0110/changegate",
+          "rules": [
+            {
+              "id": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+              "name": "Security group opens admin port to the world",
+              "shortDescription": {
+                "text": "Security group opens admin port to the world"
+              },
+              "fullDescription": {
+                "text": "Detects administrative ingress exposed to the public internet."
+              },
+              "help": {
+                "markdown": "Public administrative ingress is a high-confidence exposure risk.\n\nRemediation:\n- Restrict ingress to trusted CIDR ranges.\n\nReferences:\n- https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html\n"
+              },
+              "properties": {
+                "category": "public_exposure",
+                "severity": "high",
+                "confidence": "high",
+                "tags": [
+                  "security",
+                  "terraform",
+                  "opentofu",
+                  "public_exposure"
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+          "level": "error",
+          "message": {
+            "text": "Security group opens SSH to the world on aws_security_group.admin"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "tfplan.json"
+                },
+                "region": {
+                  "startLine": 1
+                }
+              }
+            }
+          ],
+          "partialFingerprints": {
+            "changegateDedupKey/v1": "AWS_SG_WORLD_OPEN_ADMIN_PORT|aws_security_group.admin|aws|public_exposure|prod",
+            "changegateFingerprint/v1": "57487a2798ec56aabc46e5797f4c228a8d23209e9df713b20f0dea470a571ced"
+          },
+          "properties": {
+            "category": "public_exposure",
+            "confidence": "high",
+            "remediation": {
+              "summary": "Restrict administrative ingress to trusted CIDR ranges.",
+              "steps": [
+                "Replace 0.0.0.0/0 with a trusted bastion, VPN, or private subnet range.",
+                "Prefer SSM Session Manager for administrative access."
+              ],
+              "references": [
+                "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+              ]
+            },
+            "resource": "aws_security_group.admin",
+            "severity": "high"
+          }
+        }
+      ]
+    }
+  ]
+}

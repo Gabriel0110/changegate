@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Gabriel0110/changegate/schemas/changegate-opa-input.schema.json",
+  "title": "ChangeGate OPA Input",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["plan", "resources", "changes", "graph", "environment", "cloud_context", "policy"],
+  "properties": {
+    "plan": {
+      "type": ["object", "null"],
+      "description": "Redacted normalized Terraform/OpenTofu plan model."
+    },
+    "resources": {
+      "type": "array",
+      "description": "Redacted planned resources sorted by address.",
+      "items": { "type": "object" }
+    },
+    "changes": {
+      "type": "array",
+      "description": "Redacted resource changes sorted by address.",
+      "items": { "type": "object" }
+    },
+    "graph": {
+      "type": ["object", "null"],
+      "description": "ChangeGate resource graph with nodes and edges."
+    },
+    "environment": {
+      "type": "string",
+      "description": "Evaluation environment when known."
+    },
+    "cloud_context": {
+      "description": "Optional cloud context. Null unless a future policy path supplies it."
+    },
+    "policy": {
+      "type": "object",
+      "description": "Policy evaluation metadata.",
+      "properties": {
+        "query": { "type": "string" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

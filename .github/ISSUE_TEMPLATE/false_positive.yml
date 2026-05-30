@@ -1,0 +1,68 @@
+name: False positive report
+description: Report a finding that should not be raised or should not block.
+title: "false positive: "
+labels: ["false-positive", "needs-triage"]
+body:
+  - type: input
+    id: terraform_version
+    attributes:
+      label: Terraform/OpenTofu version
+      placeholder: Terraform 1.8.0 or OpenTofu 1.8.0
+    validations:
+      required: true
+  - type: input
+    id: provider_version
+    attributes:
+      label: Provider version
+      placeholder: hashicorp/aws 5.x
+    validations:
+      required: true
+  - type: input
+    id: rule_id
+    attributes:
+      label: Rule ID
+      placeholder: AWS_PUBLIC_RDS_INSTANCE
+    validations:
+      required: true
+  - type: input
+    id: resource
+    attributes:
+      label: Resource address
+      placeholder: aws_db_instance.main
+    validations:
+      required: true
+  - type: textarea
+    id: plan
+    attributes:
+      label: Sanitized plan JSON
+      description: Attach or paste the smallest sanitized plan JSON that reproduces the finding. Remove account IDs, secrets, hostnames, and customer data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: dropdown
+    id: cloud_context
+    attributes:
+      label: Was cloud context enabled?
+      options:
+        - "No"
+        - "Yes, --context-file"
+        - "Yes, --cloud-context aws"
+    validations:
+      required: true
+  - type: textarea
+    id: why_false_positive
+    attributes:
+      label: Why is this a false positive?
+    validations:
+      required: true

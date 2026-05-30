@@ -1,0 +1,4 @@
+Error: --format must be one of: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle
+Fix: Run changegate --help to view supported flags.
+Help: docs/troubleshooting.md
+Exit code: 2

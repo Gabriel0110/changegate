@@ -1,0 +1,361 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/Gabriel0110/changegate/schemas/changegate-report.schema.json",
+  "title": "ChangeGate Scan Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "decision",
+    "plan",
+    "graph",
+    "risk_summary",
+    "reason_codes",
+    "reasons",
+    "findings"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "changegate.scan.report.v1"
+    },
+    "decision": {
+      "enum": ["allow", "warn", "block", "error"]
+    },
+    "plan": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "tool", "format_version", "resources", "changes"],
+      "properties": {
+        "path": { "type": "string" },
+        "tool": { "enum": ["terraform", "opentofu", "unknown"] },
+        "format_version": { "type": "string" },
+        "resources": { "type": "integer", "minimum": 0 },
+        "changes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodes", "edges"],
+      "properties": {
+        "nodes": { "type": "integer", "minimum": 0 },
+        "edges": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "imports": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["imported", "deduplicated", "correlated", "downgraded", "upgraded"],
+      "properties": {
+        "imported": { "type": "integer", "minimum": 0 },
+        "deduplicated": { "type": "integer", "minimum": 0 },
+        "correlated": { "type": "integer", "minimum": 0 },
+        "downgraded": { "type": "integer", "minimum": 0 },
+        "upgraded": { "type": "integer", "minimum": 0 },
+        "by_source": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "risk_summary": {
+      "type": "object",
+      "required": ["total", "blocking", "warnings", "informational", "suppressed", "downgraded", "upgraded"],
+      "properties": {
+        "total": { "type": "integer", "minimum": 0 },
+        "blocking": { "type": "integer", "minimum": 0 },
+        "warnings": { "type": "integer", "minimum": 0 },
+        "informational": { "type": "integer", "minimum": 0 },
+        "suppressed": { "type": "integer", "minimum": 0 },
+        "downgraded": { "type": "integer", "minimum": 0 },
+        "upgraded": { "type": "integer", "minimum": 0 },
+        "by_severity": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "by_category": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "suppressed_by_reason": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "reason_codes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "reasons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/decision_reason" }
+    },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/finding" }
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["severity", "code", "message"],
+        "properties": {
+          "severity": { "enum": ["info", "warning", "error"] },
+          "code": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      }
+    },
+    "rules": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/rule_summary" }
+    },
+    "run": { "$ref": "#/$defs/run_metadata" },
+    "audit": { "$ref": "#/$defs/audit_reports" },
+    "compliance": { "$ref": "#/$defs/compliance_report" },
+    "message": {
+      "type": "string"
+    }
+  },
+  "$defs": {
+    "decision_reason": {
+      "type": "object",
+      "required": ["code", "reason"],
+      "properties": {
+        "finding_id": { "type": "string" },
+        "resource": { "type": "string" },
+        "policy": { "type": "string" },
+        "code": { "type": "string" },
+        "reason": { "type": "string" }
+      }
+    },
+    "rule_summary": {
+      "type": "object",
+      "required": ["id", "name", "category", "severity", "confidence"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+        "help": { "type": "string" },
+        "remediation": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "run_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "cli_version", "redaction_report"],
+      "properties": {
+        "schema_version": { "const": "changegate.audit.run.v1" },
+        "cli_version": { "type": "string" },
+        "cli_commit": { "type": "string" },
+        "cli_date": { "type": "string" },
+        "plan_hash": { "type": "string" },
+        "config_hash": { "type": "string" },
+        "policy_digest": { "type": "string" },
+        "plan_digest": { "type": "string" },
+        "policy_pack_versions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "cloud_context_timestamp": { "type": "string" },
+        "redaction_report": { "$ref": "#/$defs/redaction_report" }
+      }
+    },
+    "redaction_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "sensitive_evidence", "redacted_values"],
+      "properties": {
+        "status": { "type": "string" },
+        "sensitive_evidence": { "type": "integer", "minimum": 0 },
+        "redacted_values": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "audit_reports": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "waivers": true,
+        "baseline": true
+      }
+    },
+    "compliance_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mappings", "findings", "summary"],
+      "properties": {
+        "mappings": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/compliance_mapping" }
+        },
+        "findings": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/compliance_finding" }
+        },
+        "summary": {
+          "type": "object",
+          "additionalProperties": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "compliance_mapping": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["frameworks"],
+      "properties": {
+        "frameworks": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "compliance_finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["finding_id", "rule_id", "resource", "frameworks", "actual_risk", "suppressed"],
+      "properties": {
+        "finding_id": { "type": "string" },
+        "rule_id": { "type": "string" },
+        "resource": { "type": "string" },
+        "frameworks": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "actual_risk": { "type": "boolean" },
+        "suppressed": { "type": "boolean" }
+      }
+    },
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "rule_id",
+        "title",
+        "resource_address",
+        "category",
+        "severity",
+        "confidence",
+        "evidence",
+        "remediation",
+        "fingerprint",
+        "deduplication_key"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "rule_id": { "type": "string" },
+        "rule_name": { "type": "string" },
+        "policy_pack": { "type": "string" },
+        "policy_pack_version": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "resource_address": { "type": "string" },
+        "provider": { "type": "string" },
+        "environment": { "type": "string" },
+        "category": { "type": "string" },
+        "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+        "evidence": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "remediation": {
+          "type": "object",
+          "properties": {
+            "summary": { "type": "string" },
+            "steps": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "references": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "why_this_works": { "type": "string" },
+            "fix_confidence": { "enum": ["high", "medium", "low", "unknown"] },
+            "auto_fix_available": { "type": "boolean" },
+            "patches": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/patch_suggestion" }
+            },
+            "owner_hints": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "next_steps": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "docs": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "fingerprint": { "type": "string" },
+        "deduplication_key": { "type": "string" },
+        "suppressions": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "decision_reason_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "decision_reasons": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/decision_reason" }
+        },
+        "correlated_finding_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "patch_suggestion": {
+      "type": "object",
+      "required": ["title", "format", "snippet", "safe_to_apply", "rationale", "review_needed"],
+      "properties": {
+        "title": { "type": "string" },
+        "format": { "type": "string" },
+        "language": { "type": "string" },
+        "snippet": { "type": "string" },
+        "applies_to": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "safe_to_apply": { "type": "boolean" },
+        "rationale": { "type": "string" },
+        "review_needed": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "required": ["type", "message"],
+      "properties": {
+        "type": { "type": "string" },
+        "resource": { "type": "string" },
+        "path": { "type": "string" },
+        "value": true,
+        "sensitive": { "type": "boolean" },
+        "message": { "type": "string" }
+      }
+    }
+  }
+}

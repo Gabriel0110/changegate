@@ -1,0 +1,10 @@
+{
+  "ok": false,
+  "error": {
+    "type": "usage",
+    "message": "missing required --plan path",
+    "fix": "Generate plan JSON with terraform show -json tfplan \u003e tfplan.json, then run changegate scan --plan tfplan.json.",
+    "help": "docs/troubleshooting.md",
+    "exit_code": 2
+  }
+}

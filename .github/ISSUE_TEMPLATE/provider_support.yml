@@ -1,0 +1,33 @@
+name: Provider support request
+description: Request support for a new cloud provider or Terraform provider.
+title: "provider: "
+labels: ["provider-support", "needs-triage"]
+body:
+  - type: input
+    id: provider
+    attributes:
+      label: Provider
+      placeholder: hashicorp/azurerm, hashicorp/google, kubernetes
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: High-confidence risks
+      description: Which planned changes should block?
+    validations:
+      required: true
+  - type: textarea
+    id: plan_shape
+    attributes:
+      label: Sanitized plan JSON examples
+      description: Attach or describe representative redacted plan JSON.
+    validations:
+      required: true
+  - type: textarea
+    id: graph
+    attributes:
+      label: Important relationships
+      description: Which graph edges matter for this provider?
+    validations:
+      required: false

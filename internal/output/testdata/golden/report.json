@@ -1,0 +1,117 @@
+{
+  "schema_version": "changegate.scan.report.v1",
+  "decision": "block",
+  "plan": {
+    "path": "tfplan.json",
+    "tool": "terraform",
+    "format_version": "1.0",
+    "resources": 12,
+    "changes": 3
+  },
+  "graph": {
+    "nodes": 12,
+    "edges": 7
+  },
+  "risk_summary": {
+    "total": 1,
+    "blocking": 1,
+    "warnings": 0,
+    "informational": 0,
+    "suppressed": 0,
+    "downgraded": 0,
+    "upgraded": 0,
+    "by_severity": {
+      "high": 1
+    },
+    "by_category": {
+      "public_exposure": 1
+    }
+  },
+  "reason_codes": [
+    "MEETS_BLOCK_THRESHOLD"
+  ],
+  "reasons": [
+    {
+      "finding_id": "CHG-57487A2798EC56AA",
+      "resource": "aws_security_group.admin",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "high severity and high confidence meets block threshold"
+    }
+  ],
+  "findings": [
+    {
+      "id": "CHG-57487A2798EC56AA",
+      "rule_id": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+      "rule_name": "Security group opens admin port to the world",
+      "policy_pack": "aws-public-exposure",
+      "title": "Security group opens SSH to the world",
+      "description": "The planned security group permits public administrative ingress.",
+      "resource_address": "aws_security_group.admin",
+      "provider": "aws",
+      "environment": "prod",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "attribute",
+          "resource": "aws_security_group.admin",
+          "path": "ingress[0].cidr_blocks",
+          "value": [
+            "0.0.0.0/0"
+          ],
+          "message": "Ingress allows SSH from the public internet."
+        },
+        {
+          "type": "attribute",
+          "resource": "aws_security_group.admin",
+          "path": "tags.secret",
+          "value": "(sensitive)",
+          "sensitive": true,
+          "message": "Sensitive tag value was redacted."
+        }
+      ],
+      "remediation": {
+        "summary": "Restrict administrative ingress to trusted CIDR ranges.",
+        "steps": [
+          "Replace 0.0.0.0/0 with a trusted bastion, VPN, or private subnet range.",
+          "Prefer SSM Session Manager for administrative access."
+        ],
+        "references": [
+          "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+        ]
+      },
+      "fingerprint": "57487a2798ec56aabc46e5797f4c228a8d23209e9df713b20f0dea470a571ced",
+      "deduplication_key": "AWS_SG_WORLD_OPEN_ADMIN_PORT|aws_security_group.admin|aws|public_exposure|prod",
+      "decision_reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-57487A2798EC56AA",
+          "resource": "aws_security_group.admin",
+          "code": "MEETS_BLOCK_THRESHOLD",
+          "reason": "high severity and high confidence meets block threshold"
+        }
+      ]
+    }
+  ],
+  "rules": {
+    "AWS_SG_WORLD_OPEN_ADMIN_PORT": {
+      "id": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+      "name": "Security group opens admin port to the world",
+      "description": "Detects administrative ingress exposed to the public internet.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "help": "Public administrative ingress is a high-confidence exposure risk.",
+      "remediation": [
+        "Restrict ingress to trusted CIDR ranges."
+      ],
+      "references": [
+        "https://docs.aws.amazon.com/vpc/latest/userguide/security-group-rules.html"
+      ]
+    }
+  },
+  "message": "plan parsed, graph built, and policy evaluated"
+}

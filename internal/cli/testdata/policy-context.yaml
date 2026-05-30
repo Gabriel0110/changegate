@@ -1,0 +1,23 @@
+version: 1
+mode: block
+policy_packs:
+  - aws-core
+  - aws-public-exposure
+scope:
+  changed_resources_only: true
+baseline:
+  mode: new-findings-only
+  fingerprints:
+    - does-not-match
+branches:
+  main:
+    decision:
+      block_on:
+        severity: medium
+        confidence: medium
+environments:
+  production:
+    decision:
+      block_on:
+        severity: high
+        confidence: high

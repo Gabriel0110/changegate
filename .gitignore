@@ -1,0 +1,50 @@
+# macOS and editor noise
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.csr
+
+# Go build, test, and profiling artifacts
+/bin/
+/dist/
+*.test
+coverage.out
+coverage.*
+*.prof
+*.pprof
+
+# Terraform/OpenTofu local state and generated plans
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.*
+*.tfplan
+tfplan.json
+tfplan.*.json
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# ChangeGate generated local artifacts
+changegate-audit.zip
+changegate*.sarif
+/changegate*.json
+
+# Local implementation planning
+changegate-implementation-plan.md

@@ -1,0 +1,16 @@
+Decision: BLOCK
+
+Plan: tfplan.json
+Tool: terraform
+Format: 1.0
+Resources: 12
+Changes: 3
+Graph: 12 nodes, 7 edges
+Findings: 1
+Blocking: 1
+Warnings: 0
+Suppressed or downgraded: 0
+Reason: MEETS_BLOCK_THRESHOLD aws_security_group.admin - high severity and high confidence meets block threshold
+
+Top findings:
+- [high/high] Security group opens SSH to the world (aws_security_group.admin)

@@ -1,0 +1,39 @@
+version: 2.1
+
+jobs:
+  changegate:
+    docker:
+      - image: cimg/base:stable
+    environment:
+      TERRAFORM_VERSION: 1.8.5
+      CHANGEGATE_VERSION: vX.Y.Z
+    steps:
+      - checkout
+      - run:
+          name: Install Terraform and ChangeGate
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y curl unzip
+            curl -fsSLo /tmp/terraform.zip "https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip"
+            sudo unzip -o /tmp/terraform.zip -d /usr/local/bin
+            curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
+            sudo env CHANGEGATE_VERSION="${CHANGEGATE_VERSION}" CHANGEGATE_INSTALL_DIR=/usr/local/bin bash /tmp/install-changegate.sh
+      - run:
+          name: Terraform plan
+          command: |
+            cd infra
+            terraform init
+            terraform plan -out=tfplan
+            terraform show -json tfplan > tfplan.json
+      - run:
+          name: ChangeGate scan
+          command: |
+            cd infra
+            status=0
+            changegate scan --plan tfplan.json --format junit --out ../changegate.junit.xml || status=$?
+            changegate scan --plan tfplan.json --format markdown --out ../changegate.md || true
+            exit "$status"
+      - store_test_results:
+          path: changegate.junit.xml
+      - store_artifacts:
+          path: changegate.md

@@ -1,0 +1,43 @@
+name: Rule request
+description: Request a new built-in rule or policy pack coverage.
+title: "rule: "
+labels: ["rule-request", "needs-triage"]
+body:
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk scenario
+      description: What risky planned change should ChangeGate detect?
+    validations:
+      required: true
+  - type: input
+    id: resources
+    attributes:
+      label: Terraform/OpenTofu resources
+      placeholder: aws_lb, aws_security_group, aws_db_instance
+    validations:
+      required: true
+  - type: textarea
+    id: graph
+    attributes:
+      label: Graph context
+      description: Which resource relationships matter?
+    validations:
+      required: false
+  - type: dropdown
+    id: confidence
+    attributes:
+      label: Expected confidence
+      options:
+        - high
+        - medium
+        - low
+    validations:
+      required: true
+  - type: textarea
+    id: fixtures
+    attributes:
+      label: Sanitized fixture idea
+      description: Describe or attach a sanitized plan JSON fixture.
+    validations:
+      required: true

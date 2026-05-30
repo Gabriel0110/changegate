@@ -1,0 +1,47 @@
+name: infrastructure-risk
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  changegate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform plan
+        working-directory: infra
+        run: |
+          terraform init
+          terraform plan -out=tfplan
+          terraform show -json tfplan > tfplan.json
+      - name: Install ChangeGate
+        env:
+          CHANGEGATE_VERSION: vX.Y.Z
+          CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
+        run: |
+          curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
+          bash /tmp/install-changegate.sh
+          echo "${CHANGEGATE_INSTALL_DIR}" >> "${GITHUB_PATH}"
+      - name: ChangeGate scan
+        id: changegate
+        working-directory: infra
+        run: |
+          status=0
+          changegate scan --plan tfplan.json --format sarif --out changegate.sarif || status=$?
+          changegate scan --plan tfplan.json --format github-step-summary --out "$GITHUB_STEP_SUMMARY" || true
+          echo "exit_code=$status" >> "$GITHUB_OUTPUT"
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@4c50b6f6fd9dc6fe03111c2d045c8be2a724cce1 # v3.28.11
+        with:
+          sarif_file: infra/changegate.sarif
+      - name: Enforce ChangeGate decision
+        if: always() && steps.changegate.outputs.exit_code != '0'
+        run: exit "${{ steps.changegate.outputs.exit_code }}"

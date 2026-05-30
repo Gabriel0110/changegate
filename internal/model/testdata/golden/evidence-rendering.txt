@@ -1,0 +1,3 @@
+aws_ecs_service.admin: admin token is present in service configuration (task_definition.container_definitions.0.environment.ADMIN_TOKEN)
+aws_ecs_service.admin: service is tagged as production (tags.env)
+aws_lb.admin: load balancer is internet-facing (scheme)

@@ -1,0 +1,30 @@
+- name: bug
+  color: "d73a4a"
+  description: Confirmed or suspected incorrect behavior.
+- name: needs-triage
+  color: "ededed"
+  description: Maintainer triage has not happened yet.
+- name: good first issue
+  color: "7057ff"
+  description: Small, well-scoped issue suitable for first-time contributors.
+- name: help-wanted
+  color: "008672"
+  description: Maintainers would welcome community help.
+- name: rule-request
+  color: "1d76db"
+  description: Request for new built-in detection logic.
+- name: false-positive
+  color: "d93f0b"
+  description: Reported over-triggering or incorrect blocking behavior.
+- name: provider-support
+  color: "5319e7"
+  description: Request for provider-specific support.
+- name: rfc
+  color: "fbca04"
+  description: Requires design discussion before implementation.
+- name: breaking-change
+  color: "b60205"
+  description: May require migration or release-note callout.
+- name: security
+  color: "ee0701"
+  description: Security-sensitive work or disclosure follow-up.

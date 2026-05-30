@@ -1,0 +1,48 @@
+name: ChangeGate
+description: Install a pinned ChangeGate release and optionally scan a Terraform/OpenTofu plan.
+inputs:
+  version:
+    description: ChangeGate release version to install, for example v0.1.0. Required to avoid floating installs.
+    required: true
+  plan:
+    description: Optional Terraform/OpenTofu plan JSON path to scan.
+    required: false
+    default: ""
+  format:
+    description: Scan output format.
+    required: false
+    default: table
+  policy:
+    description: Optional ChangeGate policy path.
+    required: false
+    default: ""
+  args:
+    description: Additional arguments passed to changegate scan.
+    required: false
+    default: ""
+runs:
+  using: composite
+  steps:
+    - name: Install ChangeGate
+      shell: bash
+      env:
+        CHANGEGATE_VERSION: ${{ inputs.version }}
+        CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
+      run: |
+        "${GITHUB_ACTION_PATH}/scripts/install.sh"
+        echo "${CHANGEGATE_INSTALL_DIR}" >> "${GITHUB_PATH}"
+
+    - name: Scan plan
+      if: ${{ inputs.plan != '' }}
+      shell: bash
+      run: |
+        cmd=(changegate scan --plan "${{ inputs.plan }}" --format "${{ inputs.format }}")
+        if [[ -n "${{ inputs.policy }}" ]]; then
+          cmd+=(--policy "${{ inputs.policy }}")
+        fi
+        if [[ -n "${{ inputs.args }}" ]]; then
+          # shellcheck disable=SC2206
+          extra=(${{ inputs.args }})
+          cmd+=("${extra[@]}")
+        fi
+        "${cmd[@]}"

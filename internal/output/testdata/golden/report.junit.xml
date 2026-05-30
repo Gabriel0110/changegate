@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="changegate" tests="1" failures="1" skipped="0">
+  <testsuite name="changegate.scan" tests="1" failures="1" skipped="0">
+    <testcase name="AWS_SG_WORLD_OPEN_ADMIN_PORT aws_security_group.admin" classname="changegate.public_exposure">
+      <failure message="Security group opens SSH to the world" type="high">The planned security group permits public administrative ingress.&#xA;&#xA;Remediation: Restrict administrative ingress to trusted CIDR ranges.</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -1,0 +1,4 @@
+Error: missing required --plan path
+Fix: Generate plan JSON with terraform show -json tfplan > tfplan.json, then run changegate scan --plan tfplan.json.
+Help: docs/troubleshooting.md
+Exit code: 2

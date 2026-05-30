@@ -1,0 +1,45 @@
+Analyze Terraform/OpenTofu plan JSON before apply and return one deployment decision.
+
+Fastest path:
+  terraform plan -out=tfplan
+  terraform show -json tfplan > tfplan.json
+  changegate scan --plan tfplan.json
+
+Scan builds a changing-resource graph, evaluates built-in AWS risk rules,
+applies policy thresholds, and emits terminal or CI-friendly output.
+
+Usage:
+  changegate scan --plan tfplan.json [flags]
+
+Flags:
+      --audit-bundle string          write a deterministic audit evidence bundle zip to this path
+      --baseline string              baseline file used to suppress existing findings
+      --branch string                branch name for branch-specific policy thresholds
+      --changed-only                 only enforce findings on resources changed by the plan
+      --cloud-context string         optional cloud context provider: aws
+      --context-file string          offline cloud context snapshot file
+      --debug-graph                  dump the inferred resource relationship graph as JSON
+      --debug-plan-model             dump the redacted normalized plan model as JSON
+      --fail-on-import-error         fail the scan when an external scanner output cannot be imported
+  -h, --help                         help for scan
+      --import-checkov stringArray   import Checkov JSON findings as external evidence; repeatable
+      --import-grype stringArray     import Grype JSON findings as external evidence; repeatable
+      --import-json stringArray      import generic ChangeGate JSON findings as external evidence; repeatable
+      --import-kics stringArray      import KICS JSON findings as external evidence; repeatable
+      --import-sarif stringArray     import SARIF 2.1.0 findings as external evidence; repeatable
+      --import-trivy stringArray     import Trivy JSON findings as external evidence; repeatable
+      --max-findings int             maximum findings to include in output; 0 includes all findings
+      --new-only                     only enforce findings not present in the baseline
+      --plan stringArray             path to Terraform/OpenTofu plan JSON produced by show -json; repeat for multiple plans
+      --timeout string               overall scan timeout such as 30s, 2m, or 5m
+
+Global Flags:
+      --cache-dir string   cache directory for policy packs and cloud context
+      --debug              enable debug diagnostics without secrets
+      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle (default "table")
+      --mode string        enforcement mode: block, warn, audit (default "block")
+      --no-color           disable ANSI color output
+      --out string         write output to a file
+      --policy string      path to .changegate.yaml policy file
+      --quiet              suppress non-essential human output
+      --verbose            enable informational diagnostics

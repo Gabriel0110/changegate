@@ -1,0 +1,18 @@
+version: 1
+mode: warn
+policy_packs:
+  - aws-public-exposure
+rules:
+  enabled:
+    - AWS_IAM_ADMIN_POLICY_ATTACHMENT
+  disabled:
+    - AWS_PUBLIC_RDS_INSTANCE
+decision:
+  block_on:
+    severity: high
+    confidence: high
+overrides:
+  AWS_SG_WORLD_OPEN_ADMIN_PORT:
+    severity: medium
+    confidence: medium
+    reason: migration exception

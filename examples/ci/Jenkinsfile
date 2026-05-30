@@ -1,0 +1,48 @@
+pipeline {
+  agent any
+
+  environment {
+    CHANGEGATE_VERSION = 'vX.Y.Z'
+  }
+
+  stages {
+    stage('Install ChangeGate') {
+      steps {
+        sh '''
+          mkdir -p .changegate-bin
+          curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
+          CHANGEGATE_INSTALL_DIR="$PWD/.changegate-bin" bash /tmp/install-changegate.sh
+        '''
+      }
+    }
+
+    stage('Terraform plan') {
+      steps {
+        dir('infra') {
+          sh 'terraform init'
+          sh 'terraform plan -out=tfplan'
+          sh 'terraform show -json tfplan > tfplan.json'
+        }
+      }
+    }
+
+    stage('ChangeGate') {
+      steps {
+        dir('infra') {
+          sh '''
+            status=0
+            ../.changegate-bin/changegate scan --plan tfplan.json --format junit --out ../changegate.junit.xml || status=$?
+            ../.changegate-bin/changegate scan --plan tfplan.json --format markdown --out ../changegate.md || true
+            exit "$status"
+          '''
+        }
+      }
+      post {
+        always {
+          junit 'changegate.junit.xml'
+          archiveArtifacts artifacts: 'changegate.md', allowEmptyArchive: true
+        }
+      }
+    }
+  }
+}
