@@ -8,7 +8,7 @@ The update focuses on six production features:
 2. Blast-Radius Graph v2.
 3. AWS Cloud Context Snapshot Collector.
 4. Attack Path v1.
-5. Self-hosted HCP Terraform Run Task Adapter.
+5. Self-hosted HCP Terraform Run Task Adapter. This is deferred until after the core Review Intelligence work ships.
 6. Risk Tests for Terraform Modules.
 
 ## 1. Product Positioning
@@ -1300,6 +1300,8 @@ attack_paths:
 
 ## 26. Tranche 20: HCP Terraform Run Task Protocol
 
+Status: deferred. Do not implement this tranche during the first Review Intelligence development cycle. Resume only after impact statements, PR review, graph v2, cloud context, attack paths, and risk tests are production-ready.
+
 ### Goal
 
 Implement the HCP Terraform run task request, callback, and security model.
@@ -1352,6 +1354,8 @@ type Request struct {
 * Token redaction tests.
 
 ## 27. Tranche 21: HCP Terraform Adapter Server
+
+Status: deferred. This tranche depends on Tranche 20 and should remain out of scope until HCP Terraform run task support is explicitly resumed.
 
 ### Goal
 
@@ -1419,6 +1423,8 @@ ERROR -> failed
 * End-to-end adapter test with fixture payload and plan.
 
 ## 28. Tranche 22: HCP Adapter Packaging and Documentation
+
+Status: deferred. This tranche depends on Tranches 20 and 21 and should remain out of scope until the run task adapter is resumed.
 
 ### Goal
 
@@ -1777,10 +1783,13 @@ The highest ROI implementation order is:
 13. Risk test manifest and CLI.
 14. Fixture corpus.
 15. Audit bundle v2.
-16. HCP run task protocol.
-17. HCP run task server and packaging.
-18. Performance and security hardening.
-19. Full docs and release readiness.
+16. Performance and security hardening.
+17. Full docs and release readiness.
+
+Deferred until a later cycle:
+
+* HCP run task protocol.
+* HCP run task server and packaging.
 
 This order gives users visible value quickly while building toward the enterprise-native HCP adapter and cloud-context intelligence.
 
