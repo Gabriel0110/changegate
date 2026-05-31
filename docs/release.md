@@ -52,3 +52,5 @@ Known non-goals for the first release workflow:
 ## Changelog automation
 
 GitHub release notes are categorized by `.github/release.yml`, and `scripts/release-notes.sh` emits a release-note body with a mandatory `Breaking changes` section.
+
+For the Review Intelligence release candidate, use [Review Intelligence release notes](release-notes-review-intelligence.md) as the feature-specific release note source. It separates stable features, experimental AWS context collection, Attack Path v1 scope, deferred HCP adapter work, and JSON migration notes.

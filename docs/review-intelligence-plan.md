@@ -1779,6 +1779,10 @@ Release notes must clearly separate:
 * HCP adapter deployment requirements
 * migration notes for output JSON additions
 
+### Implementation Status
+
+Complete. Release-facing notes now separate stable Review Intelligence features, experimental AWS context limitations, Attack Path v1 scope, deferred HCP adapter status, and JSON output additions in `CHANGELOG.md` and `docs/release-notes-review-intelligence.md`. Final validation was run with full Go tests, race detector, vet, lint, `govulncheck`, risk-test corpus, review dry-runs, audit-bundle determinism, performance budgets, local release artifact dry run, and Docker smoke testing. HCP adapter end-to-end validation remains deferred with the HCP adapter tranches.
+
 ## 37. Production Definition of Done
 
 The Review Intelligence update is production-ready when:
