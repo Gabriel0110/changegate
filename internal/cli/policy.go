@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/Gabriel0110/changegate/internal/model"
@@ -71,6 +72,7 @@ func newPolicyTestCommand() *cobra.Command {
 			if err != nil {
 				return policyError(err.Error(), "Check the policy path and YAML syntax.")
 			}
+			config = policy.ResolveRelativePaths(config, filepath.Dir(args[0]))
 			registry, customDiagnostics, err := registryForPolicy(args[0], config)
 			if err != nil {
 				return err
@@ -114,6 +116,7 @@ func validatePolicyFile(path string) (policy.ValidationResult, error) {
 	if err != nil {
 		return policy.ValidationResult{}, policyError(err.Error(), "Check the policy path and YAML syntax.")
 	}
+	config = policy.ResolveRelativePaths(config, filepath.Dir(path))
 	registry, customDiagnostics, err := registryForPolicy(path, config)
 	if err != nil {
 		return policy.ValidationResult{}, err

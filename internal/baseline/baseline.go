@@ -121,7 +121,7 @@ func EntriesFromFindings(findings []model.Finding) []Entry {
 	entries := make([]Entry, 0, len(findings))
 	for _, finding := range findings {
 		normalized := model.NormalizeFinding(finding)
-		context := model.RiskContextFromFinding(normalized)
+		context := baselineEntryContext(normalized)
 		entries = append(entries, Entry{
 			Fingerprint:          normalized.Fingerprint,
 			DeduplicationKey:     normalized.DeduplicationKey,
@@ -141,6 +141,43 @@ func EntriesFromFindings(findings []model.Finding) []Entry {
 	}
 	sortEntries(entries)
 	return entries
+}
+
+func baselineEntryContext(finding model.Finding) model.RiskContext {
+	stripped, strippedExistingRisk := withoutBaselineSuppression(finding)
+	context := model.RiskContextFromFinding(stripped)
+	if strippedExistingRisk && context.Decision == model.DecisionAllow {
+		context.Decision = decisionFromSeverity(stripped.Severity)
+	}
+	return context
+}
+
+func decisionFromSeverity(severity model.Severity) model.Decision {
+	switch severity {
+	case model.SeverityCritical, model.SeverityHigh:
+		return model.DecisionBlock
+	case model.SeverityMedium:
+		return model.DecisionWarn
+	default:
+		return model.DecisionAllow
+	}
+}
+
+func withoutBaselineSuppression(finding model.Finding) (model.Finding, bool) {
+	if len(finding.Suppressions) == 0 {
+		return finding, false
+	}
+	suppressions := make([]model.Suppression, 0, len(finding.Suppressions))
+	strippedExistingRisk := false
+	for _, suppression := range finding.Suppressions {
+		if suppression.Kind == "existing_risk" {
+			strippedExistingRisk = true
+			continue
+		}
+		suppressions = append(suppressions, suppression)
+	}
+	finding.Suppressions = suppressions
+	return finding, strippedExistingRisk
 }
 
 // LoadFile loads and validates a baseline file.
@@ -237,15 +274,25 @@ func Diff(file File, current []model.Finding, now time.Time, maxAgeDays int, req
 	}
 	currentEntries := EntriesFromFindings(current)
 	byFingerprint := make(map[string]Entry, len(file.Findings))
+	byDeduplicationKey := make(map[string]Entry, len(file.Findings))
 	byRenameKey := make(map[string]Entry, len(file.Findings))
 	for _, entry := range file.Findings {
 		byFingerprint[entry.Fingerprint] = entry
+		if entry.DeduplicationKey != "" {
+			byDeduplicationKey[entry.DeduplicationKey] = entry
+		}
 		byRenameKey[renameKey(entry)] = entry
 	}
 	seenBaseline := make(map[string]bool, len(file.Findings))
 	for _, entry := range currentEntries {
 		if existing, ok := byFingerprint[entry.Fingerprint]; ok {
 			result.Unchanged = append(result.Unchanged, entry)
+			classifyExisting(&result, existing, entry)
+			seenBaseline[existing.Fingerprint] = true
+			continue
+		}
+		if existing, ok := byDeduplicationKey[entry.DeduplicationKey]; ok && entry.DeduplicationKey != "" {
+			result.Changed = append(result.Changed, entry)
 			classifyExisting(&result, existing, entry)
 			seenBaseline[existing.Fingerprint] = true
 			continue

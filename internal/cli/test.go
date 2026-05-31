@@ -99,8 +99,11 @@ func buildScanReportFromRiskTest(ctx context.Context, state *appState, request r
 	cmd := &cobra.Command{}
 	cmd.SetContext(ctx)
 	return buildScanReport(cmd, state, &scanOptions{
-		planPaths: []string{request.PlanPath},
-		timeout:   timeout,
+		planPaths:    []string{request.PlanPath},
+		baselinePath: request.BaselinePath,
+		newOnly:      request.NewOnly,
+		contextFile:  request.ContextFile,
+		timeout:      timeout,
 	})
 }
 

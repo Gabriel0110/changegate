@@ -23,10 +23,13 @@ type Manifest struct {
 
 // TestCase is one risk test entry from a manifest.
 type TestCase struct {
-	Name   string       `json:"name" yaml:"name"`
-	Plan   string       `json:"plan" yaml:"plan"`
-	Config string       `json:"config,omitempty" yaml:"config,omitempty"`
-	Expect Expectations `json:"expect" yaml:"expect"`
+	Name        string       `json:"name" yaml:"name"`
+	Plan        string       `json:"plan" yaml:"plan"`
+	Config      string       `json:"config,omitempty" yaml:"config,omitempty"`
+	Baseline    string       `json:"baseline,omitempty" yaml:"baseline,omitempty"`
+	NewOnly     bool         `json:"new_only,omitempty" yaml:"new_only,omitempty"`
+	ContextFile string       `json:"context_file,omitempty" yaml:"context_file,omitempty"`
+	Expect      Expectations `json:"expect" yaml:"expect"`
 }
 
 // Expectations captures supported assertions for a test case.

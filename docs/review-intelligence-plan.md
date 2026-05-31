@@ -1594,6 +1594,10 @@ Add fixtures for:
 * Fixtures double as documentation examples.
 * Fixture contribution docs are updated.
 
+### Implementation Status
+
+Complete. The sanitized corpus lives in `examples/risk-tests` and covers all tranche categories with fake account ID `123456789012`, minimal hand-written plans, context snapshots, baseline movement, and waiver scoping.
+
 ## 32. Tranche 26: Audit Bundle v2
 
 ### Goal

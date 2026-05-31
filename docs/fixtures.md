@@ -30,6 +30,28 @@ Before opening a pull request, remove or replace:
 
 Use obvious synthetic values such as `123456789012`, `example`, `example.com`, `redacted`, and `test`.
 
+## Runnable Corpus
+
+ChangeGate ships a sanitized regression corpus under [examples/risk-tests](../examples/risk-tests). Run it from the repository root:
+
+```bash
+changegate test examples/risk-tests
+```
+
+The corpus is intentionally small and hand-written. It proves high-signal product behavior:
+
+* expected public web ALB allowed
+* public admin ALB blocked
+* public ALB to ECS to RDS blocked
+* Lambda function URL to secret blocked through cloud-context graph evidence
+* `iam:PassRole` plus Lambda update blocked
+* `sts:AssumeRole` to admin blocked
+* baseline suppression for unchanged existing risk
+* worsened baseline risk still blocked
+* staging waiver accepted and production waiver rejected
+* cloud context downgrading expected public exposure
+* cloud context upgrading drift-backed public exposure
+
 ## Minimality
 
 Keep fixtures small. A good fixture contains the smallest set of resources and attributes needed to prove the behavior being tested. Large fixtures are harder to review and increase the chance of leaking sensitive data.
@@ -40,6 +62,7 @@ Run the relevant tests and the full suite before submitting:
 
 ```bash
 go test ./internal/rules ./internal/graph ./internal/model
+changegate test examples/risk-tests
 go test ./...
 ```
 

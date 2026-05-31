@@ -14,6 +14,9 @@ type ExecutionRequest struct {
 	TestName     string
 	PlanPath     string
 	ConfigPath   string
+	BaselinePath string
+	NewOnly      bool
+	ContextFile  string
 	Case         TestCase
 }
 
@@ -38,12 +41,14 @@ type ManifestRun struct {
 
 // CaseRun captures one risk test execution.
 type CaseRun struct {
-	Name     string    `json:"name"`
-	PlanPath string    `json:"plan_path"`
-	Config   string    `json:"config,omitempty"`
-	Passed   bool      `json:"passed"`
-	Failures []Failure `json:"failures,omitempty"`
-	Error    string    `json:"error,omitempty"`
+	Name        string    `json:"name"`
+	PlanPath    string    `json:"plan_path"`
+	Config      string    `json:"config,omitempty"`
+	Baseline    string    `json:"baseline,omitempty"`
+	ContextFile string    `json:"context_file,omitempty"`
+	Passed      bool      `json:"passed"`
+	Failures    []Failure `json:"failures,omitempty"`
+	Error       string    `json:"error,omitempty"`
 }
 
 // Summary captures aggregate risk test counts.
@@ -116,15 +121,20 @@ func (r Runner) runManifest(ctx context.Context, manifestPath string) ManifestRu
 
 func (r Runner) runCase(ctx context.Context, manifestPath string, baseDir string, test TestCase) CaseRun {
 	caseRun := CaseRun{
-		Name:     test.Name,
-		PlanPath: resolveRelative(baseDir, test.Plan),
-		Config:   resolveOptional(baseDir, test.Config),
+		Name:        test.Name,
+		PlanPath:    resolveRelative(baseDir, test.Plan),
+		Config:      resolveOptional(baseDir, test.Config),
+		Baseline:    resolveOptional(baseDir, test.Baseline),
+		ContextFile: resolveOptional(baseDir, test.ContextFile),
 	}
 	report, err := r.Executor.Execute(ctx, ExecutionRequest{
 		ManifestPath: manifestPath,
 		TestName:     test.Name,
 		PlanPath:     caseRun.PlanPath,
 		ConfigPath:   caseRun.Config,
+		BaselinePath: caseRun.Baseline,
+		NewOnly:      test.NewOnly,
+		ContextFile:  caseRun.ContextFile,
 		Case:         test,
 	})
 	if err != nil {

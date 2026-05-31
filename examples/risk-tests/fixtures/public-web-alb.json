@@ -1,0 +1,97 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.6.6",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_lb.web",
+          "mode": "managed",
+          "type": "aws_lb",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web/1",
+            "scheme": "internet-facing",
+            "load_balancer_type": "application",
+            "expected_public": true,
+            "tags": {
+              "env": "prod",
+              "service": "web",
+              "expected_public": "true"
+            }
+          }
+        },
+        {
+          "address": "aws_lb_listener.web",
+          "mode": "managed",
+          "type": "aws_lb_listener",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "load_balancer_arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/web/1",
+            "default_action": [
+              {
+                "type": "forward",
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/web/1"
+              }
+            ]
+          }
+        },
+        {
+          "address": "aws_lb_target_group.web",
+          "mode": "managed",
+          "type": "aws_lb_target_group",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/web/1"
+          }
+        },
+        {
+          "address": "aws_ecs_service.web",
+          "mode": "managed",
+          "type": "aws_ecs_service",
+          "name": "web",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "load_balancer": [
+              {
+                "target_group_arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:targetgroup/web/1"
+              }
+            ],
+            "tags": {
+              "env": "prod",
+              "service": "web"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_lb.web",
+      "mode": "managed",
+      "type": "aws_lb",
+      "name": "web",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "scheme": "internal"
+        },
+        "after": {
+          "scheme": "internet-facing",
+          "load_balancer_type": "application",
+          "expected_public": true,
+          "tags": {
+            "env": "prod",
+            "service": "web",
+            "expected_public": "true"
+          }
+        }
+      }
+    }
+  ]
+}

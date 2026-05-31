@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/Gabriel0110/changegate/internal/rules"
@@ -157,6 +158,17 @@ func LoadFile(path string) (Config, error) {
 	}
 	defer closeFile(file)
 	return Load(file)
+}
+
+// ResolveRelativePaths resolves policy-local file references against baseDir.
+func ResolveRelativePaths(config Config, baseDir string) Config {
+	if config.Baseline.File != "" {
+		config.Baseline.File = resolveRelativePolicyPath(baseDir, config.Baseline.File)
+	}
+	if config.Waivers.File != "" {
+		config.Waivers.File = resolveRelativePolicyPath(baseDir, config.Waivers.File)
+	}
+	return config
 }
 
 // Load reads policy config YAML.
@@ -498,4 +510,11 @@ func closeFile(file *os.File) {
 	if err := file.Close(); err != nil {
 		return
 	}
+}
+
+func resolveRelativePolicyPath(baseDir string, path string) string {
+	if path == "" || filepath.IsAbs(path) {
+		return path
+	}
+	return filepath.Clean(filepath.Join(baseDir, path))
 }

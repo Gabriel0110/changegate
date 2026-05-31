@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "created_at": "2026-05-01T00:00:00Z",
+  "expires_at": "2026-08-01T00:00:00Z",
+  "generator": "changegate",
+  "policy_pack_versions": {
+    "aws-core": "0.1.0",
+    "aws-iam-escalation": "0.1.0",
+    "aws-public-exposure": "0.1.0"
+  },
+  "summary": {
+    "findings": 1
+  },
+  "findings": [
+    {
+      "fingerprint": "ad371d9782ea54823b99e13534f56a23a596996c300a6fb951e6e92ff5448696",
+      "deduplication_key": "AWS_PUBLIC_RDS_INSTANCE|aws_db_instance.customer|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "rule_id": "AWS_PUBLIC_RDS_INSTANCE",
+      "resource": "aws_db_instance.customer",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "decision": "block",
+      "title": "Public RDS instance"
+    }
+  ]
+}

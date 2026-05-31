@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "provider": "aws",
+  "generated_at": "2026-05-01T00:00:00Z",
+  "account": {
+    "id": "123456789012",
+    "alias": "example-sandbox"
+  },
+  "regions": [
+    {
+      "name": "us-east-1",
+      "enabled": true
+    }
+  ],
+  "capabilities": {
+    "identity": true,
+    "network": true,
+    "security_groups": true,
+    "iam": true,
+    "s3": true,
+    "rds": true,
+    "kms": true,
+    "secrets_manager": true,
+    "eks": true
+  },
+  "data": {
+    "resources": {
+      "aws_db_instance.customer": {
+        "terraform_address": "aws_db_instance.customer",
+        "arn": "arn:aws:rds:us-east-1:123456789012:db:example-customer-prod",
+        "account_id": "123456789012",
+        "type": "aws_db_instance",
+        "region": "us-east-1",
+        "public": true,
+        "compensating_controls": ["expected_public_tls_edge"],
+        "tags": {
+          "env": "prod",
+          "data": "customer",
+          "sensitivity": "high"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.6.6",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_db_instance.customer",
+          "mode": "managed",
+          "type": "aws_db_instance",
+          "name": "customer",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "identifier": "example-customer-prod",
+            "arn": "arn:aws:rds:us-east-1:123456789012:db:example-customer-prod",
+            "publicly_accessible": true,
+            "deletion_protection": true,
+            "backup_retention_period": 7,
+            "storage_encrypted": true,
+            "tags": {
+              "env": "prod",
+              "data": "customer",
+              "sensitivity": "high"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_db_instance.customer",
+      "mode": "managed",
+      "type": "aws_db_instance",
+      "name": "customer",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "publicly_accessible": false
+        },
+        "after": {
+          "identifier": "example-customer-prod",
+          "arn": "arn:aws:rds:us-east-1:123456789012:db:example-customer-prod",
+          "publicly_accessible": true,
+          "deletion_protection": true,
+          "backup_retention_period": 7,
+          "storage_encrypted": true,
+          "tags": {
+            "env": "prod",
+            "data": "customer",
+            "sensitivity": "high"
+          }
+        }
+      }
+    }
+  ]
+}

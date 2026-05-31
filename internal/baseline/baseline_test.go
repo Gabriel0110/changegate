@@ -110,6 +110,52 @@ func TestDiffTreatsNewSensitiveGraphPathAsWorsened(t *testing.T) {
 	}
 }
 
+func TestDiffIgnoresBaselineSuppressionWhenClassifyingMovement(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC)
+	oldFinding := finding("AWS_PUBLIC_RDS_INSTANCE", "aws_db_instance.customer")
+	currentFinding := oldFinding
+	currentFinding.Suppressions = []model.Suppression{{Kind: "existing_risk", Reason: "finding fingerprint exists in baseline", Active: true}}
+	currentFinding.DecisionReasonCodes = []model.DecisionReasonCode{model.ReasonExistingRisk}
+
+	file := Build([]model.Finding{oldFinding}, nil, now, nil)
+	diff := Diff(file, []model.Finding{currentFinding}, now, 0, false)
+	if diff.Summary.ExistingUnchanged != 1 || diff.RiskMovement.ExistingUnchanged != 1 || diff.Summary.ExistingImproved != 0 {
+		body, _ := json.MarshalIndent(diff, "", "  ")
+		t.Fatalf("baseline suppression changed movement classification:\n%s", string(body))
+	}
+}
+
+func TestDiffUsesDeduplicationKeyForWorsenedExistingRisk(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC)
+	oldFinding := findingWith("AWS_PUBLIC_RDS_INSTANCE", "aws_db_instance.customer", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, nil)
+	newFinding := findingWith("AWS_PUBLIC_RDS_INSTANCE", "aws_db_instance.customer", model.RiskCategoryPublicExposure, model.SeverityCritical, model.ConfidenceHigh, nil)
+	newFinding.Evidence = append(newFinding.Evidence, model.Evidence{
+		Type:     "cloud_context",
+		Resource: "aws_db_instance.customer",
+		Path:     "cloud_context.drift.publicly_accessible",
+		Value:    "live AWS reports public exposure",
+		Message:  "cloud context found drift",
+	})
+	newFinding = model.NormalizeFinding(newFinding)
+	if oldFinding.Fingerprint == newFinding.Fingerprint {
+		t.Fatal("test setup expected context-changing fingerprint")
+	}
+	if oldFinding.DeduplicationKey != newFinding.DeduplicationKey {
+		t.Fatal("test setup expected stable deduplication key")
+	}
+
+	file := Build([]model.Finding{oldFinding}, nil, now, nil)
+	diff := Diff(file, []model.Finding{newFinding}, now, 0, false)
+	if diff.Summary.NewRisk != 0 || diff.Summary.Resolved != 0 || diff.Summary.ExistingWorsened != 1 || diff.RiskMovement.ExistingWorsened != 1 {
+		body, _ := json.MarshalIndent(diff, "", "  ")
+		t.Fatalf("deduplication lineage did not classify worsened risk:\n%s", string(body))
+	}
+}
+
 func finding(ruleID string, resource string) model.Finding {
 	return findingWith(ruleID, resource, model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, nil)
 }

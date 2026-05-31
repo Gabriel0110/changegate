@@ -1,0 +1,4 @@
+version: 1
+waivers:
+  file: ../waivers/staging-public-rds.yaml
+  require_expiration: true

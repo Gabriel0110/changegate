@@ -1,0 +1,147 @@
+version: 1
+tests:
+  - name: expected_public_web_alb_allowed
+    plan: fixtures/public-web-alb.json
+    expect:
+      decision: allow
+      findings:
+        exclude:
+          - AWS_PUBLIC_ADMIN_SERVICE
+          - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH
+
+  - name: public_admin_alb_blocked
+    plan: fixtures/public-admin-alb.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_ADMIN_SERVICE
+      attack_paths:
+        include:
+          - public_to_sensitive_data
+
+  - name: public_alb_to_ecs_to_rds_blocked
+    plan: fixtures/public-alb-ecs-rds.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH
+      attack_paths:
+        include:
+          - public_to_sensitive_data
+      graph_paths:
+        include:
+          - aws_lb.admin
+          - aws_ecs_service.admin
+          - aws_db_instance.customer
+
+  - name: lambda_function_url_to_secret_blocked
+    plan: fixtures/lambda-url-secret.json
+    context_file: contexts/lambda-url-secret.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH
+      attack_paths:
+        include:
+          - public_to_sensitive_data
+      graph_paths:
+        include:
+          - aws_lambda_function_url.public_handler
+          - aws_lambda_function.public_handler
+          - aws_secretsmanager_secret.customer
+
+  - name: passrole_plus_lambda_update_blocked
+    plan: fixtures/passrole-lambda-update.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_IAM_PASSROLE_FUNCTION_ESCALATION
+      attack_paths:
+        include:
+          - iam_privilege_escalation
+
+  - name: assume_role_to_admin_blocked
+    plan: fixtures/assume-role-admin.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_IAM_ASSUME_ADMIN_PATH
+      attack_paths:
+        include:
+          - iam_privilege_escalation
+
+  - name: stale_baseline_suppresses_unchanged_risk
+    plan: fixtures/public-rds-prod.json
+    baseline: baselines/public-rds-prod.json
+    new_only: true
+    expect:
+      decision: allow
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      risk_movement:
+        existing_unchanged: 1
+
+  - name: worsened_baseline_risk_still_blocks
+    plan: fixtures/public-rds-prod.json
+    baseline: baselines/public-rds-prod.json
+    new_only: true
+    context_file: contexts/public-rds-drift.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      risk_movement:
+        existing_worsened: 1
+
+  - name: staging_waiver_accepted
+    plan: fixtures/public-rds-staging.json
+    config: policies/staging-waiver.yaml
+    expect:
+      decision: allow
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      waivers:
+        applied:
+          - AWS_PUBLIC_RDS_INSTANCE
+
+  - name: production_waiver_rejected
+    plan: fixtures/public-rds-prod.json
+    config: policies/staging-waiver.yaml
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      waivers:
+        not_applied:
+          - AWS_PUBLIC_RDS_INSTANCE
+
+  - name: cloud_context_downgrades_expected_public_edge
+    plan: fixtures/public-rds-prod.json
+    context_file: contexts/expected-public-rds.json
+    expect:
+      decision: warn
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      severity_count:
+        medium: 1
+
+  - name: cloud_context_upgrades_actual_public_drift
+    plan: fixtures/public-rds-prod.json
+    context_file: contexts/public-rds-drift.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_RDS_INSTANCE
+      severity_count:
+        critical: 1

@@ -212,6 +212,7 @@ func loadPolicyForScan(opts *options) (model.PolicyConfig, rules.Selection, *rul
 	if err != nil {
 		return model.PolicyConfig{}, rules.Selection{}, nil, usageError(err.Error(), "Check the policy path and YAML syntax.")
 	}
+	config = policy.ResolveRelativePaths(config, filepath.Dir(opts.policy))
 	registry, customDiagnostics, err := registryForPolicy(opts.policy, config)
 	if err != nil {
 		return model.PolicyConfig{}, rules.Selection{}, nil, err
@@ -939,6 +940,7 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 		if err != nil {
 			return inputError(err.Error(), "Check --policy and rerun the scan.")
 		}
+		config = policy.ResolveRelativePaths(config, filepath.Dir(opts.policy))
 		if config.Waivers.File != "" {
 			waiverReport, err := waiverReport(config.Waivers.File, report.Findings, config.Waivers.FailExpired)
 			if err != nil {

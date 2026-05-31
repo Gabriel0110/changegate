@@ -7,6 +7,7 @@ Run risk tests locally or in CI:
 ```bash
 changegate test
 changegate test ./changegate-tests
+changegate test examples/risk-tests
 changegate test --format json
 changegate test --format junit --out changegate-tests.xml
 changegate test --junit changegate-tests.xml
@@ -25,6 +26,9 @@ tests:
   - name: public_admin_service_should_block
     plan: fixtures/public-admin-service.json
     config: fixtures/changegate.yaml
+    baseline: fixtures/baseline.json
+    new_only: true
+    context_file: fixtures/aws-context.json
     expect:
       decision: block
       findings:
@@ -57,6 +61,22 @@ tests:
 ```
 
 Paths are resolved relative to the manifest file. The parser is strict: unknown fields fail validation so test files do not silently drift.
+
+The repository includes a sanitized runnable corpus at [examples/risk-tests](../examples/risk-tests). It covers expected public edges, public admin exposure, public-to-sensitive graph paths, IAM escalation paths, baseline movement, waiver scoping, and cloud-context severity changes.
+
+## Case Fields
+
+Each test case supports:
+
+| Field | Required | Meaning |
+| --- | --- | --- |
+| `name` | yes | Stable test name shown in CLI, JSON, and JUnit output. |
+| `plan` | yes | Terraform/OpenTofu plan JSON fixture. |
+| `config` | no | ChangeGate policy file for this test. Policy-local `baseline.file` and `waivers.file` references are resolved relative to that policy file. |
+| `baseline` | no | Baseline file passed as `--baseline` for this test. |
+| `new_only` | no | Enables `--new-only`; requires `baseline`. |
+| `context_file` | no | Offline cloud context snapshot passed as `--context-file`. |
+| `expect` | yes | Assertions for the scan result. |
 
 ## Output
 
