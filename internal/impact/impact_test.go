@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -222,8 +223,10 @@ func assertGolden(t *testing.T, name string, got string) {
 	if err != nil {
 		t.Fatalf("read golden %s: %v", path, err)
 	}
-	if string(want) != got {
-		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", name, string(want), got)
+	wantText := strings.ReplaceAll(string(want), "\r\n", "\n")
+	gotText := strings.ReplaceAll(got, "\r\n", "\n")
+	if wantText != gotText {
+		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", name, wantText, gotText)
 	}
 }
 
