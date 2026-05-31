@@ -962,7 +962,9 @@ func TestScanImportFailureIsOptional(t *testing.T) {
 	if code != exitInputParsing {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitInputParsing, stdout, stderr)
 	}
-	if !strings.Contains(stderr, "ADAPTER_IMPORT_FAILED") && !strings.Contains(stderr, "no such file") {
+	if !strings.Contains(stderr, "ADAPTER_IMPORT_FAILED") &&
+		!strings.Contains(stderr, "no such file") &&
+		!strings.Contains(stderr, "cannot find the file") {
 		t.Fatalf("fatal import failure missing reason:\n%s", stderr)
 	}
 }
