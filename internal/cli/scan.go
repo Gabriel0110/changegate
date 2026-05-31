@@ -22,11 +22,13 @@ import (
 	"github.com/Gabriel0110/changegate/internal/compliance"
 	"github.com/Gabriel0110/changegate/internal/custompolicy"
 	graphpkg "github.com/Gabriel0110/changegate/internal/graph"
+	"github.com/Gabriel0110/changegate/internal/impact"
 	tfjson "github.com/Gabriel0110/changegate/internal/input/terraform"
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/Gabriel0110/changegate/internal/output"
 	"github.com/Gabriel0110/changegate/internal/policy"
 	"github.com/Gabriel0110/changegate/internal/remediation"
+	reviewpkg "github.com/Gabriel0110/changegate/internal/review"
 	"github.com/Gabriel0110/changegate/internal/rules"
 	"github.com/Gabriel0110/changegate/internal/waiver"
 	"github.com/spf13/cobra"
@@ -435,6 +437,7 @@ func scanPlans(ctx context.Context, stdin io.Reader, planPaths []string, branch 
 	var graphEdges int
 	var tool model.Tool
 	var formatVersion string
+	graphAudits := make([]any, 0, len(planPaths))
 
 	for _, planPath := range planPaths {
 		report, err := scanOnePlan(ctx, stdin, planPath, branch, opts, registry, selection, basePolicy, contextSnapshot, nil, false)
@@ -459,9 +462,12 @@ func scanPlans(ctx context.Context, stdin io.Reader, planPaths []string, branch 
 		combinedOutcome.ReasonCodes = appendDecisionReasonCodes(combinedOutcome.ReasonCodes, report.ReasonCodes...)
 		mergeRiskSummary(&combinedOutcome.Summary, report.RiskSummary)
 		combinedOutcome.Decision = strongestDecision(combinedOutcome.Decision, report.Decision)
+		if report.Audit != nil && report.Audit.Graph != nil {
+			graphAudits = append(graphAudits, report.Audit.Graph)
+		}
 	}
 
-	return output.Report{
+	combinedReport := output.Report{
 		SchemaVersion: output.ReportSchemaVersion,
 		Decision:      combinedOutcome.Decision,
 		Plan: output.PlanSummary{
@@ -479,7 +485,16 @@ func scanPlans(ctx context.Context, stdin io.Reader, planPaths []string, branch 
 		Diagnostics: diagnostics,
 		Rules:       ruleSummaries(registry),
 		Message:     fmt.Sprintf("%d plans parsed, graphs built, and policies evaluated", len(planPaths)),
-	}, nil
+	}
+	if len(graphAudits) > 0 {
+		combinedReport.Audit = &output.AuditReports{
+			Graph: map[string]any{
+				"version": 1,
+				"plans":   graphAudits,
+			},
+		}
+	}
+	return combinedReport, nil
 }
 
 func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch string, opts *options, registry *rules.Registry, selection rules.Selection, basePolicy model.PolicyConfig, contextSnapshot *cloudcontext.Snapshot, imports []adapters.ImportRequest, failImport bool) (output.Report, error) {
@@ -557,6 +572,9 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 	)
 	if importSummary != nil {
 		report.Imports = importSummary.summary
+	}
+	report.Audit = &output.AuditReports{
+		Graph: auditGraph(planPath, resourceGraph),
 	}
 	return report, nil
 }
@@ -884,6 +902,171 @@ func closeReader(file *os.File) {
 	}
 }
 
+type auditGraphEvidence struct {
+	Version int                 `json:"version"`
+	Plan    string              `json:"plan,omitempty"`
+	Summary output.GraphSummary `json:"summary"`
+	Nodes   []auditGraphNode    `json:"nodes"`
+	Edges   []auditGraphEdge    `json:"edges"`
+}
+
+type auditGraphNode struct {
+	ID          string            `json:"id"`
+	Address     string            `json:"address,omitempty"`
+	Type        string            `json:"type,omitempty"`
+	Kind        graphpkg.NodeKind `json:"kind,omitempty"`
+	Provider    string            `json:"provider,omitempty"`
+	Environment string            `json:"environment,omitempty"`
+	Changed     bool              `json:"changed,omitempty"`
+	Actions     []model.Action    `json:"actions,omitempty"`
+	Synthetic   bool              `json:"synthetic,omitempty"`
+}
+
+type auditGraphEdge struct {
+	From       string                  `json:"from"`
+	To         string                  `json:"to"`
+	Type       graphpkg.EdgeType       `json:"type"`
+	Source     graphpkg.EdgeSource     `json:"source,omitempty"`
+	Confidence graphpkg.EdgeConfidence `json:"confidence,omitempty"`
+	Evidence   []model.Evidence        `json:"evidence,omitempty"`
+}
+
+func auditGraph(planPath string, resourceGraph *graphpkg.Graph) auditGraphEvidence {
+	if resourceGraph == nil {
+		return auditGraphEvidence{Version: 1, Plan: planPath}
+	}
+	nodes := make([]auditGraphNode, 0, len(resourceGraph.Nodes))
+	for id, node := range resourceGraph.Nodes {
+		if node == nil {
+			continue
+		}
+		nodes = append(nodes, auditGraphNode{
+			ID:          string(id),
+			Address:     node.Address,
+			Type:        node.Type,
+			Kind:        node.Kind,
+			Provider:    node.Provider,
+			Environment: node.Environment,
+			Changed:     node.Changed,
+			Actions:     append([]model.Action(nil), node.Actions...),
+			Synthetic:   node.Synthetic,
+		})
+	}
+	sort.SliceStable(nodes, func(i int, j int) bool {
+		return nodes[i].ID < nodes[j].ID
+	})
+
+	edges := make([]auditGraphEdge, 0, len(resourceGraph.Edges))
+	for _, edge := range resourceGraph.Edges {
+		edges = append(edges, auditGraphEdge{
+			From:       string(edge.From),
+			To:         string(edge.To),
+			Type:       edge.Type,
+			Source:     edge.Source,
+			Confidence: edge.Confidence,
+			Evidence:   model.RedactEvidence(edge.Evidence),
+		})
+	}
+	sort.SliceStable(edges, func(i int, j int) bool {
+		left := edges[i]
+		right := edges[j]
+		for _, cmp := range []int{
+			strings.Compare(left.From, right.From),
+			strings.Compare(left.To, right.To),
+			strings.Compare(string(left.Type), string(right.Type)),
+			strings.Compare(string(left.Source), string(right.Source)),
+		} {
+			if cmp < 0 {
+				return true
+			}
+			if cmp > 0 {
+				return false
+			}
+		}
+		return false
+	})
+	return auditGraphEvidence{
+		Version: 1,
+		Plan:    planPath,
+		Summary: output.GraphSummary{Nodes: len(nodes), Edges: len(edges)},
+		Nodes:   nodes,
+		Edges:   edges,
+	}
+}
+
+func auditCloudContextSummary(snapshot *cloudcontext.Snapshot) map[string]any {
+	if snapshot == nil {
+		return map[string]any{
+			"version":  1,
+			"included": false,
+		}
+	}
+	cloudcontext.Normalize(snapshot)
+	return map[string]any{
+		"version":            1,
+		"included":           true,
+		"provider":           snapshot.Provider,
+		"generated_at":       snapshot.GeneratedAt,
+		"regions":            snapshot.Regions,
+		"capabilities":       snapshot.Capabilities,
+		"resource_counts":    auditCloudResourceCounts(*snapshot),
+		"relationship_count": len(snapshot.Relationships),
+		"diagnostics":        snapshot.Diagnostics,
+	}
+}
+
+func auditCloudResourceCounts(snapshot cloudcontext.Snapshot) map[string]int {
+	return map[string]int{
+		"network": len(snapshot.Network.Resources),
+		"iam":     len(snapshot.IAM.Resources),
+		"data":    len(snapshot.Data.Resources),
+		"compute": len(snapshot.Compute.Resources),
+		"edge":    len(snapshot.Edge.Resources),
+	}
+}
+
+func auditRiskTestsEvidence() map[string]any {
+	return map[string]any{
+		"version":  1,
+		"included": false,
+		"reason":   "scan audit bundle was not produced by changegate test",
+	}
+}
+
+func auditHCPRunTaskEvidence(report output.Report) map[string]any {
+	return map[string]any{
+		"version":       1,
+		"included":      false,
+		"reason":        "scan was not invoked by the HCP Terraform run task adapter",
+		"decision":      report.Decision,
+		"would_pass":    report.Decision != model.DecisionBlock,
+		"would_status":  hcpRunTaskStatus(report.Decision),
+		"plan_digest":   auditPlanDigest(report),
+		"policy_digest": auditPolicyDigest(report),
+	}
+}
+
+func hcpRunTaskStatus(decision model.Decision) string {
+	if decision == model.DecisionBlock {
+		return "failed"
+	}
+	return "passed"
+}
+
+func auditPlanDigest(report output.Report) string {
+	if report.Run == nil {
+		return ""
+	}
+	return report.Run.PlanDigest
+}
+
+func auditPolicyDigest(report output.Report) string {
+	if report.Run == nil {
+		return ""
+	}
+	return report.Run.PolicyDigest
+}
+
 func ruleSummaries(registry *rules.Registry) map[string]output.RuleSummary {
 	out := make(map[string]output.RuleSummary)
 	for _, rule := range registry.Rules() {
@@ -932,9 +1115,10 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 	if contextSnapshot != nil {
 		report.Run.CloudContextTimestamp = contextSnapshot.GeneratedAt
 	}
-	report.Audit = &output.AuditReports{
-		PolicyYAML: string(policyBody),
+	if report.Audit == nil {
+		report.Audit = &output.AuditReports{}
 	}
+	report.Audit.PolicyYAML = string(policyBody)
 	if opts.policy != "" {
 		config, err := policy.LoadFile(opts.policy)
 		if err != nil {
@@ -967,7 +1151,44 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 	}
 	complianceReport := compliance.BuildReport(report.Findings)
 	report.Compliance = &complianceReport
+	if err := attachAuditV2Evidence(report, scanOpts, contextSnapshot); err != nil {
+		return err
+	}
 	return nil
+}
+
+func attachAuditV2Evidence(report *output.Report, scanOpts *scanOptions, contextSnapshot *cloudcontext.Snapshot) error {
+	if report.Audit == nil {
+		report.Audit = &output.AuditReports{}
+	}
+	statement, err := impact.Build(*report, impact.Options{
+		GeneratedAt:        auditBundleGeneratedAt(),
+		PlansScanned:       len(scanOpts.planPaths),
+		TopFindingsLimit:   impactLimit(scanOpts.maxFindings, impact.DefaultTopFindingsLimit),
+		TopGraphPathsLimit: impact.DefaultTopGraphPathsLimit,
+		AttackPathsLimit:   impact.DefaultAttackPathsLimit,
+	})
+	if err != nil {
+		return internalError(err.Error(), "Report this as a ChangeGate bug.")
+	}
+	report.Audit.Impact = statement
+	report.Audit.ImpactMarkdown = impact.RenderMarkdown(statement)
+	report.Audit.AttackPaths = statement.AttackPaths
+	report.Audit.CloudContextSummary = auditCloudContextSummary(contextSnapshot)
+	report.Audit.ReviewCommentMarkdown = reviewpkg.RenderComment(statement, reviewpkg.CommentOptions{
+		Marker:         reviewpkg.DefaultStickyCommentMarker,
+		MaxFindings:    reviewpkg.DefaultMaxCommentFindings,
+		MaxGraphPaths:  reviewpkg.DefaultMaxGraphPaths,
+		MaxAttackPaths: reviewpkg.DefaultMaxAttackPaths,
+		MaxBytes:       reviewpkg.DefaultMaxCommentBytes,
+	})
+	report.Audit.RiskTests = auditRiskTestsEvidence()
+	report.Audit.HCPRunTask = auditHCPRunTaskEvidence(*report)
+	return nil
+}
+
+func auditBundleGeneratedAt() time.Time {
+	return time.Unix(0, 0).UTC()
 }
 
 func policyEvidence(policyPath string, mode string) ([]byte, string, error) {

@@ -777,6 +777,7 @@ func TestScanWritesAuditBundleArtifact(t *testing.T) {
 	t.Parallel()
 
 	bundlePath := filepath.Join(t.TempDir(), "changegate-audit.zip")
+	secondBundlePath := filepath.Join(t.TempDir(), "changegate-audit-second.zip")
 	stdout, stderr, code := runCLI("--format", "json", "scan", "--plan", "../input/testdata/terraform-plan.json", "--audit-bundle", bundlePath)
 	if code != exitBlocked {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
@@ -792,6 +793,17 @@ func TestScanWritesAuditBundleArtifact(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read audit bundle: %v", err)
 	}
+	_, stderr, code = runCLI("--format", "json", "scan", "--plan", "../input/testdata/terraform-plan.json", "--audit-bundle", secondBundlePath)
+	if code != exitBlocked {
+		t.Fatalf("second scan exit code = %d, want %d\nstderr:\n%s", code, exitBlocked, stderr)
+	}
+	secondBody, err := os.ReadFile(secondBundlePath)
+	if err != nil {
+		t.Fatalf("read second audit bundle: %v", err)
+	}
+	if !bytes.Equal(body, secondBody) {
+		t.Fatal("audit bundle bytes are not deterministic across identical scans")
+	}
 	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err != nil {
 		t.Fatalf("open audit bundle: %v", err)
@@ -802,9 +814,17 @@ func TestScanWritesAuditBundleArtifact(t *testing.T) {
 	}
 	sort.Strings(names)
 	for _, want := range []string{
+		"changegate-audit/attack-paths.json",
+		"changegate-audit/cloud-context-summary.json",
 		"changegate-audit/decision.json",
 		"changegate-audit/evidence.json",
+		"changegate-audit/graph.json",
+		"changegate-audit/hcp-run-task.json",
+		"changegate-audit/impact.json",
+		"changegate-audit/impact.md",
 		"changegate-audit/plan-digest.txt",
+		"changegate-audit/review-comment.md",
+		"changegate-audit/risk-tests.json",
 		"changegate-audit/run-metadata.json",
 		"changegate-audit/summary.md",
 	} {

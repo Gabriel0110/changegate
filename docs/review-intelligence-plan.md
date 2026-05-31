@@ -1631,6 +1631,10 @@ changegate-audit/hcp-run-task.json
 * Deterministic digest test.
 * Redaction test.
 
+### Implementation Status
+
+Complete. `changegate scan --audit-bundle` now writes the v2 bundle members for impact statements, sanitized graph evidence, attack path summaries, cloud-context summaries, sticky review comments, risk-test evidence placeholders, and HCP-run-task-compatible decision evidence.
+
 ## 33. Tranche 27: Performance and Scale Hardening
 
 ### Goal

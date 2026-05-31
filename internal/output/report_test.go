@@ -60,6 +60,13 @@ func TestAuditBundle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("render audit bundle: %v", err)
 	}
+	bodyAgain, _, err := Render(sampleReport(), "audit-bundle")
+	if err != nil {
+		t.Fatalf("render audit bundle second time: %v", err)
+	}
+	if !bytes.Equal(body, bodyAgain) {
+		t.Fatal("audit bundle render is not deterministic")
+	}
 
 	reader, err := zip.NewReader(bytes.NewReader(body), int64(len(body)))
 	if err != nil {

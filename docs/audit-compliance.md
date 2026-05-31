@@ -30,8 +30,15 @@ The zip uses a stable `changegate-audit/` prefix and deterministic member orderi
 * `run-metadata.json` contains CLI version, build metadata, digests, policy pack versions, and redaction status.
 * `redaction-report.json` summarizes sensitive evidence counts.
 * `summary.md` is a human-readable archive summary.
+* `impact.json` and `impact.md` contain the Security Impact Statement generated from the same scan report.
+* `review-comment.md` contains the sticky PR/MR review comment body that can be posted by the review integrations.
+* `graph.json` contains a sanitized graph evidence export with node identities, kinds, actions, and edge provenance, but not raw resource values.
+* `attack-paths.json` contains the attack path summaries promoted into review output.
+* `cloud-context-summary.json` records only cloud-context metadata, capability coverage, resource counts, relationship counts, and diagnostics. It does not include full cloud inventory.
+* `risk-tests.json` records whether this bundle came from a risk-test run.
+* `hcp-run-task.json` records run-task-compatible pass/fail evidence for adapters and later HCP Terraform integrations.
 
-The bundle does not include raw plan JSON. It includes only the plan digest and redacted report evidence.
+The bundle does not include raw plan JSON or raw cloud inventory. It includes only the plan digest, redacted finding evidence, sanitized graph evidence, and summary-level cloud-context metadata.
 
 ## Compliance mapping
 

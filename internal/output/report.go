@@ -70,9 +70,17 @@ type RedactionReport struct {
 
 // AuditReports carries optional evidence artifacts used by audit bundles.
 type AuditReports struct {
-	PolicyYAML string `json:"-"`
-	Waivers    any    `json:"waivers,omitempty"`
-	Baseline   any    `json:"baseline,omitempty"`
+	PolicyYAML            string `json:"-"`
+	Waivers               any    `json:"waivers,omitempty"`
+	Baseline              any    `json:"baseline,omitempty"`
+	Impact                any    `json:"-"`
+	ImpactMarkdown        string `json:"-"`
+	Graph                 any    `json:"-"`
+	AttackPaths           any    `json:"-"`
+	CloudContextSummary   any    `json:"-"`
+	ReviewCommentMarkdown string `json:"-"`
+	RiskTests             any    `json:"-"`
+	HCPRunTask            any    `json:"-"`
 }
 
 // ComplianceMapping describes non-enforcing rule metadata for frameworks.
@@ -764,11 +772,37 @@ func auditBundleFiles(report Report) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	impactBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.Impact }))
+	if err != nil {
+		return nil, err
+	}
+	graphBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.Graph }))
+	if err != nil {
+		return nil, err
+	}
+	attackPathsBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.AttackPaths }))
+	if err != nil {
+		return nil, err
+	}
+	cloudContextBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.CloudContextSummary }))
+	if err != nil {
+		return nil, err
+	}
+	riskTestsBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.RiskTests }))
+	if err != nil {
+		return nil, err
+	}
+	hcpRunTaskBody, err := marshalAuditJSON(auditValue(report.Audit, func(a *AuditReports) any { return a.HCPRunTask }))
+	if err != nil {
+		return nil, err
+	}
 
 	policyBody := []byte(policyYAML(report))
 	if len(policyBody) == 0 {
 		policyBody = []byte("version: 1\n")
 	}
+	impactMarkdownBody := []byte(auditString(report.Audit, func(a *AuditReports) string { return a.ImpactMarkdown }))
+	reviewCommentBody := []byte(auditString(report.Audit, func(a *AuditReports) string { return a.ReviewCommentMarkdown }))
 	policyDigest := ""
 	planDigest := ""
 	if report.Run != nil {
@@ -776,21 +810,29 @@ func auditBundleFiles(report Report) (map[string][]byte, error) {
 		planDigest = report.Run.PlanDigest
 	}
 	files := map[string][]byte{
-		"changegate-audit/baseline.json":           baselineBody,
-		"changegate-audit/compliance.json":         complianceBody,
-		"changegate-audit/decision.json":           decisionBody,
-		"changegate-audit/environment.json":        environmentBody,
-		"changegate-audit/evidence.json":           evidenceBody,
-		"changegate-audit/findings.json":           findingsBody,
-		"changegate-audit/plan-digest.txt":         []byte(policyText(planDigest)),
-		"changegate-audit/policy-digest.txt":       []byte(policyText(policyDigest)),
-		"changegate-audit/policy.yaml":             policyBody,
-		"changegate-audit/redaction-report.json":   redactionBody,
-		"changegate-audit/rule-pack-versions.json": ruleVersionsBody,
-		"changegate-audit/run-metadata.json":       runBody,
-		"changegate-audit/summary.md":              []byte(RenderMarkdown(report)),
-		"changegate-audit/suppressed.json":         suppressedBody,
-		"changegate-audit/waivers.json":            waiversBody,
+		"changegate-audit/baseline.json":              baselineBody,
+		"changegate-audit/attack-paths.json":          attackPathsBody,
+		"changegate-audit/cloud-context-summary.json": cloudContextBody,
+		"changegate-audit/compliance.json":            complianceBody,
+		"changegate-audit/decision.json":              decisionBody,
+		"changegate-audit/environment.json":           environmentBody,
+		"changegate-audit/evidence.json":              evidenceBody,
+		"changegate-audit/findings.json":              findingsBody,
+		"changegate-audit/graph.json":                 graphBody,
+		"changegate-audit/hcp-run-task.json":          hcpRunTaskBody,
+		"changegate-audit/impact.json":                impactBody,
+		"changegate-audit/impact.md":                  impactMarkdownBody,
+		"changegate-audit/plan-digest.txt":            []byte(policyText(planDigest)),
+		"changegate-audit/policy-digest.txt":          []byte(policyText(policyDigest)),
+		"changegate-audit/policy.yaml":                policyBody,
+		"changegate-audit/redaction-report.json":      redactionBody,
+		"changegate-audit/review-comment.md":          reviewCommentBody,
+		"changegate-audit/risk-tests.json":            riskTestsBody,
+		"changegate-audit/rule-pack-versions.json":    ruleVersionsBody,
+		"changegate-audit/run-metadata.json":          runBody,
+		"changegate-audit/summary.md":                 []byte(RenderMarkdown(report)),
+		"changegate-audit/suppressed.json":            suppressedBody,
+		"changegate-audit/waivers.json":               waiversBody,
 	}
 	return files, nil
 }
@@ -805,6 +847,13 @@ func marshalAuditJSON(value any) ([]byte, error) {
 func auditValue(audit *AuditReports, selectValue func(*AuditReports) any) any {
 	if audit == nil {
 		return nil
+	}
+	return selectValue(audit)
+}
+
+func auditString(audit *AuditReports, selectValue func(*AuditReports) string) string {
+	if audit == nil {
+		return ""
 	}
 	return selectValue(audit)
 }
