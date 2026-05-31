@@ -200,9 +200,15 @@ func assertGolden(t *testing.T, name string, got string) {
 	if err != nil {
 		t.Fatalf("read golden %s: %v", path, err)
 	}
-	if string(want) != got {
-		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", name, string(want), got)
+	wantText := normalizeTestNewlines(string(want))
+	gotText := normalizeTestNewlines(got)
+	if wantText != gotText {
+		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", name, wantText, gotText)
 	}
+}
+
+func normalizeTestNewlines(value string) string {
+	return strings.ReplaceAll(value, "\r\n", "\n")
 }
 
 func assertNoSensitiveLeaks(t *testing.T, body []byte) {
