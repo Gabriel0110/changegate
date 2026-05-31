@@ -237,9 +237,15 @@ func assertGolden(t *testing.T, name string, got string) {
 	if err != nil {
 		t.Fatalf("read golden %s: %v\ngot:\n%s", path, err, got)
 	}
-	if string(want) != got {
-		t.Fatalf("golden mismatch for %s (want len %d, got len %d)\nwant suffix: %q\ngot suffix: %q\nwant:\n%s\ngot:\n%s", name, len(want), len(got), suffix(string(want), 24), suffix(got, 24), string(want), got)
+	wantText := normalizeTestNewlines(string(want))
+	gotText := normalizeTestNewlines(got)
+	if wantText != gotText {
+		t.Fatalf("golden mismatch for %s (want len %d, got len %d)\nwant suffix: %q\ngot suffix: %q\nwant:\n%s\ngot:\n%s", name, len(wantText), len(gotText), suffix(wantText, 24), suffix(gotText, 24), wantText, gotText)
 	}
+}
+
+func normalizeTestNewlines(value string) string {
+	return strings.ReplaceAll(value, "\r\n", "\n")
 }
 
 func suffix(value string, limit int) string {

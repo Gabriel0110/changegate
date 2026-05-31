@@ -3,6 +3,7 @@ package risktest
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -98,8 +99,10 @@ func TestAssertReportsPreciseFailures(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden failure output: %v", err)
 	}
-	if body != string(want) {
-		t.Fatalf("failure output mismatch\nwant:\n%s\ngot:\n%s", string(want), body)
+	wantText := normalizeTestNewlines(string(want))
+	bodyText := normalizeTestNewlines(body)
+	if bodyText != wantText {
+		t.Fatalf("failure output mismatch\nwant:\n%s\ngot:\n%s", wantText, bodyText)
 	}
 }
 
@@ -131,4 +134,8 @@ func TestAssertSnapshotMatchAndUpdate(t *testing.T) {
 
 func intPtr(value int) *int {
 	return &value
+}
+
+func normalizeTestNewlines(value string) string {
+	return strings.ReplaceAll(value, "\r\n", "\n")
 }
