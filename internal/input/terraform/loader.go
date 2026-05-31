@@ -14,6 +14,7 @@ import (
 )
 
 const supportedFormatMajor = "1"
+const allSensitiveMarker = "__changegate_all_sensitive__"
 
 // Load reads Terraform/OpenTofu plan JSON from r and returns a normalized plan model.
 func Load(r io.Reader) (*model.Plan, error) {
@@ -125,16 +126,16 @@ type rawModule struct {
 }
 
 type rawResource struct {
-	Address         string         `json:"address"`
-	Mode            string         `json:"mode"`
-	Type            string         `json:"type"`
-	Name            string         `json:"name"`
-	ProviderName    string         `json:"provider_name"`
-	ProviderConfig  string         `json:"provider_config_key"`
-	SchemaVersion   int            `json:"schema_version"`
-	Values          map[string]any `json:"values"`
-	SensitiveValues map[string]any `json:"sensitive_values"`
-	DependsOn       []string       `json:"depends_on"`
+	Address         string          `json:"address"`
+	Mode            string          `json:"mode"`
+	Type            string          `json:"type"`
+	Name            string          `json:"name"`
+	ProviderName    string          `json:"provider_name"`
+	ProviderConfig  string          `json:"provider_config_key"`
+	SchemaVersion   int             `json:"schema_version"`
+	Values          map[string]any  `json:"values"`
+	SensitiveValues rawSensitiveMap `json:"sensitive_values"`
+	DependsOn       []string        `json:"depends_on"`
 }
 
 type rawResourceChange struct {
@@ -150,13 +151,34 @@ type rawResourceChange struct {
 }
 
 type rawChange struct {
-	Actions         []string       `json:"actions"`
-	Before          map[string]any `json:"before"`
-	After           map[string]any `json:"after"`
-	AfterUnknown    map[string]any `json:"after_unknown"`
-	BeforeSensitive map[string]any `json:"before_sensitive"`
-	AfterSensitive  map[string]any `json:"after_sensitive"`
-	ReplacePaths    []any          `json:"replace_paths"`
+	Actions         []string        `json:"actions"`
+	Before          map[string]any  `json:"before"`
+	After           map[string]any  `json:"after"`
+	AfterUnknown    map[string]any  `json:"after_unknown"`
+	BeforeSensitive rawSensitiveMap `json:"before_sensitive"`
+	AfterSensitive  rawSensitiveMap `json:"after_sensitive"`
+	ReplacePaths    []any           `json:"replace_paths"`
+}
+
+type rawSensitiveMap map[string]any
+
+func (m *rawSensitiveMap) UnmarshalJSON(data []byte) error {
+	trimmed := bytes.TrimSpace(data)
+	if bytes.Equal(trimmed, []byte("null")) || bytes.Equal(trimmed, []byte("false")) {
+		*m = nil
+		return nil
+	}
+	if bytes.Equal(trimmed, []byte("true")) {
+		*m = rawSensitiveMap{allSensitiveMarker: true}
+		return nil
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	*m = decoded
+	return nil
 }
 
 type rawConfiguration struct {
@@ -483,6 +505,12 @@ func redactByMarkers(values map[string]any, markers map[string]any) map[string]a
 		return nil
 	}
 	out := make(map[string]any, len(values))
+	if markers[allSensitiveMarker] == true {
+		for key := range values {
+			out[key] = "(sensitive)"
+		}
+		return out
+	}
 	for key, value := range values {
 		marker, marked := markers[key]
 		if marked && marker == true {

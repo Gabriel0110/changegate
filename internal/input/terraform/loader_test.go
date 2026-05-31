@@ -113,6 +113,64 @@ func TestLoadOpenTofuPlan(t *testing.T) {
 	}
 }
 
+func TestLoadOpenTofuBooleanSensitiveMarkers(t *testing.T) {
+	t.Parallel()
+
+	plan, err := Load(strings.NewReader(`{
+		"format_version": "1.0",
+		"terraform_version": "1.12.1",
+		"opentofu_version": "1.12.1",
+		"resource_changes": [
+			{
+				"address": "aws_s3_bucket.example",
+				"mode": "managed",
+				"type": "aws_s3_bucket",
+				"name": "example",
+				"provider_name": "registry.opentofu.org/hashicorp/aws",
+				"change": {
+					"actions": ["create"],
+					"before": null,
+					"after": {"bucket": "public-name", "tags_all": {"env": "test"}},
+					"before_sensitive": false,
+					"after_sensitive": {"tags_all": {}}
+				}
+			},
+			{
+				"address": "aws_secretsmanager_secret_version.example",
+				"mode": "managed",
+				"type": "aws_secretsmanager_secret_version",
+				"name": "example",
+				"provider_name": "registry.opentofu.org/hashicorp/aws",
+				"change": {
+					"actions": ["update"],
+					"before": {"secret_string": "old-secret"},
+					"after": {"secret_string": "new-secret"},
+					"before_sensitive": true,
+					"after_sensitive": true
+				}
+			}
+		]
+	}`))
+	if err != nil {
+		t.Fatalf("Load returned error: %v", err)
+	}
+
+	if plan.Tool != model.ToolOpenTofu {
+		t.Fatalf("Tool = %q, want %q", plan.Tool, model.ToolOpenTofu)
+	}
+	bucket := findChange(t, plan, "aws_s3_bucket.example")
+	if bucket.After["bucket"] != "public-name" {
+		t.Fatalf("non-sensitive bucket value was redacted: %#v", bucket.After["bucket"])
+	}
+	secret := findChange(t, plan, "aws_secretsmanager_secret_version.example")
+	if secret.Before["secret_string"] != "(sensitive)" || secret.After["secret_string"] != "(sensitive)" {
+		t.Fatalf("boolean sensitive marker did not redact whole change: before=%#v after=%#v", secret.Before, secret.After)
+	}
+	if !secret.BeforeSensitive[allSensitiveMarker] || !secret.AfterSensitive[allSensitiveMarker] {
+		t.Fatalf("whole-object sensitive marker was not preserved")
+	}
+}
+
 func TestLoadErrors(t *testing.T) {
 	t.Parallel()
 
