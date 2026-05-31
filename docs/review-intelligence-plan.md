@@ -177,10 +177,19 @@ impact:
 
 attack_paths:
   enabled: true
-  block_high_confidence: true
+  block:
+    - type: public_to_sensitive_data
+      min_confidence: high
+    - type: iam_privilege_escalation
+      min_confidence: high
+  warn:
+    - type: public_to_sensitive_data
+      min_confidence: medium
+    - type: iam_privilege_escalation
+      min_confidence: medium
 ```
 
-* Keep defaults compatible: scan behavior should not change until new commands or flags are used.
+* Keep defaults compatible until Tranche 19 enables scan-time attack path findings.
 * Define experimental status for new commands in docs until test corpus is strong.
 
 ### Acceptance

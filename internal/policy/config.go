@@ -131,8 +131,15 @@ type ImpactConfig struct {
 
 // AttackPathsConfig controls attack path detection and enforcement.
 type AttackPathsConfig struct {
-	Enabled             *bool `json:"enabled" yaml:"enabled"`
-	BlockHighConfidence *bool `json:"block_high_confidence" yaml:"block_high_confidence"`
+	Enabled *bool                       `json:"enabled" yaml:"enabled"`
+	Block   []AttackPathThresholdConfig `json:"block" yaml:"block"`
+	Warn    []AttackPathThresholdConfig `json:"warn" yaml:"warn"`
+}
+
+// AttackPathThresholdConfig controls one attack path decision threshold.
+type AttackPathThresholdConfig struct {
+	Type          string           `json:"type" yaml:"type"`
+	MinConfidence model.Confidence `json:"min_confidence" yaml:"min_confidence"`
 }
 
 // ValidationResult is returned by policy validation commands.
@@ -236,12 +243,34 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 	if reviewEnabled(config.Review) && config.Review.StickyCommentMarker == "" {
 		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_STICKY_COMMENT_MARKER_INVALID", "review.sticky_comment_marker must be non-empty when review is enabled"))
 	}
+	diagnostics = append(diagnostics, validateAttackPathThresholds(config.AttackPaths)...)
 
 	return ValidationResult{
 		Valid:       len(diagnostics) == 0,
 		Policy:      config,
 		Diagnostics: diagnostics,
 	}
+}
+
+func validateAttackPathThresholds(config AttackPathsConfig) []model.Diagnostic {
+	diagnostics := make([]model.Diagnostic, 0)
+	for _, group := range []struct {
+		name       string
+		thresholds []AttackPathThresholdConfig
+	}{
+		{name: "block", thresholds: config.Block},
+		{name: "warn", thresholds: config.Warn},
+	} {
+		for _, threshold := range group.thresholds {
+			if threshold.Type != "public_to_sensitive_data" && threshold.Type != "iam_privilege_escalation" {
+				diagnostics = append(diagnostics, errorDiagnostic("ATTACK_PATH_TYPE_INVALID", "attack_paths."+group.name+".type must be public_to_sensitive_data or iam_privilege_escalation"))
+			}
+			if threshold.MinConfidence != "" && threshold.MinConfidence != model.ConfidenceHigh && threshold.MinConfidence != model.ConfidenceMedium && threshold.MinConfidence != model.ConfidenceLow && threshold.MinConfidence != model.ConfidenceUnknown {
+				diagnostics = append(diagnostics, errorDiagnostic("ATTACK_PATH_CONFIDENCE_INVALID", "attack_paths."+group.name+".min_confidence has unsupported value"))
+			}
+		}
+	}
+	return diagnostics
 }
 
 // ModelConfig converts user config to model policy config.
@@ -281,6 +310,7 @@ func ModelConfig(config Config, environment string) model.PolicyConfig {
 	out.ChangedResourcesOnly = config.Scope.ChangedResourcesOnly
 	out.NewRiskOnly = config.Baseline.Mode == "new-findings-only" || config.Baseline.Mode == "new-risk-only"
 	out.DocumentationLinks = copyStringMap(config.Docs.Links)
+	out.AttackPaths = attackPathPolicy(config.AttackPaths)
 	out.ExistingFingerprints = make(map[string]bool, len(config.Baseline.Fingerprints))
 	for _, fingerprint := range config.Baseline.Fingerprints {
 		out.ExistingFingerprints[fingerprint] = true
@@ -386,10 +416,42 @@ func applyReviewIntelligenceDefaults(config Config) Config {
 	if config.AttackPaths.Enabled == nil {
 		config.AttackPaths.Enabled = boolPtr(true)
 	}
-	if config.AttackPaths.BlockHighConfidence == nil {
-		config.AttackPaths.BlockHighConfidence = boolPtr(true)
+	if len(config.AttackPaths.Block) == 0 {
+		config.AttackPaths.Block = []AttackPathThresholdConfig{
+			{Type: "public_to_sensitive_data", MinConfidence: model.ConfidenceHigh},
+			{Type: "iam_privilege_escalation", MinConfidence: model.ConfidenceHigh},
+		}
+	}
+	if len(config.AttackPaths.Warn) == 0 {
+		config.AttackPaths.Warn = []AttackPathThresholdConfig{
+			{Type: "public_to_sensitive_data", MinConfidence: model.ConfidenceMedium},
+			{Type: "iam_privilege_escalation", MinConfidence: model.ConfidenceMedium},
+		}
 	}
 	return config
+}
+
+func attackPathPolicy(config AttackPathsConfig) model.AttackPathPolicy {
+	config = applyReviewIntelligenceDefaults(Config{AttackPaths: config}).AttackPaths
+	out := model.AttackPathPolicy{Enabled: config.Enabled == nil || *config.Enabled}
+	out.Block = attackPathThresholds(config.Block)
+	out.Warn = attackPathThresholds(config.Warn)
+	return out
+}
+
+func attackPathThresholds(values []AttackPathThresholdConfig) []model.AttackPathThreshold {
+	out := make([]model.AttackPathThreshold, 0, len(values))
+	for _, value := range values {
+		if value.Type == "" {
+			continue
+		}
+		confidence := value.MinConfidence
+		if confidence == "" {
+			confidence = model.ConfidenceHigh
+		}
+		out = append(out, model.AttackPathThreshold{Type: value.Type, MinConfidence: confidence})
+	}
+	return out
 }
 
 func reviewEnabled(config ReviewConfig) bool {

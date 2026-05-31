@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/Gabriel0110/changegate/internal/adapters"
+	"github.com/Gabriel0110/changegate/internal/attackpath"
 	"github.com/Gabriel0110/changegate/internal/baseline"
 	"github.com/Gabriel0110/changegate/internal/buildinfo"
 	"github.com/Gabriel0110/changegate/internal/cloudcontext"
@@ -508,6 +509,7 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 	}
 	findings = applyGraphConflictDiagnostics(findings, graphDiagnostics)
+	findings = append(findings, attackPathFindings(resourceGraph, basePolicy.AttackPaths, selection)...)
 	importSummary, importDiagnostics, err := importExternalFindings(imports, findings, resourceGraph, failImport)
 	if err != nil {
 		return output.Report{}, err
@@ -625,6 +627,36 @@ func applyGraphConflictDiagnostics(findings []model.Finding, diagnostics []model
 		out = append(out, model.NormalizeFinding(current))
 	}
 	return out
+}
+
+func attackPathFindings(resourceGraph *graphpkg.Graph, policy model.AttackPathPolicy, selection rules.Selection) []model.Finding {
+	if !policy.Enabled {
+		return nil
+	}
+	paths := attackpath.DetectPublicToSensitive(resourceGraph, attackpath.DetectionOptions{})
+	paths = append(paths, attackpath.DetectIAMPrivilegeEscalation(resourceGraph, attackpath.IAMDetectionOptions{IncludeWarnings: true})...)
+	findings := attackpath.Findings(paths, policy)
+	out := make([]model.Finding, 0, len(findings))
+	for _, finding := range findings {
+		if !attackPathRuleSelected(finding.RuleID, selection) {
+			continue
+		}
+		if override, ok := selection.Overrides[finding.RuleID]; ok {
+			finding = model.ApplyOverride(finding, override)
+		}
+		out = append(out, finding)
+	}
+	return out
+}
+
+func attackPathRuleSelected(ruleID string, selection rules.Selection) bool {
+	if selection.DisabledRules[ruleID] {
+		return false
+	}
+	if len(selection.EnabledRules) > 0 && !selection.EnabledRules[ruleID] {
+		return false
+	}
+	return true
 }
 
 func graphConflictDiagnostic(code string) bool {

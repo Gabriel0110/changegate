@@ -210,6 +210,7 @@ type PolicyConfig struct {
 	Mode                  PolicyMode             `json:"mode"`
 	BlockOn               Threshold              `json:"block_on"`
 	WarnOn                Threshold              `json:"warn_on"`
+	AttackPaths           AttackPathPolicy       `json:"attack_paths,omitempty"`
 	Overrides             map[string]Override    `json:"overrides,omitempty"`
 	EnvironmentThresholds map[string]Thresholds  `json:"environment_thresholds,omitempty"`
 	BranchThresholds      map[string]Thresholds  `json:"branch_thresholds,omitempty"`
@@ -223,6 +224,19 @@ type PolicyConfig struct {
 	WaiverFile            string                 `json:"waiver_file,omitempty"`
 	FailExpiredWaivers    bool                   `json:"fail_expired_waivers,omitempty"`
 	DocumentationLinks    map[string]string      `json:"documentation_links,omitempty"`
+}
+
+// AttackPathPolicy controls which attack path types can become findings.
+type AttackPathPolicy struct {
+	Enabled bool                  `json:"enabled"`
+	Block   []AttackPathThreshold `json:"block,omitempty"`
+	Warn    []AttackPathThreshold `json:"warn,omitempty"`
+}
+
+// AttackPathThreshold configures a decision threshold for one attack path type.
+type AttackPathThreshold struct {
+	Type          string     `json:"type"`
+	MinConfidence Confidence `json:"min_confidence"`
 }
 
 // RiskContext captures non-secret movement signals for a finding.
@@ -276,6 +290,22 @@ func DefaultPolicyConfig() PolicyConfig {
 		WarnOn: Threshold{
 			MinSeverity:   SeverityMedium,
 			MinConfidence: ConfidenceMedium,
+		},
+		AttackPaths: DefaultAttackPathPolicy(),
+	}
+}
+
+// DefaultAttackPathPolicy returns conservative default attack path enforcement thresholds.
+func DefaultAttackPathPolicy() AttackPathPolicy {
+	return AttackPathPolicy{
+		Enabled: true,
+		Block: []AttackPathThreshold{
+			{Type: "public_to_sensitive_data", MinConfidence: ConfidenceHigh},
+			{Type: "iam_privilege_escalation", MinConfidence: ConfidenceHigh},
+		},
+		Warn: []AttackPathThreshold{
+			{Type: "public_to_sensitive_data", MinConfidence: ConfidenceMedium},
+			{Type: "iam_privilege_escalation", MinConfidence: ConfidenceMedium},
 		},
 	}
 }

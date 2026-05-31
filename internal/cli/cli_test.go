@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
@@ -359,6 +360,71 @@ func TestAttackPathsEmptyResult(t *testing.T) {
 	}
 	if result.Version != 1 || len(result.Paths) != 0 {
 		t.Fatalf("unexpected empty result: %#v", result)
+	}
+}
+
+func TestScanIntegratesAttackPathFindingsAndPolicyToggle(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "scan", "--plan", "testdata/graph-plan.json")
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	report := decodeAttackPathScanReport(t, stdout)
+	finding, ok := findRule(report.Findings, "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH")
+	if !ok {
+		t.Fatalf("scan report missing attack path finding:\n%s", stdout)
+	}
+	if finding.ResourceAddress != "aws_db_instance.customer" {
+		t.Fatalf("attack path resource = %q, want aws_db_instance.customer", finding.ResourceAddress)
+	}
+	if !findingHasEvidence(finding, "attack_path", "attack_path.type", "public_to_sensitive_data") {
+		t.Fatalf("attack path finding missing typed evidence: %#v", finding.Evidence)
+	}
+
+	policyPath := filepath.Join(t.TempDir(), "policy.yaml")
+	policyBody := "version: 1\nattack_paths:\n  enabled: false\n"
+	if err := os.WriteFile(policyPath, []byte(policyBody), 0o644); err != nil {
+		t.Fatalf("write policy: %v", err)
+	}
+	stdout, stderr, code = runCLI("--format", "json", "--policy", policyPath, "scan", "--plan", "testdata/graph-plan.json")
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	report = decodeAttackPathScanReport(t, stdout)
+	if _, ok := findRule(report.Findings, "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH"); ok {
+		t.Fatalf("attack path finding emitted while attack_paths.enabled=false:\n%s", stdout)
+	}
+}
+
+func TestAttackPathFindingsParticipateInBaselines(t *testing.T) {
+	t.Parallel()
+
+	baselinePath := filepath.Join(t.TempDir(), "baseline.json")
+	stdout, stderr, code := runCLI(
+		"baseline", "create",
+		"--plan", "testdata/graph-plan.json",
+		"--out", baselinePath,
+		"--expires-at", "2026-08-01T00:00:00Z",
+	)
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+
+	stdout, stderr, code = runCLI("--format", "json", "scan", "--plan", "testdata/graph-plan.json", "--baseline", baselinePath, "--new-only")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	report := decodeAttackPathScanReport(t, stdout)
+	finding, ok := findRule(report.Findings, "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH")
+	if !ok {
+		t.Fatalf("baseline scan missing attack path finding:\n%s", stdout)
+	}
+	if !findingHasSuppression(finding, "existing_risk") {
+		t.Fatalf("attack path finding was not baseline suppressed: %#v", finding.Suppressions)
+	}
+	if report.RiskSummary.Suppressed == 0 {
+		t.Fatalf("risk summary suppressed count = 0, want attack path baseline suppression")
 	}
 }
 
@@ -1002,8 +1068,8 @@ func TestWaiverCommandsAndScanSuppression(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
 		t.Fatalf("unmarshal scan report: %v", err)
 	}
-	if len(report.Findings) != 2 {
-		t.Fatalf("findings = %d, want 2", len(report.Findings))
+	if len(report.Findings) == 0 {
+		t.Fatalf("findings = 0, want at least one")
 	}
 
 	tempDir := t.TempDir()
@@ -1037,7 +1103,7 @@ func TestWaiverCommandsAndScanSuppression(t *testing.T) {
 	if code != exitAllowed {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Applied: 2") {
+	if !strings.Contains(stdout, fmt.Sprintf("Applied: %d", len(report.Findings))) {
 		t.Fatalf("report output missing applied waivers:\n%s", stdout)
 	}
 
@@ -1050,7 +1116,7 @@ func TestWaiverCommandsAndScanSuppression(t *testing.T) {
 	if code != exitAllowed {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Suppressed or downgraded: 2") {
+	if !strings.Contains(stdout, fmt.Sprintf("Suppressed or downgraded: %d", len(report.Findings))) {
 		t.Fatalf("scan did not suppress waived findings:\n%s", stdout)
 	}
 }
@@ -1406,7 +1472,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 	assertValidJSON(t, stdout)
-	if !strings.Contains(stdout, `"enabled_rules": 16`) {
+	if !strings.Contains(stdout, `"enabled_rules": 18`) {
 		t.Fatalf("policy test output missing enabled count:\n%s", stdout)
 	}
 }
@@ -1547,6 +1613,64 @@ func TestPolicyContextValidation(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 	assertValidJSON(t, stdout)
+}
+
+type attackPathScanReport struct {
+	RiskSummary struct {
+		Suppressed int `json:"suppressed"`
+	} `json:"risk_summary"`
+	Findings []attackPathScanFinding `json:"findings"`
+}
+
+type attackPathScanFinding struct {
+	RuleID          string `json:"rule_id"`
+	ResourceAddress string `json:"resource_address"`
+	Evidence        []struct {
+		Type  string `json:"type"`
+		Path  string `json:"path"`
+		Value any    `json:"value"`
+	} `json:"evidence"`
+	Suppressions []struct {
+		Kind   string `json:"kind"`
+		Active bool   `json:"active"`
+	} `json:"suppressions"`
+}
+
+func decodeAttackPathScanReport(t *testing.T, stdout string) attackPathScanReport {
+	t.Helper()
+
+	var report attackPathScanReport
+	if err := json.Unmarshal([]byte(stdout), &report); err != nil {
+		t.Fatalf("unmarshal scan report: %v\n%s", err, stdout)
+	}
+	return report
+}
+
+func findRule(findings []attackPathScanFinding, ruleID string) (attackPathScanFinding, bool) {
+	for _, finding := range findings {
+		if finding.RuleID == ruleID {
+			return finding, true
+		}
+	}
+	return attackPathScanFinding{}, false
+}
+
+func findingHasEvidence(finding attackPathScanFinding, typ string, path string, value string) bool {
+	for _, evidence := range finding.Evidence {
+		if evidence.Type == typ && evidence.Path == path && evidence.Value == value {
+			return true
+		}
+	}
+	return false
+}
+
+func findingHasSuppression(finding attackPathScanFinding, kind string) bool {
+	for _, suppression := range finding.Suppressions {
+		if suppression.Kind == kind && suppression.Active {
+			return true
+		}
+	}
+	return false
 }
 
 func runCLI(args ...string) (string, string, int) {

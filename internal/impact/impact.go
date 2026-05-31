@@ -498,7 +498,7 @@ func buildGraphPaths(findings []model.Finding) []GraphPathSummary {
 func buildAttackPaths(findings []model.Finding, decision model.Decision) []AttackPathSummary {
 	out := make([]AttackPathSummary, 0)
 	for _, finding := range findings {
-		if finding.Category != model.RiskCategoryPrivilegeEscalation && !containsFold(finding.RuleID, "PASSROLE") && !containsFold(finding.RuleID, "ASSUME") {
+		if !isAttackPathFinding(finding) && finding.Category != model.RiskCategoryPrivilegeEscalation && !containsFold(finding.RuleID, "PASSROLE") && !containsFold(finding.RuleID, "ASSUME") {
 			continue
 		}
 		steps := make([]string, 0, len(finding.Evidence))
@@ -529,6 +529,18 @@ func buildAttackPaths(findings []model.Finding, decision model.Decision) []Attac
 		return compareAttackPaths(out[i], out[j]) < 0
 	})
 	return out
+}
+
+func isAttackPathFinding(finding model.Finding) bool {
+	if strings.Contains(strings.ToLower(finding.RuleID), "ATTACK_PATH") {
+		return true
+	}
+	for _, evidence := range finding.Evidence {
+		if strings.Contains(strings.ToLower(evidence.Type), "attack_path") {
+			return true
+		}
+	}
+	return false
 }
 
 func buildOwnership(findings []model.Finding) []OwnershipHint {
@@ -802,6 +814,13 @@ func stableItemID(prefix string, finding model.Finding, index int) string {
 }
 
 func attackPathType(finding model.Finding) string {
+	for _, evidence := range finding.Evidence {
+		if evidence.Path == "attack_path.type" {
+			if value, ok := evidence.Value.(string); ok && value != "" {
+				return value
+			}
+		}
+	}
 	switch {
 	case containsFold(finding.RuleID, "PASSROLE"):
 		return "iam_passrole_escalation"

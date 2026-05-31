@@ -50,6 +50,7 @@ func DefaultPolicyPacks() []PolicyPack {
 			Description: "AWS public exposure rules.",
 			Rules: []string{
 				"AWS_PUBLIC_ADMIN_SERVICE",
+				"AWS_PUBLIC_ADMIN_SERVICE_PATH",
 				"AWS_PUBLIC_INTERNAL_SERVICE",
 				"AWS_SG_WORLD_OPEN_ADMIN_PORT",
 				"AWS_SG_WORLD_OPEN_DB_PORT",
@@ -60,6 +61,7 @@ func DefaultPolicyPacks() []PolicyPack {
 				"AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
 				"AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH",
 				"AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+				"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
 				"AWS_PRIVATE_SUBNET_ROUTE_TO_IGW",
 				"AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG",
 				"AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET",
@@ -72,6 +74,8 @@ func DefaultPolicyPacks() []PolicyPack {
 			Version:     "0.1.0",
 			Description: "AWS IAM privilege escalation rules.",
 			Rules: []string{
+				"AWS_IAM_PASSROLE_FUNCTION_ESCALATION",
+				"AWS_IAM_ASSUME_ADMIN_PATH",
 				"AWS_PASSROLE_WITH_COMPUTE_MUTATION",
 				"AWS_IAM_WILDCARD_ADMIN",
 				"AWS_ROLE_ASSUME_ADMIN_PATH",
@@ -96,5 +100,8 @@ func defaultPackDefaults() PackDefaults {
 }
 
 func defaultRules() []Rule {
-	return awsRules()
+	out := make([]Rule, 0)
+	out = append(out, awsRules()...)
+	out = append(out, attackPathRules()...)
+	return out
 }

@@ -107,10 +107,19 @@ impact:
 
 attack_paths:
   enabled: true
-  block_high_confidence: true
+  block:
+    - type: public_to_sensitive_data
+      min_confidence: high
+    - type: iam_privilege_escalation
+      min_confidence: high
+  warn:
+    - type: public_to_sensitive_data
+      min_confidence: medium
+    - type: iam_privilege_escalation
+      min_confidence: medium
 ```
 
-These settings are feature toggles and output controls for the new commands. They do not change existing `changegate scan` behavior during Tranche 0.
+These settings are output controls and deterministic enforcement thresholds. Attack path findings emitted during `changegate scan` use normal policy, baseline, waiver, and audit-bundle behavior.
 
 ## Implementation Plan
 

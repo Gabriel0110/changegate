@@ -161,8 +161,11 @@ func TestReviewIntelligenceConfigDefaultsAndOverrides(t *testing.T) {
 	if result.Policy.AttackPaths.Enabled == nil || !*result.Policy.AttackPaths.Enabled {
 		t.Fatalf("attack_paths.enabled default was not true")
 	}
-	if result.Policy.AttackPaths.BlockHighConfidence == nil || !*result.Policy.AttackPaths.BlockHighConfidence {
-		t.Fatalf("attack_paths.block_high_confidence default was not true")
+	if len(result.Policy.AttackPaths.Block) != 2 {
+		t.Fatalf("attack_paths.block = %#v, want two defaults", result.Policy.AttackPaths.Block)
+	}
+	if len(result.Policy.AttackPaths.Warn) != 2 {
+		t.Fatalf("attack_paths.warn = %#v, want two defaults", result.Policy.AttackPaths.Warn)
 	}
 
 	body := `
@@ -178,7 +181,12 @@ impact:
   include_waivers: false
 attack_paths:
   enabled: false
-  block_high_confidence: false
+  block:
+    - type: public_to_sensitive_data
+      min_confidence: high
+  warn:
+    - type: public_to_sensitive_data
+      min_confidence: medium
 `
 	config, err := Load(strings.NewReader(body))
 	if err != nil {
@@ -209,8 +217,8 @@ attack_paths:
 	if result.Policy.AttackPaths.Enabled == nil || *result.Policy.AttackPaths.Enabled {
 		t.Fatalf("attack_paths.enabled override was not false")
 	}
-	if result.Policy.AttackPaths.BlockHighConfidence == nil || *result.Policy.AttackPaths.BlockHighConfidence {
-		t.Fatalf("attack_paths.block_high_confidence override was not false")
+	if len(result.Policy.AttackPaths.Block) != 1 || result.Policy.AttackPaths.Block[0].Type != "public_to_sensitive_data" {
+		t.Fatalf("attack_paths.block override = %#v", result.Policy.AttackPaths.Block)
 	}
 }
 

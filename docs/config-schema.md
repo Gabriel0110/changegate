@@ -85,7 +85,16 @@ impact:
 
 attack_paths:
   enabled: true
-  block_high_confidence: true
+  block:
+    - type: public_to_sensitive_data
+      min_confidence: high
+    - type: iam_privilege_escalation
+      min_confidence: high
+  warn:
+    - type: public_to_sensitive_data
+      min_confidence: medium
+    - type: iam_privilege_escalation
+      min_confidence: medium
 ```
 
 ## Fields
@@ -134,8 +143,13 @@ attack_paths:
 | `impact.include_existing_risks` | boolean | no | Include unchanged baseline risks in Security Impact Statements. Defaults to `true`. |
 | `impact.include_resolved_risks` | boolean | no | Include resolved baseline risks in Security Impact Statements. Defaults to `true`. |
 | `impact.include_waivers` | boolean | no | Include waiver state and waiver counts in Security Impact Statements. Defaults to `true`. |
-| `attack_paths.enabled` | boolean | no | Enables attack path detection when attack path or Review Intelligence commands are used. Defaults to `true`. Existing `scan` behavior is unchanged until attack path integration is enabled in later tranches. |
-| `attack_paths.block_high_confidence` | boolean | no | Allows high-confidence attack paths to affect deployment decisions once policy integration ships. Defaults to `true`. |
+| `attack_paths.enabled` | boolean | no | Enables attack path detection for `scan`, Review Intelligence, impact statements, and attack-path commands. Defaults to `true`. |
+| `attack_paths.block` | array | no | Attack path thresholds that become block-eligible findings. Defaults to high-confidence `public_to_sensitive_data` and `iam_privilege_escalation`. |
+| `attack_paths.warn` | array | no | Attack path thresholds that become warning-eligible findings. Defaults to medium-confidence `public_to_sensitive_data` and `iam_privilege_escalation`. |
+| `attack_paths.block[].type` | enum | no | Attack path type. Supported values are `public_to_sensitive_data` and `iam_privilege_escalation`. |
+| `attack_paths.block[].min_confidence` | enum | no | Minimum confidence for the block threshold. Defaults to `high` when omitted. |
+| `attack_paths.warn[].type` | enum | no | Attack path type. Supported values are `public_to_sensitive_data` and `iam_privilege_escalation`. |
+| `attack_paths.warn[].min_confidence` | enum | no | Minimum confidence for the warning threshold. Defaults to `high` when omitted. |
 
 ## Enum Values
 

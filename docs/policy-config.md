@@ -61,7 +61,7 @@ docs:
 
 ## Review Intelligence
 
-Review Intelligence settings control upcoming Security Impact Statement, PR/MR review, and attack path commands. They are accepted by the strict policy schema now, but they do not change existing `changegate scan` behavior.
+Review Intelligence settings control Security Impact Statements, PR/MR review output, and attack path enforcement. Attack paths are first-class scan findings by default, so they participate in policy thresholds, baselines, waivers, and audit bundles.
 
 ```yaml
 review:
@@ -77,7 +77,16 @@ impact:
 
 attack_paths:
   enabled: true
-  block_high_confidence: true
+  block:
+    - type: public_to_sensitive_data
+      min_confidence: high
+    - type: iam_privilege_escalation
+      min_confidence: high
+  warn:
+    - type: public_to_sensitive_data
+      min_confidence: medium
+    - type: iam_privilege_escalation
+      min_confidence: medium
 ```
 
 The complete field reference is in [config schema](config-schema.md).

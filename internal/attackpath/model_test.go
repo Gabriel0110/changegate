@@ -87,25 +87,6 @@ func TestNormalizeSortsByRisk(t *testing.T) {
 	}
 }
 
-func TestPolicyDecisionEligibility(t *testing.T) {
-	t.Parallel()
-	path := AttackPath{
-		Confidence: model.ConfidenceHigh,
-		Decision:   model.DecisionBlock,
-	}
-	opts := PolicyOptions{Enabled: true, BlockHighConfidence: true}
-	if !CanInfluenceDecision(path, opts) {
-		t.Fatal("high-confidence path should influence decision")
-	}
-	if !ShouldBlock(path, opts) {
-		t.Fatal("high-confidence blocking path should block")
-	}
-	path.Confidence = model.ConfidenceMedium
-	if CanInfluenceDecision(path, opts) {
-		t.Fatal("medium-confidence path should not influence decision by default")
-	}
-}
-
 func TestRenderMarkdownEmpty(t *testing.T) {
 	t.Parallel()
 	got := RenderMarkdown(nil)

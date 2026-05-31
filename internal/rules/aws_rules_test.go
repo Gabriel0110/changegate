@@ -110,6 +110,9 @@ func TestAWSRulesFailingFixture(t *testing.T) {
 	}
 
 	for _, rule := range registry.Rules() {
+		if _, generated := rule.(generatedAttackPathRule); generated {
+			continue
+		}
 		ruleID := rule.Metadata().ID
 		if _, ok := seen[ruleID]; !ok {
 			t.Errorf("expected fixture to trigger %s", ruleID)

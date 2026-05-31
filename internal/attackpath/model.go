@@ -59,13 +59,6 @@ type Result struct {
 	Paths   []AttackPath `json:"paths"`
 }
 
-// PolicyOptions controls whether an attack path may affect deploy decisions.
-type PolicyOptions struct {
-	Enabled                   bool
-	BlockHighConfidence       bool
-	AllowMediumConfidenceWarn bool
-}
-
 // Normalize returns sanitized, ID-stable, deterministically sorted attack paths.
 func Normalize(paths []AttackPath) []AttackPath {
 	out := make([]AttackPath, 0, len(paths))
@@ -122,25 +115,6 @@ func StableID(path AttackPath) string {
 	}
 	sum := hex.EncodeToString(hash.Sum(nil))
 	return "attack-path-" + sum[:16]
-}
-
-// CanInfluenceDecision reports whether a path is eligible to affect policy.
-func CanInfluenceDecision(path AttackPath, opts PolicyOptions) bool {
-	if !opts.Enabled {
-		return false
-	}
-	if path.Confidence == model.ConfidenceHigh {
-		return true
-	}
-	return opts.AllowMediumConfidenceWarn && path.Confidence == model.ConfidenceMedium && path.Decision == model.DecisionWarn
-}
-
-// ShouldBlock reports whether a path can produce a blocking policy effect.
-func ShouldBlock(path AttackPath, opts PolicyOptions) bool {
-	return opts.Enabled &&
-		opts.BlockHighConfidence &&
-		path.Confidence == model.ConfidenceHigh &&
-		path.Decision == model.DecisionBlock
 }
 
 func writeHash(hash interface{ Write([]byte) (int, error) }, value string) {
