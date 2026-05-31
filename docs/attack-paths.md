@@ -11,6 +11,8 @@ The detector commands are implemented in later Review Intelligence tranches. The
 
 Public-to-sensitive detection is available as the first v1 detector. It uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 
+IAM privilege-escalation detection is also available as a v1 detector. It normalizes IAM action wildcards, service wildcards, resource wildcards, explicit deny statements, and complex conditions. The detector focuses on high-signal paths: `iam:PassRole` plus Lambda/ECS mutation, `sts:AssumeRole` to admin or sensitive roles, Lambda code update into privileged execution roles, and ECS service update into task roles with sensitive data access. Complex conditions or explicit deny ambiguity reduce confidence and produce warnings rather than high-confidence blocks.
+
 ## Contract
 
 Attack path JSON uses schema version 1 and is documented by [`schemas/attack-paths.schema.json`](../schemas/attack-paths.schema.json).

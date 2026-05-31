@@ -294,6 +294,9 @@ func contextValues(key string, resource cloudcontext.Resource) map[string]any {
 	if len(resource.RelatedSensitiveData) > 0 {
 		values["related_sensitive_data"] = append([]string(nil), resource.RelatedSensitiveData...)
 	}
+	if len(resource.ObservedPolicyActions) > 0 {
+		values["observed_policy_actions"] = append([]string(nil), resource.ObservedPolicyActions...)
+	}
 	return values
 }
 
