@@ -35,10 +35,10 @@ jobs:
         run: go test -race ./...
 
       - name: Performance budgets
-        run: go test ./internal/performance -run 'Test(SmallPlanPerformanceBudget|LargePlanMemoryBudget)$' -count=1
+        run: go test ./internal/performance -run 'Test(SmallPlanPerformanceBudget|LargePlanMemoryBudget|ReviewIntelligencePerformanceBudget|LargeGraphPathExtractionBudget|PRCommentRenderBudget)$' -count=1
 
       - name: Performance benchmarks
-        run: go test ./internal/performance -run '^$' -bench 'BenchmarkSmallScan$' -benchtime=1x -benchmem
+        run: go test ./internal/performance -run '^$' -bench 'Benchmark(SmallScan|GraphPathSearch|ImpactBuild|PRCommentRender|AttackPathDetectors)$' -benchtime=1x -benchmem
 
       - name: Build
         run: go build ./cmd/changegate

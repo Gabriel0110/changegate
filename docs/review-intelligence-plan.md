@@ -1665,6 +1665,10 @@ Initial budgets:
 * Benchmark attack path detectors.
 * CI performance budget tests.
 
+### Implementation Status
+
+Complete. Graph path extraction now avoids per-expansion path copying, blast-radius traversal avoids per-target graph searches, public-to-sensitive attack paths reuse bounded blast-radius traversal, and CI covers scan, memory, graph, impact, PR comment, and attack-path performance budgets/benchmarks.
+
 ## 34. Tranche 28: Security Hardening
 
 ### Goal

@@ -23,7 +23,8 @@ func DetectPublicToSensitive(g *graph.Graph, opts DetectionOptions) []AttackPath
 	opts = normalizeDetectionOptions(opts)
 	paths := make([]AttackPath, 0)
 	for _, entrypoint := range g.PublicEntrypoints() {
-		sensitivePaths := detectSensitivePaths(g, entrypoint, opts)
+		radius := g.BlastRadius(entrypoint, graph.BlastRadiusOptions{MaxDepth: opts.MaxDepth, MaxPaths: opts.MaxPaths})
+		sensitivePaths := detectSensitivePaths(g, entrypoint, radius)
 		if len(sensitivePaths) > 0 {
 			paths = append(paths, sensitivePaths...)
 			continue
@@ -31,82 +32,71 @@ func DetectPublicToSensitive(g *graph.Graph, opts DetectionOptions) []AttackPath
 		if opts.DisableWorkloadWarnings || expectedPublicNode(g.Nodes[entrypoint]) {
 			continue
 		}
-		paths = append(paths, detectPublicWorkloadWarnings(g, entrypoint, opts)...)
+		paths = append(paths, detectPublicWorkloadWarnings(g, entrypoint, radius)...)
 	}
 	return Normalize(paths)
 }
 
-func detectSensitivePaths(g *graph.Graph, entrypoint graph.ResourceID, opts DetectionOptions) []AttackPath {
+func detectSensitivePaths(g *graph.Graph, entrypoint graph.ResourceID, radius graph.BlastRadius) []AttackPath {
 	out := make([]AttackPath, 0)
-	for _, target := range g.SensitiveAssets() {
-		graphPaths := g.Paths(entrypoint, target, graph.PathOptions{
-			MaxDepth:     opts.MaxDepth,
-			MaxPaths:     opts.MaxPaths,
-			AllowedEdges: publicPathEdges(),
-		})
-		for _, path := range graphPaths {
-			if !pathHasWorkload(g, path) {
-				continue
-			}
-			targetNode := g.Nodes[target]
-			fullPath := withPublicIngress(g, entrypoint, path)
-			confidence := confidenceForPath(fullPath)
-			decision := publicSensitiveDecision(targetNode, confidence)
-			out = append(out, AttackPath{
-				Type:       TypePublicToSensitiveData,
-				Title:      publicSensitiveTitle(entrypoint, target),
-				Severity:   publicSensitiveSeverity(decision, confidence),
-				Confidence: confidence,
-				Decision:   decision,
-				Entrypoint: string(entrypoint),
-				Target:     string(target),
-				Steps:      stepsFromGraphPath(fullPath),
-				Evidence: []model.Evidence{
-					pathEvidence(target, fullPath, "public entrypoint reaches sensitive asset"),
-				},
-				Mitigations: publicSensitiveMitigations(targetNode),
-				References:  []string{"https://changegate.dev/docs/attack-paths"},
-				Metadata:    map[string]string{"graph_path_id": graphPathID(fullPath)},
-			})
+	for _, path := range radius.Paths {
+		target := pathTarget(path)
+		targetNode := g.Nodes[target]
+		if targetNode == nil || !isSensitiveNodeKind(targetNode.Kind) || !pathHasWorkload(g, path) {
+			continue
 		}
+		fullPath := withPublicIngress(g, entrypoint, path)
+		confidence := confidenceForPath(fullPath)
+		decision := publicSensitiveDecision(targetNode, confidence)
+		out = append(out, AttackPath{
+			Type:       TypePublicToSensitiveData,
+			Title:      publicSensitiveTitle(entrypoint, target),
+			Severity:   publicSensitiveSeverity(decision, confidence),
+			Confidence: confidence,
+			Decision:   decision,
+			Entrypoint: string(entrypoint),
+			Target:     string(target),
+			Steps:      stepsFromGraphPath(fullPath),
+			Evidence: []model.Evidence{
+				pathEvidence(target, fullPath, "public entrypoint reaches sensitive asset"),
+			},
+			Mitigations: publicSensitiveMitigations(targetNode),
+			References:  []string{"https://changegate.dev/docs/attack-paths"},
+			Metadata:    map[string]string{"graph_path_id": graphPathID(fullPath)},
+		})
 	}
 	return out
 }
 
-func detectPublicWorkloadWarnings(g *graph.Graph, entrypoint graph.ResourceID, opts DetectionOptions) []AttackPath {
+func detectPublicWorkloadWarnings(g *graph.Graph, entrypoint graph.ResourceID, radius graph.BlastRadius) []AttackPath {
 	out := make([]AttackPath, 0)
-	for id, node := range g.Nodes {
+	for _, path := range radius.Paths {
+		id := pathTarget(path)
+		node := g.Nodes[id]
 		if node == nil || node.Kind != graph.NodeWorkload {
 			continue
 		}
-		graphPaths := g.Paths(entrypoint, id, graph.PathOptions{
-			MaxDepth:     opts.MaxDepth,
-			MaxPaths:     opts.MaxPaths,
-			AllowedEdges: publicPathEdges(),
+		fullPath := withPublicIngress(g, entrypoint, path)
+		confidence := confidenceForPath(fullPath)
+		out = append(out, AttackPath{
+			Type:       TypePublicToSensitiveData,
+			Title:      publicWorkloadTitle(entrypoint, id),
+			Severity:   model.SeverityMedium,
+			Confidence: confidence,
+			Decision:   model.DecisionWarn,
+			Entrypoint: string(entrypoint),
+			Target:     string(id),
+			Steps:      stepsFromGraphPath(fullPath),
+			Evidence: []model.Evidence{
+				pathEvidence(id, fullPath, "public entrypoint reaches workload with no sensitive downstream context"),
+			},
+			Mitigations: []string{
+				"Confirm this workload is intended to be public.",
+				"Attach cloud context or tags for downstream sensitive data when available.",
+			},
+			References: []string{"https://changegate.dev/docs/attack-paths"},
+			Metadata:   map[string]string{"graph_path_id": graphPathID(fullPath)},
 		})
-		for _, path := range graphPaths {
-			fullPath := withPublicIngress(g, entrypoint, path)
-			confidence := confidenceForPath(fullPath)
-			out = append(out, AttackPath{
-				Type:       TypePublicToSensitiveData,
-				Title:      publicWorkloadTitle(entrypoint, id),
-				Severity:   model.SeverityMedium,
-				Confidence: confidence,
-				Decision:   model.DecisionWarn,
-				Entrypoint: string(entrypoint),
-				Target:     string(id),
-				Steps:      stepsFromGraphPath(fullPath),
-				Evidence: []model.Evidence{
-					pathEvidence(id, fullPath, "public entrypoint reaches workload with no sensitive downstream context"),
-				},
-				Mitigations: []string{
-					"Confirm this workload is intended to be public.",
-					"Attach cloud context or tags for downstream sensitive data when available.",
-				},
-				References: []string{"https://changegate.dev/docs/attack-paths"},
-				Metadata:   map[string]string{"graph_path_id": graphPathID(fullPath)},
-			})
-		}
 	}
 	return out
 }
@@ -148,20 +138,19 @@ func normalizeDetectionOptions(opts DetectionOptions) DetectionOptions {
 	return opts
 }
 
-func publicPathEdges() []graph.EdgeType {
-	return []graph.EdgeType{
-		graph.EdgeRoutesTo,
-		graph.EdgeAllowsIngress,
-		graph.EdgeAllowsEgress,
-		graph.EdgeAttachedTo,
-		graph.EdgeContainedIn,
-		graph.EdgeHasPublicAccess,
-		graph.EdgeCanReadData,
-		graph.EdgeCanWriteData,
-		graph.EdgeReadsSecret,
-		graph.EdgeEncryptsWith,
-		graph.EdgeWritesTo,
-		graph.EdgeReplicatesTo,
+func pathTarget(path graph.Path) graph.ResourceID {
+	if len(path.Nodes) == 0 {
+		return ""
+	}
+	return path.Nodes[len(path.Nodes)-1]
+}
+
+func isSensitiveNodeKind(kind graph.NodeKind) bool {
+	switch kind {
+	case graph.NodeDataStore, graph.NodeSecret, graph.NodeKMSKey:
+		return true
+	default:
+		return false
 	}
 }
 

@@ -36,8 +36,12 @@ The benchmark suite covers:
 
 * full small and large scans
 * graph construction
+* bounded graph path extraction
+* Security Impact Statement generation
+* PR comment rendering
+* attack path detection
 * output rendering
 * cloud-context enrichment
 * cloud-context cache loading
 
-CI runs performance budget tests and a one-iteration small scan benchmark to catch large regressions without making normal checks noisy.
+CI runs performance budget tests for small scans, large-plan allocation, scan-plus-impact latency, 10,000-node path extraction with cloud context, and PR comment rendering. It also runs one-iteration benchmarks for small scans, graph paths, impact generation, PR comment rendering, and attack path detection to catch large regressions without making normal checks noisy.

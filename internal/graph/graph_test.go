@@ -256,6 +256,7 @@ func BenchmarkGraphV2PathSearchLargeGraph(b *testing.B) {
 	from := ResourceID("aws_instance.workload_0000")
 	to := ResourceID("aws_instance.workload_0999")
 	b.ReportAllocs()
+	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		paths := g.Paths(from, to, PathOptions{MaxDepth: nodeCount, MaxPaths: 1, AllowedEdges: []EdgeType{EdgeRoutesTo}})
 		if len(paths) != 1 {

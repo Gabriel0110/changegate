@@ -251,52 +251,85 @@ func (g *Graph) Paths(from ResourceID, to ResourceID, opts PathOptions) []Path {
 	}
 	opts = normalizePathOptions(opts)
 	allowed := allowedEdgeSet(opts.AllowedEdges)
+	if opts.MaxPaths == 1 {
+		if path, ok := g.shortestPathWithOptions(from, to, allowed, opts.MaxDepth); ok {
+			return []Path{path}
+		}
+		return nil
+	}
+	adj := g.adjacency()
+	paths := make([]Path, 0, opts.MaxPaths)
+	seen := map[ResourceID]bool{from: true}
+	nodes := []ResourceID{from}
+	edges := make([]Edge, 0, opts.MaxDepth)
+	var visit func(ResourceID, int)
+	visit = func(current ResourceID, depth int) {
+		if len(paths) >= opts.MaxPaths || depth >= opts.MaxDepth {
+			return
+		}
+		for _, edge := range adj[current] {
+			if len(allowed) > 0 && !allowed[edge.Type] {
+				continue
+			}
+			if seen[edge.To] {
+				continue
+			}
+			seen[edge.To] = true
+			nodes = append(nodes, edge.To)
+			edges = append(edges, edge)
+			if edge.To == to {
+				paths = append(paths, copyPath(nodes, edges))
+			} else {
+				visit(edge.To, depth+1)
+			}
+			edges = edges[:len(edges)-1]
+			nodes = nodes[:len(nodes)-1]
+			delete(seen, edge.To)
+			if len(paths) >= opts.MaxPaths {
+				return
+			}
+		}
+	}
+	visit(from, 0)
+	sort.SliceStable(paths, func(i int, j int) bool {
+		return pathKey(paths[i]) < pathKey(paths[j])
+	})
+	return paths
+}
+
+func (g *Graph) shortestPathWithOptions(from ResourceID, to ResourceID, allowed map[EdgeType]bool, maxDepth int) (Path, bool) {
 	adj := g.adjacency()
 	type item struct {
 		node  ResourceID
-		path  Path
-		seen  map[ResourceID]bool
 		depth int
 	}
-	queue := []item{{
-		node: from,
-		path: Path{Nodes: []ResourceID{from}},
-		seen: map[ResourceID]bool{from: true},
-	}}
-	paths := make([]Path, 0)
-	for len(queue) > 0 && len(paths) < opts.MaxPaths {
+	queue := []item{{node: from}}
+	visited := map[ResourceID]bool{from: true}
+	prevNode := make(map[ResourceID]ResourceID)
+	prevEdge := make(map[ResourceID]Edge)
+	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		if current.depth >= opts.MaxDepth {
+		if current.depth >= maxDepth {
 			continue
 		}
 		for _, edge := range adj[current.node] {
 			if len(allowed) > 0 && !allowed[edge.Type] {
 				continue
 			}
-			if current.seen[edge.To] {
+			if visited[edge.To] {
 				continue
 			}
-			nextPath := Path{
-				Nodes: append(append([]ResourceID{}, current.path.Nodes...), edge.To),
-				Edges: append(append([]Edge{}, current.path.Edges...), edge),
-			}
+			visited[edge.To] = true
+			prevNode[edge.To] = current.node
+			prevEdge[edge.To] = edge
 			if edge.To == to {
-				paths = append(paths, nextPath)
-				if len(paths) >= opts.MaxPaths {
-					break
-				}
-				continue
+				return reconstructPath(from, to, prevNode, prevEdge), true
 			}
-			nextSeen := copySeen(current.seen)
-			nextSeen[edge.To] = true
-			queue = append(queue, item{node: edge.To, path: nextPath, seen: nextSeen, depth: current.depth + 1})
+			queue = append(queue, item{node: edge.To, depth: current.depth + 1})
 		}
 	}
-	sort.SliceStable(paths, func(i int, j int) bool {
-		return pathKey(paths[i]) < pathKey(paths[j])
-	})
-	return paths
+	return Path{}, false
 }
 
 // Exposure explains public reachability for a resource.
@@ -351,37 +384,61 @@ func (g *Graph) BlastRadius(resource ResourceID, opts BlastRadiusOptions) BlastR
 	}
 	seenWorkloads := make(map[ResourceID]bool)
 	seenSensitive := make(map[ResourceID]bool)
-	for _, id := range sortedNodeIDs(g) {
-		node := g.Nodes[id]
-		if id == resource {
-			continue
+	workloadPaths := make([]Path, 0, opts.MaxPaths)
+	sensitivePaths := make([]Path, 0, opts.MaxPaths)
+	allowed := allowedEdgeSet(reachabilityEdges())
+	adj := g.adjacency()
+	seen := map[ResourceID]bool{resource: true}
+	nodes := []ResourceID{resource}
+	edges := make([]Edge, 0, opts.MaxDepth)
+	var visit func(ResourceID, int)
+	visit = func(current ResourceID, depth int) {
+		if depth >= opts.MaxDepth {
+			return
 		}
-		if node.Kind != NodeWorkload && !isSensitiveKind(node.Kind) {
-			continue
+		for _, edge := range adj[current] {
+			if len(allowed) > 0 && !allowed[edge.Type] {
+				continue
+			}
+			if seen[edge.To] {
+				continue
+			}
+			seen[edge.To] = true
+			nodes = append(nodes, edge.To)
+			edges = append(edges, edge)
+			if node := g.Nodes[edge.To]; node != nil {
+				if node.Kind == NodeWorkload && !seenWorkloads[edge.To] {
+					seenWorkloads[edge.To] = true
+					result.ReachableWorkloads = append(result.ReachableWorkloads, edge.To)
+				}
+				if isSensitiveKind(node.Kind) && !seenSensitive[edge.To] {
+					seenSensitive[edge.To] = true
+					result.SensitiveAssets = append(result.SensitiveAssets, edge.To)
+				}
+				switch {
+				case isSensitiveKind(node.Kind) && len(sensitivePaths) < opts.MaxPaths:
+					sensitivePaths = append(sensitivePaths, copyPath(nodes, edges))
+				case node.Kind == NodeWorkload && len(workloadPaths) < opts.MaxPaths:
+					workloadPaths = append(workloadPaths, copyPath(nodes, edges))
+				}
+			}
+			visit(edge.To, depth+1)
+			edges = edges[:len(edges)-1]
+			nodes = nodes[:len(nodes)-1]
+			delete(seen, edge.To)
 		}
-		paths := g.Paths(resource, id, PathOptions{
-			MaxDepth:     opts.MaxDepth,
-			MaxPaths:     opts.MaxPaths,
-			AllowedEdges: reachabilityEdges(),
-		})
-		if len(paths) == 0 {
-			continue
-		}
-		if node.Kind == NodeWorkload && !seenWorkloads[id] {
-			seenWorkloads[id] = true
-			result.ReachableWorkloads = append(result.ReachableWorkloads, id)
-		}
-		if isSensitiveKind(node.Kind) && !seenSensitive[id] {
-			seenSensitive[id] = true
-			result.SensitiveAssets = append(result.SensitiveAssets, id)
-		}
-		result.Paths = append(result.Paths, paths...)
 	}
+	visit(resource, 0)
 	sortResourceIDs(result.ReachableWorkloads)
 	sortResourceIDs(result.SensitiveAssets)
-	sort.SliceStable(result.Paths, func(i int, j int) bool {
-		return pathKey(result.Paths[i]) < pathKey(result.Paths[j])
+	sort.SliceStable(sensitivePaths, func(i int, j int) bool {
+		return pathKey(sensitivePaths[i]) < pathKey(sensitivePaths[j])
 	})
+	sort.SliceStable(workloadPaths, func(i int, j int) bool {
+		return pathKey(workloadPaths[i]) < pathKey(workloadPaths[j])
+	})
+	result.Paths = append(result.Paths, sensitivePaths...)
+	result.Paths = append(result.Paths, workloadPaths...)
 	if len(result.Paths) > opts.MaxPaths {
 		result.Paths = append([]Path{}, result.Paths[:opts.MaxPaths]...)
 	}
@@ -438,18 +495,29 @@ func (g *Graph) ChangedBoundaryCrossings() []Path {
 	}
 	paths := make([]Path, 0)
 	for _, entrypoint := range g.PublicEntrypoints() {
-		for _, asset := range g.SensitiveAssets() {
-			for _, path := range g.Paths(entrypoint, asset, PathOptions{MaxDepth: 12, MaxPaths: 3, AllowedEdges: reachabilityEdges()}) {
-				if g.pathTouchesChangedNode(path) {
-					paths = append(paths, path)
-				}
+		if node := g.Nodes[entrypoint]; node != nil && isSensitiveKind(node.Kind) && node.Changed {
+			paths = append(paths, Path{Nodes: []ResourceID{entrypoint}})
+		}
+		radius := g.BlastRadius(entrypoint, BlastRadiusOptions{MaxDepth: 12, MaxPaths: 25})
+		for _, path := range radius.Paths {
+			if !pathTargetsSensitive(g, path) || !g.pathTouchesChangedNode(path) {
+				continue
 			}
+			paths = append(paths, path)
 		}
 	}
 	sort.SliceStable(paths, func(i int, j int) bool {
 		return pathKey(paths[i]) < pathKey(paths[j])
 	})
 	return paths
+}
+
+func pathTargetsSensitive(g *Graph, path Path) bool {
+	if g == nil || len(path.Nodes) == 0 {
+		return false
+	}
+	node := g.Nodes[path.Nodes[len(path.Nodes)-1]]
+	return node != nil && isSensitiveKind(node.Kind)
 }
 
 // IsInternetExposed reports whether a resource has public exposure evidence.
@@ -829,8 +897,14 @@ func reconstructPath(from ResourceID, to ResourceID, prevNode map[ResourceID]Res
 	nodes := []ResourceID{to}
 	edges := make([]Edge, 0)
 	for current := to; current != from; current = prevNode[current] {
-		edges = append([]Edge{prevEdge[current]}, edges...)
-		nodes = append([]ResourceID{prevNode[current]}, nodes...)
+		edges = append(edges, prevEdge[current])
+		nodes = append(nodes, prevNode[current])
+	}
+	for left, right := 0, len(nodes)-1; left < right; left, right = left+1, right-1 {
+		nodes[left], nodes[right] = nodes[right], nodes[left]
+	}
+	for left, right := 0, len(edges)-1; left < right; left, right = left+1, right-1 {
+		edges[left], edges[right] = edges[right], edges[left]
 	}
 	return Path{Nodes: nodes, Edges: edges}
 }
@@ -1037,12 +1111,11 @@ func publicEdge(edgeType EdgeType) bool {
 	}
 }
 
-func copySeen(in map[ResourceID]bool) map[ResourceID]bool {
-	out := make(map[ResourceID]bool, len(in)+1)
-	for key, value := range in {
-		out[key] = value
+func copyPath(nodes []ResourceID, edges []Edge) Path {
+	return Path{
+		Nodes: append([]ResourceID(nil), nodes...),
+		Edges: append([]Edge(nil), edges...),
 	}
-	return out
 }
 
 func copyNode(node *Node) *Node {
