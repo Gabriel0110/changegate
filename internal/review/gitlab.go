@@ -1,11 +1,8 @@
 package review
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -215,13 +212,9 @@ func (c *HTTPGitLabClient) do(ctx context.Context, method string, path string, b
 		baseURL = defaultGitLabAPIBaseURL
 	}
 	endpoint := strings.TrimRight(baseURL, "/") + path
-	var reader io.Reader
-	if body != nil {
-		buf, err := json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("encode gitlab request: %w", err)
-		}
-		reader = bytes.NewReader(buf)
+	reader, err := marshalProviderRequest("gitlab", body)
+	if err != nil {
+		return err
 	}
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, reader)
 	if err != nil {
@@ -234,23 +227,20 @@ func (c *HTTPGitLabClient) do(ctx context.Context, method string, path string, b
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.httpClient.Do(req)
+	httpClient := c.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("send gitlab request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limited, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("gitlab API %s %s failed with %s: %s", method, path, resp.Status, strings.TrimSpace(string(limited)))
+		return providerError("gitlab", method, path, resp.Status, resp.Body, c.token)
 	}
-	if out == nil {
-		return nil
-	}
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return fmt.Errorf("decode gitlab response: %w", err)
-	}
-	return nil
+	return decodeProviderResponse("gitlab", resp.Body, out)
 }
 
 func gitLabProjectPath(project string) string {

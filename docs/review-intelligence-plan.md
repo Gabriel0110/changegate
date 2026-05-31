@@ -1696,6 +1696,10 @@ Secure the new networked surfaces and external integrations.
 * Oversized request tests.
 * Fork PR docs review.
 
+### Implementation Status
+
+Complete for active Review Intelligence surfaces. GitHub/GitLab review clients now enforce bounded request, response, and error bodies, use HTTP timeouts even when clients are constructed manually, and redact provider tokens from API error diagnostics. Review comments escape untrusted Markdown/HTML fragments and neutralize unsafe artifact URLs. The review CLI rejects unsafe artifact URLs and oversized scan reports. GitHub/GitLab docs now call out minimum token permissions and fork-PR safety patterns. HCP HMAC tampering remains deferred with the HCP adapter tranches.
+
 ## 35. Tranche 29: Documentation and Examples
 
 ### Goal

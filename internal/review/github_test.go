@@ -170,6 +170,41 @@ func TestHTTPGitHubClientRequests(t *testing.T) {
 	}
 }
 
+func TestHTTPGitHubClientRedactsTokenInErrors(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"bad token ghp_secret leaked","token":"ghp_secret"}`, http.StatusUnauthorized)
+	}))
+	defer server.Close()
+
+	client := NewHTTPGitHubClient("ghp_secret")
+	client.SetBaseURL(server.URL)
+	_, err := client.ListIssueComments(context.Background(), "owner/repo", 5)
+	if err == nil {
+		t.Fatal("expected API error")
+	}
+	if strings.Contains(err.Error(), "ghp_secret") {
+		t.Fatalf("error leaked token: %v", err)
+	}
+	if !strings.Contains(err.Error(), "(redacted)") {
+		t.Fatalf("error did not include redaction marker: %v", err)
+	}
+}
+
+func TestHTTPGitHubClientRejectsOversizedRequest(t *testing.T) {
+	t.Parallel()
+
+	client := NewHTTPGitHubClient("token")
+	_, err := client.CreateIssueComment(context.Background(), "owner/repo", 5, strings.Repeat("x", maxProviderRequestBodyBytes+1))
+	if err == nil {
+		t.Fatal("expected oversized request error")
+	}
+	if !strings.Contains(err.Error(), "maximum") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 type fakeGitHubClient struct {
 	comments []GitHubComment
 	creates  int

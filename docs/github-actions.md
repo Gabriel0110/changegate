@@ -97,6 +97,13 @@ Audit mode records the decision and evidence but does not return the blocking ex
 
 `changegate review github` updates one sticky PR comment marked with `<!-- changegate-review -->`, so rerunning CI updates the existing review instead of posting duplicates. It detects `GITHUB_REPOSITORY`, `GITHUB_EVENT_PATH`, `GITHUB_SHA`, and `GITHUB_TOKEN` in GitHub Actions. Outside Actions, pass `--repo owner/repo`, `--pr 123`, and `--token env:MY_TOKEN`.
 
+Required token permissions:
+
+* `contents: read` to check out repository content.
+* `issues: write` to create or update the sticky PR comment.
+* `pull-requests: write` when using pull request metadata or future inline review comments.
+* `security-events: write` only when uploading SARIF.
+
 Use `--dry-run` to validate configuration without calling the GitHub API:
 
 ```bash
@@ -104,3 +111,5 @@ changegate review github --report changegate.json --comment --dry-run --repo own
 ```
 
 For untrusted fork pull requests, avoid running arbitrary Terraform or repository scripts with a write token. Prefer generating the plan in a read-only `pull_request` workflow, or use `pull_request_target` only with a reviewed checkout strategy and least-privilege permissions.
+
+Do not use `pull_request_target` with a direct checkout of the contributor branch and a write-capable `GITHUB_TOKEN`. If you need comments on fork PRs, split the workflow so untrusted code produces artifacts with read-only permissions and a trusted follow-up job posts the ChangeGate summary from those artifacts.

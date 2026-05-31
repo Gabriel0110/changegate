@@ -160,6 +160,41 @@ func TestHTTPGitLabClientRequests(t *testing.T) {
 	}
 }
 
+func TestHTTPGitLabClientRedactsTokenInErrors(t *testing.T) {
+	t.Parallel()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"PRIVATE-TOKEN glpat_secret failed","private_token":"glpat_secret"}`, http.StatusForbidden)
+	}))
+	defer server.Close()
+
+	client := NewHTTPGitLabClient("glpat_secret")
+	client.SetBaseURL(server.URL)
+	_, err := client.ListMergeRequestNotes(context.Background(), "group/project", 5)
+	if err == nil {
+		t.Fatal("expected API error")
+	}
+	if strings.Contains(err.Error(), "glpat_secret") {
+		t.Fatalf("error leaked token: %v", err)
+	}
+	if !strings.Contains(err.Error(), "(redacted)") {
+		t.Fatalf("error did not include redaction marker: %v", err)
+	}
+}
+
+func TestHTTPGitLabClientRejectsOversizedRequest(t *testing.T) {
+	t.Parallel()
+
+	client := NewHTTPGitLabClient("token")
+	_, err := client.CreateMergeRequestNote(context.Background(), "group/project", 5, strings.Repeat("x", maxProviderRequestBodyBytes+1))
+	if err == nil {
+		t.Fatal("expected oversized request error")
+	}
+	if !strings.Contains(err.Error(), "maximum") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestRenderGitLabReviewActions(t *testing.T) {
 	t.Parallel()
 

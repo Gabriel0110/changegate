@@ -1,7 +1,6 @@
 package review
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -266,13 +265,9 @@ func (c *HTTPGitHubClient) do(ctx context.Context, method string, path string, b
 		endpoint += "?" + parts[1]
 	}
 
-	var reader io.Reader
-	if body != nil {
-		buf, err := json.Marshal(body)
-		if err != nil {
-			return fmt.Errorf("encode github request: %w", err)
-		}
-		reader = bytes.NewReader(buf)
+	reader, err := marshalProviderRequest("github", body)
+	if err != nil {
+		return err
 	}
 	req, err := http.NewRequestWithContext(ctx, method, endpoint, reader)
 	if err != nil {
@@ -286,23 +281,20 @@ func (c *HTTPGitHubClient) do(ctx context.Context, method string, path string, b
 		req.Header.Set("Content-Type", "application/json")
 	}
 
-	resp, err := c.httpClient.Do(req)
+	httpClient := c.httpClient
+	if httpClient == nil {
+		httpClient = &http.Client{Timeout: 30 * time.Second}
+	}
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("send github request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		limited, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("github API %s %s failed with %s: %s", method, path, resp.Status, strings.TrimSpace(string(limited)))
+		return providerError("github", method, path, resp.Status, resp.Body, c.token)
 	}
-	if out == nil {
-		return nil
-	}
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return fmt.Errorf("decode github response: %w", err)
-	}
-	return nil
+	return decodeProviderResponse("github", resp.Body, out)
 }
 
 // RenderGitHubReviewActions renders intended/completed actions for dry-run output.

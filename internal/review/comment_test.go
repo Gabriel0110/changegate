@@ -60,7 +60,8 @@ func TestRenderCommentDoesNotLeakSensitiveEvidenceValues(t *testing.T) {
 	t.Parallel()
 
 	statement := reviewStatement(model.DecisionBlock)
-	statement.TopFindings[0].Title = "Public admin <!-- injected --> <script>alert(1)</script>"
+	statement.TopFindings[0].Title = "Public admin <!-- injected --> <script>alert(1)</script> </details> `breakout`"
+	statement.TopFindings[0].Description = "[click me](javascript:alert(1))\nsecond line"
 	statement.TopFindings[0].Evidence = append(statement.TopFindings[0].Evidence, model.Evidence{
 		Type:      "attribute",
 		Resource:  "aws_lb.admin",
@@ -73,10 +74,30 @@ func TestRenderCommentDoesNotLeakSensitiveEvidenceValues(t *testing.T) {
 	if strings.Contains(got, "super-secret-token") {
 		t.Fatalf("comment leaked sensitive evidence value:\n%s", got)
 	}
-	for _, forbidden := range []string{"<!-- injected -->", "<script>", "</script>"} {
+	for _, forbidden := range []string{"<!-- injected -->", "<script>", "</script>", "</details> `breakout`", "javascript:alert(1)", "\nsecond line"} {
 		if strings.Contains(got, forbidden) {
 			t.Fatalf("comment did not sanitize %q:\n%s", forbidden, got)
 		}
+	}
+}
+
+func TestRenderCommentSanitizesArtifactLinks(t *testing.T) {
+	t.Parallel()
+
+	got := RenderComment(reviewStatement(model.DecisionAllow), CommentOptions{
+		ArtifactLinks: []ArtifactLink{
+			{Label: "Audit [bundle]", URL: "https://example.test/audit(1).zip"},
+			{Label: "Bad", URL: "javascript:alert(1)"},
+		},
+	})
+	if strings.Contains(got, "javascript:alert") {
+		t.Fatalf("unsafe artifact URL rendered:\n%s", got)
+	}
+	if !strings.Contains(got, `[Audit \[bundle\]](https://example.test/audit%281%29.zip)`) {
+		t.Fatalf("safe artifact link missing or not escaped:\n%s", got)
+	}
+	if !strings.Contains(got, "[Bad](#)") {
+		t.Fatalf("unsafe artifact link should be neutralized:\n%s", got)
 	}
 }
 

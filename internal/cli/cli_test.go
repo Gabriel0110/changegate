@@ -708,6 +708,27 @@ func TestGitLabReviewDryRunJSONFromReport(t *testing.T) {
 	}
 }
 
+func TestReviewRejectsUnsafeArtifactURL(t *testing.T) {
+	t.Parallel()
+
+	_, stderr, code := runCLI(
+		"--no-color",
+		"review", "github",
+		"--plan", "../input/testdata/terraform-plan.json",
+		"--comment",
+		"--dry-run",
+		"--repo", "owner/repo",
+		"--pr", "42",
+		"--artifact", "Audit=javascript:alert(1)",
+	)
+	if code != exitUsage {
+		t.Fatalf("exit code = %d, want %d\nstderr:\n%s", code, exitUsage, stderr)
+	}
+	if !strings.Contains(stderr, "invalid artifact URL") {
+		t.Fatalf("stderr missing invalid artifact URL:\n%s", stderr)
+	}
+}
+
 func TestScanParsesPlanFile(t *testing.T) {
 	t.Parallel()
 

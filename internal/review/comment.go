@@ -3,12 +3,17 @@ package review
 
 import (
 	"fmt"
+	"html"
+	"net/url"
+	"regexp"
 	"sort"
 	"strings"
 
 	"github.com/Gabriel0110/changegate/internal/impact"
 	"github.com/Gabriel0110/changegate/internal/model"
 )
+
+var unsafeMarkdownLinkPattern = regexp.MustCompile(`(?i)\]\(\s*(javascript|data|vbscript):[^)]*\)`)
 
 const (
 	// DefaultStickyCommentMarker identifies the single ChangeGate review comment.
@@ -312,7 +317,7 @@ func writeArtifacts(b *strings.Builder, links []ArtifactLink) {
 	})
 	b.WriteString("### Artifacts\n\n")
 	for _, link := range clean {
-		fmt.Fprintf(b, "- [%s](%s)\n", safeInline(link.Label), safeURL(link.URL))
+		fmt.Fprintf(b, "- [%s](%s)\n", safeLinkLabel(link.Label), safeURL(link.URL))
 	}
 	b.WriteString("\n")
 }
@@ -379,11 +384,11 @@ func safeInline(value string) string {
 	value = strings.ReplaceAll(value, "\r\n", " ")
 	value = strings.ReplaceAll(value, "\n", " ")
 	value = strings.ReplaceAll(value, "\r", " ")
-	value = strings.ReplaceAll(value, "<!--", "&lt;!--")
-	value = strings.ReplaceAll(value, "-->", "--&gt;")
-	value = strings.ReplaceAll(value, "<script", "&lt;script")
-	value = strings.ReplaceAll(value, "</script", "&lt;/script")
-	return strings.TrimSpace(value)
+	value = unsafeMarkdownLinkPattern.ReplaceAllString(value, "](#)")
+	value = strings.ReplaceAll(value, "`", "'")
+	value = strings.TrimSpace(value)
+	value = strings.ReplaceAll(value, "&", "&amp;")
+	return strings.ReplaceAll(value, "<", "&lt;")
 }
 
 func safeInlineSlice(values []string) []string {
@@ -394,13 +399,28 @@ func safeInlineSlice(values []string) []string {
 	return out
 }
 
-func safeURL(value string) string {
+func safeLinkLabel(value string) string {
 	value = safeInline(value)
-	lower := strings.ToLower(value)
-	if strings.HasPrefix(lower, "http://") || strings.HasPrefix(lower, "https://") {
-		return value
+	value = strings.ReplaceAll(value, "[", `\[`)
+	value = strings.ReplaceAll(value, "]", `\]`)
+	return value
+}
+
+func safeURL(value string) string {
+	value = strings.TrimSpace(value)
+	parsed, err := url.Parse(value)
+	if err != nil {
+		return "#"
 	}
-	return "#"
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return "#"
+	}
+	if parsed.Host == "" || strings.ContainsAny(value, "\r\n\t ") {
+		return "#"
+	}
+	value = strings.ReplaceAll(value, "(", "%28")
+	value = strings.ReplaceAll(value, ")", "%29")
+	return html.EscapeString(value)
 }
 
 func truncateMarkdown(value string, maxBytes int) string {

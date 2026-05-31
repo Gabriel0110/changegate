@@ -3,6 +3,8 @@ package cli
 import (
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -14,6 +16,8 @@ import (
 	"github.com/Gabriel0110/changegate/internal/review"
 	"github.com/spf13/cobra"
 )
+
+const maxReviewReportFileBytes = 25 * 1024 * 1024
 
 type githubReviewOptions struct {
 	scan        scanOptions
@@ -328,9 +332,17 @@ func gitLabReviewReport(cmd *cobra.Command, state *appState, opts *gitLabReviewO
 }
 
 func loadScanReportFile(path string) (output.Report, error) {
-	body, err := os.ReadFile(path)
+	file, err := os.Open(path)
 	if err != nil {
 		return output.Report{}, inputError(fmt.Sprintf("read report %q: %v", path, err), "Generate a report with changegate scan --format json --out changegate.json.")
+	}
+	defer closeReader(file)
+	body, err := io.ReadAll(io.LimitReader(file, maxReviewReportFileBytes+1))
+	if err != nil {
+		return output.Report{}, inputError(fmt.Sprintf("read report %q: %v", path, err), "Generate a report with changegate scan --format json --out changegate.json.")
+	}
+	if len(body) > maxReviewReportFileBytes {
+		return output.Report{}, inputError(fmt.Sprintf("report %q is too large", path), "Pass a ChangeGate scan JSON report smaller than 25 MiB.")
 	}
 	var report output.Report
 	if err := json.Unmarshal(body, &report); err != nil {
@@ -547,7 +559,12 @@ func parseArtifactLinks(values []string) ([]review.ArtifactLink, error) {
 		if !ok || strings.TrimSpace(label) == "" || strings.TrimSpace(rawURL) == "" {
 			return nil, fmt.Errorf("invalid artifact link %q", value)
 		}
-		links = append(links, review.ArtifactLink{Label: strings.TrimSpace(label), URL: strings.TrimSpace(rawURL)})
+		cleanURL := strings.TrimSpace(rawURL)
+		parsed, err := url.Parse(cleanURL)
+		if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") || strings.ContainsAny(cleanURL, "\r\n\t ") {
+			return nil, fmt.Errorf("invalid artifact URL %q", rawURL)
+		}
+		links = append(links, review.ArtifactLink{Label: strings.TrimSpace(label), URL: cleanURL})
 	}
 	return links, nil
 }
