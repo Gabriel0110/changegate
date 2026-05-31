@@ -58,6 +58,14 @@
         "from": { "type": "string" },
         "to": { "type": "string" },
         "type": { "type": "string" },
+        "source": {
+          "type": "string",
+          "enum": ["plan", "cloud_context", "inferred"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
         "evidence": { "type": "array" },
         "metadata": { "type": "object", "additionalProperties": { "type": "string" } }
       }

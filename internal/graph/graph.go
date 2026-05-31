@@ -56,6 +56,30 @@ const (
 	EdgeProtects EdgeType = "protects"
 )
 
+// EdgeSource describes where a graph edge came from.
+type EdgeSource string
+
+const (
+	// SourcePlan means the edge came from the Terraform/OpenTofu plan.
+	SourcePlan EdgeSource = "plan"
+	// SourceCloudContext means the edge came from a live cloud context snapshot.
+	SourceCloudContext EdgeSource = "cloud_context"
+	// SourceInferred means the edge came from ChangeGate inference.
+	SourceInferred EdgeSource = "inferred"
+)
+
+// EdgeConfidence describes how directly an edge is supported.
+type EdgeConfidence string
+
+const (
+	// ConfidenceHigh means the relationship came from explicit plan fields or live API state.
+	ConfidenceHigh EdgeConfidence = "high"
+	// ConfidenceMedium means the relationship was inferred from stable identifiers or tags.
+	ConfidenceMedium EdgeConfidence = "medium"
+	// ConfidenceLow means the relationship is a heuristic fallback.
+	ConfidenceLow EdgeConfidence = "low"
+)
+
 // NodeKind describes the security role of a graph node.
 type NodeKind string
 
@@ -105,11 +129,13 @@ type Node struct {
 
 // Edge connects two graph nodes with evidence.
 type Edge struct {
-	From     ResourceID        `json:"from"`
-	To       ResourceID        `json:"to"`
-	Type     EdgeType          `json:"type"`
-	Evidence []model.Evidence  `json:"evidence,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	From       ResourceID        `json:"from"`
+	To         ResourceID        `json:"to"`
+	Type       EdgeType          `json:"type"`
+	Source     EdgeSource        `json:"source,omitempty"`
+	Confidence EdgeConfidence    `json:"confidence,omitempty"`
+	Evidence   []model.Evidence  `json:"evidence,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 // Path is an ordered graph path.
@@ -618,8 +644,18 @@ func (g *Graph) ensureSynthetic(id ResourceID, typ string, name string) {
 }
 
 func (g *Graph) addEdge(from ResourceID, to ResourceID, edgeType EdgeType, evidence []model.Evidence, metadata map[string]string) {
+	g.addEdgeWithProvenance(from, to, edgeType, SourcePlan, ConfidenceHigh, evidence, metadata)
+}
+
+func (g *Graph) addEdgeWithProvenance(from ResourceID, to ResourceID, edgeType EdgeType, source EdgeSource, confidence EdgeConfidence, evidence []model.Evidence, metadata map[string]string) {
 	if from == "" || to == "" || from == to {
 		return
+	}
+	if source == "" {
+		source = SourcePlan
+	}
+	if confidence == "" {
+		confidence = ConfidenceHigh
 	}
 	if g.Nodes[from] == nil {
 		g.ensureSynthetic(from, "external", string(from))
@@ -628,18 +664,98 @@ func (g *Graph) addEdge(from ResourceID, to ResourceID, edgeType EdgeType, evide
 		g.ensureSynthetic(to, "external", string(to))
 	}
 	edge := Edge{
-		From:     from,
-		To:       to,
-		Type:     edgeType,
-		Evidence: model.RedactEvidence(evidence),
-		Metadata: metadata,
+		From:       from,
+		To:         to,
+		Type:       edgeType,
+		Source:     source,
+		Confidence: confidence,
+		Evidence:   model.RedactEvidence(evidence),
+		Metadata:   copyEdgeMetadata(metadata),
 	}
-	for _, existing := range g.Edges {
+	for index, existing := range g.Edges {
 		if edgeKey(existing) == edgeKey(edge) {
+			g.Edges[index] = mergeEdgeProvenance(existing, edge)
 			return
 		}
 	}
 	g.Edges = append(g.Edges, edge)
+}
+
+func copyEdgeMetadata(metadata map[string]string) map[string]string {
+	if len(metadata) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(metadata))
+	for key, value := range metadata {
+		out[key] = value
+	}
+	return out
+}
+
+func mergeEdgeProvenance(existing Edge, incoming Edge) Edge {
+	if existing.Source == "" {
+		existing.Source = SourcePlan
+	}
+	if existing.Confidence == "" {
+		existing.Confidence = ConfidenceHigh
+	}
+	existing.Confidence = strongestConfidence(existing.Confidence, incoming.Confidence)
+	if existing.Source != incoming.Source {
+		if existing.Metadata == nil {
+			existing.Metadata = make(map[string]string)
+		}
+		existing.Metadata["sources"] = mergeSourceList(existing.Metadata["sources"], existing.Source, incoming.Source)
+	}
+	if len(incoming.Evidence) > 0 {
+		existing.Evidence = append(existing.Evidence, incoming.Evidence...)
+	}
+	if len(incoming.Metadata) > 0 {
+		if existing.Metadata == nil {
+			existing.Metadata = make(map[string]string, len(incoming.Metadata))
+		}
+		for key, value := range incoming.Metadata {
+			if _, ok := existing.Metadata[key]; !ok {
+				existing.Metadata[key] = value
+			}
+		}
+	}
+	return existing
+}
+
+func strongestConfidence(left EdgeConfidence, right EdgeConfidence) EdgeConfidence {
+	rank := map[EdgeConfidence]int{
+		ConfidenceLow:    1,
+		ConfidenceMedium: 2,
+		ConfidenceHigh:   3,
+	}
+	if rank[right] > rank[left] {
+		return right
+	}
+	if left == "" {
+		return right
+	}
+	return left
+}
+
+func mergeSourceList(existing string, sources ...EdgeSource) string {
+	seen := make(map[string]bool)
+	for _, source := range strings.Split(existing, ",") {
+		source = strings.TrimSpace(source)
+		if source != "" {
+			seen[source] = true
+		}
+	}
+	for _, source := range sources {
+		if source != "" {
+			seen[string(source)] = true
+		}
+	}
+	values := make([]string, 0, len(seen))
+	for source := range seen {
+		values = append(values, source)
+	}
+	sort.Strings(values)
+	return strings.Join(values, ",")
 }
 
 func (g *Graph) sort() {

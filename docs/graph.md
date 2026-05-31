@@ -16,7 +16,7 @@ Graph v2 adds first-class security classification for nodes:
 * `network_boundary`
 * `unknown`
 
-Graph v2 also adds richer relationship edges, including routing, ingress, egress, attachment, role assumption, pass-role, permission grants, secret reads, KMS encryption, writes, replication, and protective controls.
+Graph v2 also adds richer relationship edges, including routing, ingress, egress, attachment, role assumption, pass-role, permission grants, secret reads, KMS encryption, writes, replication, and protective controls. Every edge can carry `source` and `confidence` so path output can distinguish plan-derived relationships from optional live cloud-context relationships.
 
 Graph v2 is the only supported graph contract. Pre-release graph v1 JSON is not loaded or emitted; regenerate graph artifacts with the current CLI.
 
@@ -42,6 +42,14 @@ changegate graph export --plan tfplan.json --format json
 
 `summary`, `path`, and `exposure` render human-readable output by default and support `--format json` for automation. `export` writes the full graph and requires `--format json`.
 
+Scan, review, and impact commands merge cloud context into the graph when `--context-file` or `--cloud-context aws` is supplied. The merge preserves provenance:
+
+* `source: plan` for Terraform/OpenTofu plan relationships.
+* `source: cloud_context` for live AWS snapshot relationships.
+* `metadata.sources: plan,cloud_context` when both inputs support the same relationship.
+
+Cloud context can add live-only attachments, public exposure edges, sensitive-data relationships, and IAM relationships. Conflict diagnostics are emitted when live context materially contradicts the plan graph, such as a resource that the plan graph treats as private but live AWS reports as public.
+
 `graph export` emits the canonical v2 artifact documented by [`schemas/changegate-graph.schema.json`](../schemas/changegate-graph.schema.json):
 
 ```json
@@ -60,7 +68,9 @@ changegate graph export --plan tfplan.json --format json
     {
       "from": "internet",
       "to": "aws_lb.admin",
-      "type": "routes_to"
+      "type": "routes_to",
+      "source": "plan",
+      "confidence": "high"
     }
   ]
 }

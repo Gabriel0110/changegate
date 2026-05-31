@@ -25,6 +25,14 @@ changegate scan \
 
 When `--cloud-context aws` is used without a context file or cached snapshot, ChangeGate emits a warning and falls back to plan-only analysis without making network calls.
 
+When a snapshot is provided, ChangeGate merges it into the review graph before rule evaluation. Plan evidence remains authoritative for planned changes, while cloud context adds live-only nodes, relationships, public exposure edges, and sensitive-asset context with explicit edge provenance. This lets findings and impact statements explain paths such as `public entrypoint -> workload -> datastore` using plan edges, live AWS edges, or both.
+
+The merge can emit non-fatal diagnostics when live state changes the risk picture:
+
+* `CLOUD_CONTEXT_PUBLIC_CONFLICT`: live AWS reports a resource as public, but the plan graph has no public inbound path.
+* `CLOUD_CONTEXT_ATTACHMENT_CONFLICT`: live AWS reports an attachment or association that is absent from the plan graph.
+* `CLOUD_CONTEXT_UNMANAGED_RELATIONSHIP`: a Terraform-managed resource is attached to an unmanaged live resource.
+
 ## Commands
 
 ```bash

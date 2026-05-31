@@ -10,6 +10,9 @@ import (
 	"sort"
 	"strings"
 	"testing"
+
+	graphpkg "github.com/Gabriel0110/changegate/internal/graph"
+	"github.com/Gabriel0110/changegate/internal/model"
 )
 
 func TestGoldenOutput(t *testing.T) {
@@ -107,6 +110,38 @@ func TestGoldenOutput(t *testing.T) {
 
 			assertGolden(t, tt.golden, got)
 		})
+	}
+}
+
+func TestApplyGraphConflictDiagnosticsUpgradesFindings(t *testing.T) {
+	t.Parallel()
+
+	findings := []model.Finding{model.NormalizeFinding(model.Finding{
+		RuleID:          "AWS_PUBLIC_SERVICE",
+		Title:           "Public service",
+		ResourceAddress: "aws_ecs_service.admin",
+		Category:        model.RiskCategoryPublicExposure,
+		Severity:        model.SeverityMedium,
+		Confidence:      model.ConfidenceMedium,
+	})}
+	diagnostics := []model.Diagnostic{{
+		Severity: model.DiagnosticWarning,
+		Code:     graphpkg.DiagnosticCloudPublicConflict,
+		Message:  "cloud context shows aws_ecs_service.admin is public but the plan graph has no public inbound path",
+	}}
+
+	upgraded := applyGraphConflictDiagnostics(findings, diagnostics)
+	if got := upgraded[0].Severity; got != model.SeverityHigh {
+		t.Fatalf("severity = %q, want %q", got, model.SeverityHigh)
+	}
+	if got := upgraded[0].Confidence; got != model.ConfidenceHigh {
+		t.Fatalf("confidence = %q, want %q", got, model.ConfidenceHigh)
+	}
+	if len(upgraded[0].DecisionReasonCodes) == 0 || upgraded[0].DecisionReasonCodes[0] != model.ReasonUpgraded {
+		t.Fatalf("expected upgraded reason, got %#v", upgraded[0].DecisionReasonCodes)
+	}
+	if len(upgraded[0].Evidence) == 0 || upgraded[0].Evidence[0].Path != "graph_conflict" {
+		t.Fatalf("expected graph conflict evidence, got %#v", upgraded[0].Evidence)
 	}
 }
 

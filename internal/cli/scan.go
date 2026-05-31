@@ -487,6 +487,13 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 	}
 
 	resourceGraph := graphpkg.Build(plan)
+	var graphDiagnostics []model.Diagnostic
+	if contextSnapshot != nil {
+		mergedGraph, diagnostics := graphpkg.MergeContext(resourceGraph, *contextSnapshot)
+		resourceGraph = mergedGraph
+		graphDiagnostics = diagnostics
+		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
+	}
 
 	ruleResult := rules.NewRunner(registry).Evaluate(ctx, rules.RuleInput{
 		Plan:        plan,
@@ -500,6 +507,7 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 		findings = enriched
 		plan.Diagnostics = append(plan.Diagnostics, diagnostics...)
 	}
+	findings = applyGraphConflictDiagnostics(findings, graphDiagnostics)
 	importSummary, importDiagnostics, err := importExternalFindings(imports, findings, resourceGraph, failImport)
 	if err != nil {
 		return output.Report{}, err
@@ -592,6 +600,61 @@ func importSummaryFromAdapter(summary adapters.Summary) *output.ImportSummary {
 		Upgraded:     summary.Upgraded,
 		BySource:     bySource,
 	}
+}
+
+func applyGraphConflictDiagnostics(findings []model.Finding, diagnostics []model.Diagnostic) []model.Finding {
+	if len(findings) == 0 || len(diagnostics) == 0 {
+		return findings
+	}
+	out := make([]model.Finding, 0, len(findings))
+	for _, finding := range findings {
+		current := finding
+		for _, diagnostic := range diagnostics {
+			if !graphConflictDiagnostic(diagnostic.Code) || !strings.Contains(diagnostic.Message, current.ResourceAddress) {
+				continue
+			}
+			current.Evidence = append(current.Evidence, model.Evidence{
+				Type:     "cloud_context",
+				Resource: current.ResourceAddress,
+				Path:     "graph_conflict",
+				Value:    diagnostic.Code,
+				Message:  diagnostic.Message,
+			})
+			current = upgradeFindingForGraphConflict(current, "cloud context graph conflict materially increases risk: "+diagnostic.Code)
+		}
+		out = append(out, model.NormalizeFinding(current))
+	}
+	return out
+}
+
+func graphConflictDiagnostic(code string) bool {
+	switch code {
+	case graphpkg.DiagnosticCloudPublicConflict, graphpkg.DiagnosticCloudAttachmentConflict, graphpkg.DiagnosticCloudUnmanagedRelationship:
+		return true
+	default:
+		return false
+	}
+}
+
+func upgradeFindingForGraphConflict(finding model.Finding, reason string) model.Finding {
+	switch finding.Severity {
+	case model.SeverityHigh:
+		finding.Severity = model.SeverityCritical
+	case model.SeverityMedium:
+		finding.Severity = model.SeverityHigh
+	}
+	switch finding.Confidence {
+	case model.ConfidenceMedium, model.ConfidenceLow, model.ConfidenceUnknown:
+		finding.Confidence = model.ConfidenceHigh
+	}
+	finding.DecisionReasonCodes = append(finding.DecisionReasonCodes, model.ReasonUpgraded)
+	finding.DecisionReasons = append(finding.DecisionReasons, model.DecisionReason{
+		FindingID: finding.ID,
+		Resource:  finding.ResourceAddress,
+		Code:      model.ReasonUpgraded,
+		Reason:    reason,
+	})
+	return finding
 }
 
 func loadCloudContext(cacheDir string, provider string, contextFile string) (*cloudcontext.Snapshot, []model.Diagnostic, error) {
