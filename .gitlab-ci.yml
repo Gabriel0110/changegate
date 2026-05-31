@@ -1,0 +1,60 @@
+stages:
+  - validate
+  - security
+  - package
+
+variables:
+  GO_VERSION: "1.26.3"
+  GOLANGCI_LINT_VERSION: "v1.64.8"
+  GOVULNCHECK_VERSION: "v1.3.0"
+
+default:
+  image: golang:${GO_VERSION}
+  before_script:
+    - go version
+    - go mod download
+
+go-test:
+  stage: validate
+  script:
+    - test -z "$(gofmt -l .)"
+    - go vet ./...
+    - go test -race ./...
+    - go run ./cmd/changegate --no-color test examples/risk-tests
+
+lint:
+  stage: validate
+  script:
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@${GOLANGCI_LINT_VERSION}
+    - golangci-lint run --timeout 5m
+
+govulncheck:
+  stage: security
+  script:
+    - go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
+    - govulncheck ./...
+
+changegate-artifacts:
+  stage: package
+  script:
+    - go run ./cmd/changegate --no-color scan --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json --format json --out changegate.json || test "$?" -eq 1
+    - go run ./cmd/changegate --no-color scan --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json --format gitlab-code-quality --out gl-code-quality-report.json || true
+    - go run ./cmd/changegate --no-color scan --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json --format junit --out changegate.junit.xml || true
+    - go run ./cmd/changegate --no-color impact --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json --format markdown --out changegate-impact.md || test "$?" -eq 1
+    - go run ./cmd/changegate --no-color review gitlab --report changegate.json --comment --dry-run --project "${CI_PROJECT_ID:-0}" --merge-request "${CI_MERGE_REQUEST_IID:-1}" --code-quality-artifact gl-code-quality-report.json || test "$?" -eq 1
+  artifacts:
+    when: always
+    paths:
+      - changegate.json
+      - changegate-impact.md
+    reports:
+      codequality: gl-code-quality-report.json
+      junit: changegate.junit.xml
+
+release-smoke:
+  stage: package
+  script:
+    - CHANGEGATE_SKIP_SBOM=1 CHANGEGATE_SKIP_SIGN=1 scripts/release-build.sh v0.0.0-gitlab-smoke
+    - mkdir /tmp/changegate-release
+    - tar -C /tmp/changegate-release -xzf dist/changegate_0.0.0-gitlab-smoke_linux_amd64.tar.gz
+    - /tmp/changegate-release/changegate_0.0.0-gitlab-smoke_linux_amd64/changegate version

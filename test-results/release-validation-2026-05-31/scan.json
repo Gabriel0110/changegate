@@ -1,0 +1,1631 @@
+{
+  "schema_version": "changegate.scan.report.v1",
+  "decision": "block",
+  "plan": {
+    "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+    "tool": "terraform",
+    "format_version": "1.0",
+    "resources": 6,
+    "changes": 3
+  },
+  "graph": {
+    "nodes": 7,
+    "edges": 12
+  },
+  "risk_summary": {
+    "total": 12,
+    "blocking": 12,
+    "warnings": 0,
+    "informational": 0,
+    "suppressed": 0,
+    "downgraded": 0,
+    "upgraded": 0,
+    "by_severity": {
+      "critical": 1,
+      "high": 11
+    },
+    "by_category": {
+      "availability": 2,
+      "public_exposure": 4,
+      "sensitive_data": 6
+    }
+  },
+  "reason_codes": [
+    "MEETS_BLOCK_THRESHOLD"
+  ],
+  "reasons": [
+    {
+      "finding_id": "CHG-ADDA7BDD1606AFBD",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "attack path attack-path-ebb91706401c9280 meets critical/high threshold"
+    },
+    {
+      "finding_id": "CHG-324BE933EF4E91DA",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-core",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-28B14F10CFF186A8",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-core",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E5D0DF2F843EB7BF",
+      "resource": "aws_ecs_service.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-779BDA1491490E30",
+      "resource": "aws_lb.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-5359252B1272D809",
+      "resource": "aws_lb_listener.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E1B57FB5A605AB56",
+      "resource": "aws_lb_target_group.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-682EA7087ACFF1DE",
+      "resource": "aws_ecs_service.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-B3E2427EF7BEFEA8",
+      "resource": "aws_lb.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-1C75450028581C46",
+      "resource": "aws_lb_listener.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-0208B6F700EA785A",
+      "resource": "aws_lb_target_group.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E3AD0CFB5128E33C",
+      "resource": "aws_security_group.public",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    }
+  ],
+  "findings": [
+    {
+      "id": "CHG-ADDA7BDD1606AFBD",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+      "rule_name": "Public to sensitive data attack path",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer",
+      "description": "ChangeGate detected a high-signal infrastructure attack path.",
+      "resource_address": "aws_db_instance.customer",
+      "category": "sensitive_data",
+      "severity": "critical",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "attack_path",
+          "resource": "aws_db_instance.customer",
+          "path": "attack_path.id",
+          "value": "attack-path-ebb91706401c9280",
+          "message": "attack path attack-path-ebb91706401c9280 produced block decision"
+        },
+        {
+          "type": "attack_path",
+          "resource": "aws_db_instance.customer",
+          "path": "attack_path.type",
+          "value": "public_to_sensitive_data",
+          "message": "attack path type is public_to_sensitive_data"
+        },
+        {
+          "type": "attack_path.graph_path",
+          "resource": "aws_db_instance.customer",
+          "path": "graph.path",
+          "value": [
+            "internet",
+            "aws_lb.admin",
+            "aws_lb_listener.admin",
+            "aws_lb_target_group.admin",
+            "aws_ecs_service.admin",
+            "aws_security_group.public",
+            "aws_db_instance.customer"
+          ],
+          "message": "public entrypoint reaches sensitive asset"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "has_public_access",
+          "value": [
+            "internet",
+            "aws_lb.admin"
+          ],
+          "message": "load balancer is internet exposed"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb.admin",
+            "aws_lb_listener.admin"
+          ],
+          "message": "load balancer routes to listener"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb_listener.admin",
+            "aws_lb_target_group.admin"
+          ],
+          "message": "listener forwards to target group"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb_target_group.admin",
+            "aws_ecs_service.admin"
+          ],
+          "message": "target group routes to ECS service"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "allows_egress",
+          "value": [
+            "aws_ecs_service.admin",
+            "aws_security_group.public"
+          ],
+          "message": "resource can send traffic through security group"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "allows_ingress",
+          "value": [
+            "aws_security_group.public",
+            "aws_db_instance.customer"
+          ],
+          "message": "security group applies to resource"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove the public route to the workload or restrict ingress to approved CIDRs.",
+        "steps": [
+          "Allow sensitive assets only from reviewed workload security groups and roles.",
+          "Remove direct routing from public workloads to sensitive datastores or secrets.",
+          "Remove the public route to the workload or restrict ingress to approved CIDRs.",
+          "Restrict the public entrypoint to approved CIDRs or authenticated edge controls.",
+          "Segment the workload from sensitive data stores and secrets."
+        ],
+        "references": [
+          "https://changegate.dev/docs/attack-paths"
+        ],
+        "why_this_works": "Removing any required step breaks the attack path before deployment.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Attack path requires topology review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch multi-resource attack paths because the correct fix depends on service ownership, routing intent, and approved access patterns.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "adda7bdd1606afbdf1c68ffb4f829ad4017c8ed8782cace328cd2b2d5f3389de",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH|aws_db_instance.customer||sensitive_data|",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "resource": "aws_db_instance.customer",
+          "policy": "aws-public-exposure",
+          "code": "",
+          "reason": "attack path attack-path-ebb91706401c9280 meets critical/high threshold"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-28B14F10CFF186A8",
+        "CHG-324BE933EF4E91DA"
+      ]
+    },
+    {
+      "id": "CHG-324BE933EF4E91DA",
+      "rule_id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+      "rule_name": "Production RDS backup retention disabled",
+      "policy_pack": "aws-core",
+      "policy_pack_version": "0.1.0",
+      "title": "Production RDS backup retention disabled",
+      "description": "Detects production databases with backup retention disabled or reduced to zero.",
+      "resource_address": "aws_db_instance.customer",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "backup_retention_period",
+          "value": 0,
+          "message": "production database backup retention is disabled"
+        }
+      ],
+      "remediation": {
+        "summary": "Set backup retention to a non-zero period aligned with recovery requirements.",
+        "steps": [
+          "Confirm the planned delete or replacement is intentional.",
+          "Enable deletion protection where supported.",
+          "Take a backup or snapshot and document rollback."
+        ],
+        "why_this_works": "Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Availability changes require review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "324be933ef4e91da357ff6fb31ec2ac48d104978a1c6150ad08b7e00cf610f53",
+      "deduplication_key": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD|aws_db_instance.customer|registry.terraform.io/hashicorp/aws|availability|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-28B14F10CFF186A8",
+        "CHG-ADDA7BDD1606AFBD"
+      ]
+    },
+    {
+      "id": "CHG-28B14F10CFF186A8",
+      "rule_id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+      "rule_name": "Production RDS deletion protection disabled",
+      "policy_pack": "aws-core",
+      "policy_pack_version": "0.1.0",
+      "title": "Production RDS deletion protection disabled",
+      "description": "Detects production databases without deletion protection.",
+      "resource_address": "aws_db_instance.customer",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "deletion_protection",
+          "value": false,
+          "message": "production database deletion protection is disabled"
+        }
+      ],
+      "remediation": {
+        "summary": "Enable deletion protection for production databases.",
+        "steps": [
+          "Confirm the planned delete or replacement is intentional.",
+          "Enable deletion protection where supported.",
+          "Take a backup or snapshot and document rollback."
+        ],
+        "why_this_works": "Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Availability changes require review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "28b14f10cff186a89f57c31fa7f174f7f510a48939ede5ed994dd7d47ad6048b",
+      "deduplication_key": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD|aws_db_instance.customer|registry.terraform.io/hashicorp/aws|availability|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-324BE933EF4E91DA",
+        "CHG-ADDA7BDD1606AFBD"
+      ]
+    },
+    {
+      "id": "CHG-E5D0DF2F843EB7BF",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_ecs_service.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "aws_ecs_service.admin: security group applies to resource (security_groups)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "aws_security_group.public: security group allows public ingress (ingress)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e5d0df2f843eb7bf744541ef8250a37a4696f8b821b68b0e5cc24e8e7f4a4249",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_ecs_service.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-682EA7087ACFF1DE"
+      ]
+    },
+    {
+      "id": "CHG-779BDA1491490E30",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb.admin",
+          "path": "graph",
+          "value": "aws_lb.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "779bda1491490e30caa7b91608a3cfcb972141efa3ba5a7c9326114c017334ca",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-B3E2427EF7BEFEA8"
+      ]
+    },
+    {
+      "id": "CHG-5359252B1272D809",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb_listener.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "5359252b1272d809af55898f8f6baaaa72e734d8b7c295f32dc9763c6445e691",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb_listener.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-1C75450028581C46"
+      ]
+    },
+    {
+      "id": "CHG-E1B57FB5A605AB56",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb_target_group.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb_listener.admin: listener forwards to target group (default_action.target_group_arn)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e1b57fb5a605ab56ec4be367ed050ecbc6fec7df730c4fa56470c69d63d080e5",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb_target_group.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-0208B6F700EA785A"
+      ]
+    },
+    {
+      "id": "CHG-682EA7087ACFF1DE",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_ecs_service.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "682ea7087acff1deefe76d3cc9614fc847b33e60ca16bd02743769878f186c97",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_ecs_service.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-E5D0DF2F843EB7BF"
+      ]
+    },
+    {
+      "id": "CHG-B3E2427EF7BEFEA8",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb.admin",
+          "path": "graph",
+          "value": "aws_lb.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "b3e2427ef7befea8a80205ad6cf238cdf1912796ef0fe92e6e8294a4e4799cb7",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-779BDA1491490E30"
+      ]
+    },
+    {
+      "id": "CHG-1C75450028581C46",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb_listener.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "1c75450028581c46178634f121235b4ce68c59e0d33524a9e5d52001a826b39b",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb_listener.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-5359252B1272D809"
+      ]
+    },
+    {
+      "id": "CHG-0208B6F700EA785A",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb_target_group.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "0208b6f700ea785aaa79039dcfa9fd521d134fb8bb245a93c4cdc52b7bd70035",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb_target_group.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-E1B57FB5A605AB56"
+      ]
+    },
+    {
+      "id": "CHG-E3AD0CFB5128E33C",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_security_group.public",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_security_group.public",
+          "path": "graph",
+          "value": "aws_security_group.public",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e3ad0cfb5128e33c1baa2e50a1c436f6af88ea140072544b94dffe157fcd36ab",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_security_group.public|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ]
+    }
+  ],
+  "rules": {
+    "AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH": {
+      "id": "AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH",
+      "name": "CloudFront and S3 public exposure mismatch",
+      "description": "Detects S3 buckets exposed publicly while also fronted by CloudFront.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EC2_PUBLIC_IP_ADMIN_INGRESS": {
+      "id": "AWS_EC2_PUBLIC_IP_ADMIN_INGRESS",
+      "name": "EC2 instance has public IP and admin ingress",
+      "description": "Detects EC2 instances with public IPs reachable through public admin ingress.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD": {
+      "id": "AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD",
+      "name": "Sensitive workload egress opened to internet",
+      "description": "Detects broad egress from sensitive workloads.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EXTERNAL_ACCOUNT_TRUST": {
+      "id": "AWS_EXTERNAL_ACCOUNT_TRUST",
+      "name": "Trust policy allows external account assumption",
+      "description": "Detects trust policies granting role assumption to an external account.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_GITHUB_OIDC_TRUST_BROAD": {
+      "id": "AWS_GITHUB_OIDC_TRUST_BROAD",
+      "name": "GitHub OIDC trust policy is too broad",
+      "description": "Detects GitHub OIDC trust policies without repository or branch constraints.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_IAM_ADMIN_POLICY_ATTACHMENT": {
+      "id": "AWS_IAM_ADMIN_POLICY_ATTACHMENT",
+      "name": "IAM administrator policy attachment",
+      "description": "Detects attachment of AdministratorAccess to IAM identities.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_IAM_ASSUME_ADMIN_PATH": {
+      "id": "AWS_IAM_ASSUME_ADMIN_PATH",
+      "name": "IAM assume admin path",
+      "description": "Detects sts:AssumeRole paths to administrator or sensitive roles.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_IAM_PASSROLE_FUNCTION_ESCALATION": {
+      "id": "AWS_IAM_PASSROLE_FUNCTION_ESCALATION",
+      "name": "IAM pass-role function escalation path",
+      "description": "Detects iam:PassRole combined with Lambda or ECS compute mutation.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_IAM_WILDCARD_ADMIN": {
+      "id": "AWS_IAM_WILDCARD_ADMIN",
+      "name": "Wildcard IAM administration",
+      "description": "Detects IAM policies with broad iam:* or Action:* grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_KMS_DECRYPT_BROAD": {
+      "id": "AWS_KMS_DECRYPT_BROAD",
+      "name": "KMS decrypt access granted broadly",
+      "description": "Detects broad KMS decrypt grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PASSROLE_WITH_COMPUTE_MUTATION": {
+      "id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
+      "name": "iam:PassRole with compute mutation",
+      "description": "Detects IAM principals that can pass roles and mutate compute resources.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PRIVATE_SUBNET_ROUTE_TO_IGW": {
+      "id": "AWS_PRIVATE_SUBNET_ROUTE_TO_IGW",
+      "name": "Private subnet route to internet gateway",
+      "description": "Detects route table changes that route private subnets to an internet gateway.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG": {
+      "id": "AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG",
+      "name": "Private workload exposed by NAT or security group change",
+      "description": "Detects changes that expose internal or private workloads through public ingress or NAT routing.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_ADMIN_SERVICE": {
+      "id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "name": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_ADMIN_SERVICE_PATH": {
+      "id": "AWS_PUBLIC_ADMIN_SERVICE_PATH",
+      "name": "Public admin service path",
+      "description": "Detects public entrypoints reaching admin-like workloads without sensitive downstream context.",
+      "category": "public_exposure",
+      "severity": "medium",
+      "confidence": "medium",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_PUBLIC_EKS_ENDPOINT_PROD": {
+      "id": "AWS_PUBLIC_EKS_ENDPOINT_PROD",
+      "name": "Production EKS endpoint is public",
+      "description": "Detects production EKS clusters with public endpoints enabled.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_INTERNAL_SERVICE": {
+      "id": "AWS_PUBLIC_INTERNAL_SERVICE",
+      "name": "Public load balancer routes to internal service",
+      "description": "Detects public load balancers routing to downstream services tagged internal.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_OPENSEARCH_DOMAIN": {
+      "id": "AWS_PUBLIC_OPENSEARCH_DOMAIN",
+      "name": "Public OpenSearch domain",
+      "description": "Detects OpenSearch domains with broad public access policies.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_RDS_INSTANCE": {
+      "id": "AWS_PUBLIC_RDS_INSTANCE",
+      "name": "Public RDS instance",
+      "description": "Detects publicly accessible RDS instances.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_TO_SENSITIVE_DATASTORE": {
+      "id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "name": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH": {
+      "id": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+      "name": "Public path reaches sensitive data",
+      "description": "Detects a graph-backed public entrypoint to sensitive data attack path.",
+      "category": "sensitive_data",
+      "severity": "critical",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD": {
+      "id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+      "name": "Production RDS backup retention disabled",
+      "description": "Detects production databases with backup retention disabled or reduced to zero.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD": {
+      "id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+      "name": "Production RDS deletion protection disabled",
+      "description": "Detects production databases without deletion protection.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_RDS_REPLACEMENT_PROD": {
+      "id": "AWS_RDS_REPLACEMENT_PROD",
+      "name": "Production RDS replacement",
+      "description": "Detects replacement of production RDS instances.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_ROLE_ASSUME_ADMIN_PATH": {
+      "id": "AWS_ROLE_ASSUME_ADMIN_PATH",
+      "name": "Role assumption path to admin role",
+      "description": "Detects graph paths that allow a principal to assume an administrator role.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD": {
+      "id": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
+      "name": "Production S3 public access block disabled",
+      "description": "Detects production S3 public access block resources that disable one or more protections.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED": {
+      "id": "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED",
+      "name": "Sensitive S3 bucket logging disabled",
+      "description": "Detects sensitive buckets without access logging.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SECRETS_READ_BROAD": {
+      "id": "AWS_SECRETS_READ_BROAD",
+      "name": "Secrets Manager read access granted broadly",
+      "description": "Detects broad Secrets Manager read grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED": {
+      "id": "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED",
+      "name": "Sensitive storage encryption disabled",
+      "description": "Detects sensitive storage resources with encryption disabled.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SG_WORLD_OPEN_ADMIN_PORT": {
+      "id": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+      "name": "Security group opens admin port to the world",
+      "description": "Detects public ingress to administrative ports.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SG_WORLD_OPEN_DB_PORT": {
+      "id": "AWS_SG_WORLD_OPEN_DB_PORT",
+      "name": "Security group opens database port to the world",
+      "description": "Detects public ingress to database ports.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_STATEFUL_REPLACEMENT": {
+      "id": "AWS_STATEFUL_REPLACEMENT",
+      "name": "Stateful resource replacement",
+      "description": "Detects destructive replacement of stateful resources.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET": {
+      "id": "AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET",
+      "name": "Transit or peering route expands access to sensitive subnet",
+      "description": "Detects transit gateway or VPC peering routes that target sensitive or private route tables.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    }
+  },
+  "run": {
+    "schema_version": "changegate.audit.run.v1",
+    "cli_version": "dev",
+    "cli_commit": "unknown",
+    "cli_date": "unknown",
+    "plan_hash": "d820e9a150a0df0beb9fbf9064415901aeb129ed7bc7563ee70aa422ea4c4114",
+    "policy_digest": "2a40dc48315cfd3e6970d683d8c70172a75e7fbcb92b2bda1adc3994ec9b2ad0",
+    "plan_digest": "d820e9a150a0df0beb9fbf9064415901aeb129ed7bc7563ee70aa422ea4c4114",
+    "policy_pack_versions": {
+      "aws-core": "0.1.0",
+      "aws-iam-escalation": "0.1.0",
+      "aws-public-exposure": "0.1.0"
+    },
+    "redaction_report": {
+      "status": "redacted",
+      "sensitive_evidence": 0,
+      "redacted_values": 0
+    }
+  },
+  "audit": {},
+  "compliance": {
+    "mappings": {
+      "AWS_IAM_ADMIN_POLICY_ATTACHMENT": {
+        "frameworks": {
+          "cis_aws": [
+            "1.16"
+          ],
+          "nist_800_53": [
+            "AC-2",
+            "AC-6"
+          ],
+          "pci_dss": [
+            "7.2"
+          ]
+        }
+      },
+      "AWS_IAM_WILDCARD_ADMIN": {
+        "frameworks": {
+          "cis_aws": [
+            "1.16"
+          ],
+          "nist_800_53": [
+            "AC-2",
+            "AC-6"
+          ],
+          "pci_dss": [
+            "7.2"
+          ]
+        }
+      },
+      "AWS_KMS_DECRYPT_BROAD": {
+        "frameworks": {
+          "nist_800_53": [
+            "SC-12",
+            "SC-28"
+          ],
+          "pci_dss": [
+            "3.6"
+          ]
+        }
+      },
+      "AWS_PUBLIC_RDS_INSTANCE": {
+        "frameworks": {
+          "cis_aws": [
+            "2.3.3"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2"
+          ]
+        }
+      },
+      "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD": {
+        "frameworks": {
+          "nist_800_53": [
+            "CP-9"
+          ],
+          "pci_dss": [
+            "12.10"
+          ]
+        }
+      },
+      "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD": {
+        "frameworks": {
+          "nist_800_53": [
+            "CP-10",
+            "SI-13"
+          ]
+        }
+      },
+      "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.5"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2"
+          ]
+        }
+      },
+      "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.4"
+          ],
+          "nist_800_53": [
+            "AU-12",
+            "AU-2"
+          ],
+          "pci_dss": [
+            "10.2"
+          ]
+        }
+      },
+      "AWS_SECRETS_READ_BROAD": {
+        "frameworks": {
+          "nist_800_53": [
+            "AC-6",
+            "IA-5"
+          ],
+          "pci_dss": [
+            "8.2"
+          ]
+        }
+      },
+      "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.1"
+          ],
+          "nist_800_53": [
+            "SC-28"
+          ],
+          "pci_dss": [
+            "3.5"
+          ]
+        }
+      },
+      "AWS_SG_WORLD_OPEN_ADMIN_PORT": {
+        "frameworks": {
+          "cis_aws": [
+            "4.1"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2.1"
+          ]
+        }
+      },
+      "AWS_SG_WORLD_OPEN_DB_PORT": {
+        "frameworks": {
+          "cis_aws": [
+            "4.2"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2.1"
+          ]
+        }
+      }
+    },
+    "findings": [
+      {
+        "finding_id": "CHG-324BE933EF4E91DA",
+        "rule_id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+        "resource": "aws_db_instance.customer",
+        "frameworks": {
+          "nist_800_53": [
+            "CP-9"
+          ],
+          "pci_dss": [
+            "12.10"
+          ]
+        },
+        "actual_risk": true,
+        "suppressed": false
+      },
+      {
+        "finding_id": "CHG-28B14F10CFF186A8",
+        "rule_id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+        "resource": "aws_db_instance.customer",
+        "frameworks": {
+          "nist_800_53": [
+            "CP-10",
+            "SI-13"
+          ]
+        },
+        "actual_risk": true,
+        "suppressed": false
+      }
+    ],
+    "summary": {
+      "nist_800_53": 2,
+      "pci_dss": 1
+    }
+  },
+  "message": "plan parsed, graph built, and policy evaluated"
+}

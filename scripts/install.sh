@@ -27,7 +27,7 @@ case "${arch}" in
   *) echo "unsupported architecture: ${arch}" >&2; exit 2 ;;
 esac
 
-base="https://github.com/${repo}/releases/download/${version}"
+base="${CHANGEGATE_BASE_URL:-https://github.com/${repo}/releases/download/${version}}"
 name="changegate_${version#v}_${os}_${arch}"
 archive="${name}.tar.gz"
 tmp="$(mktemp -d)"

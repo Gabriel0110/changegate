@@ -174,6 +174,16 @@ export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
+To verify unpublished local release artifacts, serve the `dist` directory and
+point the installer at that base URL:
+
+```bash
+CHANGEGATE_VERSION=vX.Y.Z \
+CHANGEGATE_BASE_URL=http://127.0.0.1:8765 \
+CHANGEGATE_INSTALL_DIR=/tmp/changegate-bin \
+  scripts/install.sh
+```
+
 The GitHub Action wrapper also requires a pinned `version` input:
 
 ```yaml

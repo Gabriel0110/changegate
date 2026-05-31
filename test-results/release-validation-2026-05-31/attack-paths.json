@@ -1,0 +1,216 @@
+{
+  "version": 1,
+  "paths": [
+    {
+      "id": "attack-path-11370bd504c12e40",
+      "type": "iam_privilege_escalation",
+      "title": "Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_iam_role.github_actions",
+      "target": "aws_iam_role.admin_execution",
+      "steps": [
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_iam_role.admin_execution",
+          "action": "iam:PassRole",
+          "edge_type": "can_pass_role",
+          "explanation": "principal can pass a privileged or sensitive execution role"
+        },
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_lambda_function.*",
+          "action": "lambda:UpdateFunctionCode",
+          "edge_type": "grants_permission",
+          "explanation": "principal can mutate or launch compute that can use the passed role"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "attack_path.iam",
+          "resource": "aws_iam_role.admin_execution",
+          "path": "iam.policy",
+          "value": [
+            "aws_iam_role.github_actions",
+            "lambda:UpdateFunctionCode",
+            "aws_iam_role.admin_execution"
+          ],
+          "message": "principal has lambda:UpdateFunctionCode through aws_iam_policy.deploy"
+        }
+      ],
+      "mitigations": [
+        "Scope iam:PassRole to non-privileged execution roles and exact services.",
+        "Separate compute mutation permissions from pass-role permissions."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    {
+      "id": "attack-path-2bab8a8050e26230",
+      "type": "iam_privilege_escalation",
+      "title": "Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_iam_role.github_actions",
+      "target": "aws_iam_role.admin_execution",
+      "steps": [
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_lambda_function.worker",
+          "action": "lambda:UpdateFunctionCode",
+          "edge_type": "grants_permission",
+          "explanation": "principal can update executable Lambda code"
+        },
+        {
+          "from": "aws_lambda_function.worker",
+          "to": "aws_iam_role.admin_execution",
+          "action": "uses execution role",
+          "edge_type": "can_assume",
+          "explanation": "function executes with privileged or sensitive role access"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "attack_path.iam",
+          "resource": "aws_iam_role.admin_execution",
+          "path": "iam.policy",
+          "value": [
+            "aws_iam_role.github_actions",
+            "lambda:UpdateFunctionCode",
+            "aws_iam_role.admin_execution"
+          ],
+          "message": "principal has lambda:UpdateFunctionCode through aws_iam_policy.deploy"
+        }
+      ],
+      "mitigations": [
+        "Remove function update access or move the function to a least-privilege execution role."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    {
+      "id": "attack-path-8d6f4bd1a2748ed9",
+      "type": "iam_privilege_escalation",
+      "title": "Principal aws_iam_role.github_actions can assume privileged role aws_iam_role.admin_execution",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_iam_role.github_actions",
+      "target": "aws_iam_role.admin_execution",
+      "steps": [
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_iam_role.admin_execution",
+          "action": "sts:AssumeRole",
+          "edge_type": "can_assume",
+          "explanation": "IAM policy allows assuming role"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "attack_path.iam",
+          "resource": "aws_iam_role.admin_execution",
+          "path": "graph.can_assume",
+          "value": [
+            "aws_iam_role.github_actions",
+            "aws_iam_role.admin_execution"
+          ],
+          "message": "principal can assume a privileged or sensitive role"
+        }
+      ],
+      "mitigations": [
+        "Remove broad trust or require tightly scoped conditions and approval for privileged role assumption."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    {
+      "id": "attack-path-90b339d940ffc62d",
+      "type": "iam_privilege_escalation",
+      "title": "Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_iam_role.github_actions",
+      "target": "aws_iam_role.github_actions",
+      "steps": [
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_iam_role.github_actions",
+          "action": "iam:PassRole",
+          "edge_type": "can_pass_role",
+          "explanation": "principal can pass a privileged or sensitive execution role"
+        },
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_lambda_function.*",
+          "action": "lambda:UpdateFunctionCode",
+          "edge_type": "grants_permission",
+          "explanation": "principal can mutate or launch compute that can use the passed role"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "attack_path.iam",
+          "resource": "aws_iam_role.github_actions",
+          "path": "iam.policy",
+          "value": [
+            "aws_iam_role.github_actions",
+            "lambda:UpdateFunctionCode",
+            "aws_iam_role.github_actions"
+          ],
+          "message": "principal has lambda:UpdateFunctionCode through aws_iam_policy.deploy"
+        }
+      ],
+      "mitigations": [
+        "Scope iam:PassRole to non-privileged execution roles and exact services.",
+        "Separate compute mutation permissions from pass-role permissions."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    {
+      "id": "attack-path-fc2d1a16bbea7373",
+      "type": "iam_privilege_escalation",
+      "title": "Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_lambda_function.worker",
+      "target": "aws_iam_role.admin_execution",
+      "steps": [
+        {
+          "from": "aws_lambda_function.worker",
+          "to": "aws_iam_role.admin_execution",
+          "action": "sts:AssumeRole",
+          "edge_type": "can_assume",
+          "explanation": "Lambda function assumes execution role"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "attack_path.iam",
+          "resource": "aws_iam_role.admin_execution",
+          "path": "graph.can_assume",
+          "value": [
+            "aws_lambda_function.worker",
+            "aws_iam_role.admin_execution"
+          ],
+          "message": "principal can assume a privileged or sensitive role"
+        }
+      ],
+      "mitigations": [
+        "Remove broad trust or require tightly scoped conditions and approval for privileged role assumption."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    }
+  ]
+}

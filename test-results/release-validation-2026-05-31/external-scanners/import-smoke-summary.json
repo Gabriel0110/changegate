@@ -1,0 +1,19 @@
+{
+  "decision": "block",
+  "imports": {
+    "imported": 6,
+    "deduplicated": 1,
+    "correlated": 0,
+    "downgraded": 5,
+    "upgraded": 0,
+    "by_source": {
+      "checkov": 1,
+      "generic-json": 1,
+      "grype": 1,
+      "kics": 1,
+      "sarif": 1,
+      "trivy": 1
+    }
+  },
+  "external_findings": 5
+}

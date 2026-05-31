@@ -1,0 +1,261 @@
+{
+  "version": 2,
+  "resource": "aws_ecs_service.admin",
+  "kind": "workload",
+  "exposure": {
+    "resource": "aws_ecs_service.admin",
+    "exposed": true,
+    "entrypoints": [
+      {
+        "id": "aws_lb.admin",
+        "address": "aws_lb.admin",
+        "type": "aws_lb",
+        "kind": "public_entrypoint",
+        "name": "admin",
+        "provider": "registry.terraform.io/hashicorp/aws",
+        "environment": "production",
+        "tags": {
+          "env": "prod",
+          "service": "admin"
+        },
+        "values": {
+          "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/admin/1",
+          "load_balancer_type": "application",
+          "scheme": "internet-facing",
+          "security_groups": [
+            "sg-public"
+          ],
+          "tags": {
+            "env": "prod",
+            "service": "admin"
+          }
+        },
+        "changed": true,
+        "actions": [
+          "update"
+        ]
+      }
+    ],
+    "paths": [
+      {
+        "nodes": [
+          "aws_lb.admin",
+          "aws_lb_listener.admin",
+          "aws_lb_target_group.admin",
+          "aws_ecs_service.admin"
+        ],
+        "edges": [
+          {
+            "from": "aws_lb.admin",
+            "to": "aws_lb_listener.admin",
+            "type": "routes_to",
+            "source": "plan",
+            "confidence": "high",
+            "evidence": [
+              {
+                "type": "graph",
+                "resource": "aws_lb_listener.admin",
+                "path": "load_balancer_arn",
+                "value": "aws_lb.admin",
+                "message": "load balancer routes to listener"
+              }
+            ]
+          },
+          {
+            "from": "aws_lb_listener.admin",
+            "to": "aws_lb_target_group.admin",
+            "type": "routes_to",
+            "source": "plan",
+            "confidence": "high",
+            "evidence": [
+              {
+                "type": "graph",
+                "resource": "aws_lb_listener.admin",
+                "path": "default_action.target_group_arn",
+                "value": "aws_lb_target_group.admin",
+                "message": "listener forwards to target group"
+              }
+            ]
+          },
+          {
+            "from": "aws_lb_target_group.admin",
+            "to": "aws_ecs_service.admin",
+            "type": "routes_to",
+            "source": "plan",
+            "confidence": "high",
+            "evidence": [
+              {
+                "type": "graph",
+                "resource": "aws_ecs_service.admin",
+                "path": "load_balancer.target_group_arn",
+                "value": "aws_lb_target_group.admin",
+                "message": "target group routes to ECS service"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "blast_radius": {
+    "resource": "aws_ecs_service.admin",
+    "exposure": {
+      "resource": "aws_ecs_service.admin",
+      "exposed": true,
+      "entrypoints": [
+        {
+          "id": "aws_lb.admin",
+          "address": "aws_lb.admin",
+          "type": "aws_lb",
+          "kind": "public_entrypoint",
+          "name": "admin",
+          "provider": "registry.terraform.io/hashicorp/aws",
+          "environment": "production",
+          "tags": {
+            "env": "prod",
+            "service": "admin"
+          },
+          "values": {
+            "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/admin/1",
+            "load_balancer_type": "application",
+            "scheme": "internet-facing",
+            "security_groups": [
+              "sg-public"
+            ],
+            "tags": {
+              "env": "prod",
+              "service": "admin"
+            }
+          },
+          "changed": true,
+          "actions": [
+            "update"
+          ]
+        }
+      ],
+      "paths": [
+        {
+          "nodes": [
+            "aws_lb.admin",
+            "aws_lb_listener.admin",
+            "aws_lb_target_group.admin",
+            "aws_ecs_service.admin"
+          ],
+          "edges": [
+            {
+              "from": "aws_lb.admin",
+              "to": "aws_lb_listener.admin",
+              "type": "routes_to",
+              "source": "plan",
+              "confidence": "high",
+              "evidence": [
+                {
+                  "type": "graph",
+                  "resource": "aws_lb_listener.admin",
+                  "path": "load_balancer_arn",
+                  "value": "aws_lb.admin",
+                  "message": "load balancer routes to listener"
+                }
+              ]
+            },
+            {
+              "from": "aws_lb_listener.admin",
+              "to": "aws_lb_target_group.admin",
+              "type": "routes_to",
+              "source": "plan",
+              "confidence": "high",
+              "evidence": [
+                {
+                  "type": "graph",
+                  "resource": "aws_lb_listener.admin",
+                  "path": "default_action.target_group_arn",
+                  "value": "aws_lb_target_group.admin",
+                  "message": "listener forwards to target group"
+                }
+              ]
+            },
+            {
+              "from": "aws_lb_target_group.admin",
+              "to": "aws_ecs_service.admin",
+              "type": "routes_to",
+              "source": "plan",
+              "confidence": "high",
+              "evidence": [
+                {
+                  "type": "graph",
+                  "resource": "aws_ecs_service.admin",
+                  "path": "load_balancer.target_group_arn",
+                  "value": "aws_lb_target_group.admin",
+                  "message": "target group routes to ECS service"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "sensitive_assets": [
+      "aws_db_instance.customer"
+    ],
+    "paths": [
+      {
+        "nodes": [
+          "aws_ecs_service.admin",
+          "aws_security_group.public",
+          "aws_db_instance.customer"
+        ],
+        "edges": [
+          {
+            "from": "aws_ecs_service.admin",
+            "to": "aws_security_group.public",
+            "type": "allows_egress",
+            "source": "plan",
+            "confidence": "high",
+            "evidence": [
+              {
+                "type": "graph",
+                "resource": "aws_ecs_service.admin",
+                "path": "security_groups",
+                "value": "sg-public",
+                "message": "resource can send traffic through security group"
+              }
+            ]
+          },
+          {
+            "from": "aws_security_group.public",
+            "to": "aws_db_instance.customer",
+            "type": "allows_ingress",
+            "source": "plan",
+            "confidence": "high",
+            "evidence": [
+              {
+                "type": "graph",
+                "resource": "aws_db_instance.customer",
+                "path": "security_groups",
+                "value": "sg-public",
+                "message": "security group applies to resource"
+              },
+              {
+                "type": "graph",
+                "resource": "aws_db_instance.customer",
+                "path": "vpc_security_group_ids",
+                "value": "sg-public",
+                "message": "security group allows traffic to database"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "level": "HIGH",
+  "top_path": [
+    "internet",
+    "aws_lb.admin",
+    "aws_lb_listener.admin",
+    "aws_lb_target_group.admin",
+    "aws_ecs_service.admin",
+    "aws_security_group.public",
+    "aws_db_instance.customer"
+  ]
+}

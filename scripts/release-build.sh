@@ -62,9 +62,9 @@ for target in "${targets[@]}"; do
   cp "${root}/README.md" "${work}/README.md"
   cp "${root}/LICENSE" "${work}/LICENSE" 2>/dev/null || true
   if [[ "${archive_type}" == "zip" ]]; then
-    (cd "${dist}" && zip -qr "${name}.zip" "${name}")
+    (cd "${dist}" && COPYFILE_DISABLE=1 zip -Xqr "${name}.zip" "${name}")
   else
-    tar -C "${dist}" -czf "${dist}/${name}.tar.gz" "${name}"
+    COPYFILE_DISABLE=1 tar --no-xattrs -C "${dist}" -czf "${dist}/${name}.tar.gz" "${name}"
   fi
   rm -rf "${work}"
 done

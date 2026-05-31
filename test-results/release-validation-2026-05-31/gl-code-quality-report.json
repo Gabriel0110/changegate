@@ -1,0 +1,146 @@
+[
+  {
+    "description": "Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer on aws_db_instance.customer",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+    "fingerprint": "adda7bdd1606afbdf1c68ffb4f829ad4017c8ed8782cace328cd2b2d5f3389de",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Production RDS backup retention disabled on aws_db_instance.customer",
+    "check_name": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+    "fingerprint": "324be933ef4e91da357ff6fb31ec2ac48d104978a1c6150ad08b7e00cf610f53",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Production RDS deletion protection disabled on aws_db_instance.customer",
+    "check_name": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+    "fingerprint": "28b14f10cff186a89f57c31fa7f174f7f510a48939ede5ed994dd7d47ad6048b",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Internet-facing ALB routes to admin service on aws_ecs_service.admin",
+    "check_name": "AWS_PUBLIC_ADMIN_SERVICE",
+    "fingerprint": "e5d0df2f843eb7bf744541ef8250a37a4696f8b821b68b0e5cc24e8e7f4a4249",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Internet-facing ALB routes to admin service on aws_lb.admin",
+    "check_name": "AWS_PUBLIC_ADMIN_SERVICE",
+    "fingerprint": "779bda1491490e30caa7b91608a3cfcb972141efa3ba5a7c9326114c017334ca",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Internet-facing ALB routes to admin service on aws_lb_listener.admin",
+    "check_name": "AWS_PUBLIC_ADMIN_SERVICE",
+    "fingerprint": "5359252b1272d809af55898f8f6baaaa72e734d8b7c295f32dc9763c6445e691",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Internet-facing ALB routes to admin service on aws_lb_target_group.admin",
+    "check_name": "AWS_PUBLIC_ADMIN_SERVICE",
+    "fingerprint": "e1b57fb5a605ab56ec4be367ed050ecbc6fec7df730c4fa56470c69d63d080e5",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Public resource can reach sensitive datastore on aws_ecs_service.admin",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+    "fingerprint": "682ea7087acff1deefe76d3cc9614fc847b33e60ca16bd02743769878f186c97",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Public resource can reach sensitive datastore on aws_lb.admin",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+    "fingerprint": "b3e2427ef7befea8a80205ad6cf238cdf1912796ef0fe92e6e8294a4e4799cb7",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Public resource can reach sensitive datastore on aws_lb_listener.admin",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+    "fingerprint": "1c75450028581c46178634f121235b4ce68c59e0d33524a9e5d52001a826b39b",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Public resource can reach sensitive datastore on aws_lb_target_group.admin",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+    "fingerprint": "0208b6f700ea785aaa79039dcfa9fd521d134fb8bb245a93c4cdc52b7bd70035",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  },
+  {
+    "description": "Public resource can reach sensitive datastore on aws_security_group.public",
+    "check_name": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+    "fingerprint": "e3ad0cfb5128e33c1baa2e50a1c436f6af88ea140072544b94dffe157fcd36ab",
+    "severity": "major",
+    "location": {
+      "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+      "lines": {
+        "begin": 1
+      }
+    }
+  }
+]

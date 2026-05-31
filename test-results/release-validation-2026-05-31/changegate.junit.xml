@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="changegate" tests="12" failures="12" skipped="0">
+  <testsuite name="changegate.scan" tests="12" failures="12" skipped="0">
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATA_PATH aws_db_instance.customer" classname="changegate.sensitive_data">
+      <failure message="Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer" type="critical">ChangeGate detected a high-signal infrastructure attack path.&#xA;&#xA;Remediation: Remove the public route to the workload or restrict ingress to approved CIDRs.</failure>
+    </testcase>
+    <testcase name="AWS_RDS_BACKUP_RETENTION_DISABLED_PROD aws_db_instance.customer" classname="changegate.availability">
+      <failure message="Production RDS backup retention disabled" type="high">Detects production databases with backup retention disabled or reduced to zero.&#xA;&#xA;Remediation: Set backup retention to a non-zero period aligned with recovery requirements.</failure>
+    </testcase>
+    <testcase name="AWS_RDS_DELETION_PROTECTION_DISABLED_PROD aws_db_instance.customer" classname="changegate.availability">
+      <failure message="Production RDS deletion protection disabled" type="high">Detects production databases without deletion protection.&#xA;&#xA;Remediation: Enable deletion protection for production databases.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_ADMIN_SERVICE aws_ecs_service.admin" classname="changegate.public_exposure">
+      <failure message="Internet-facing ALB routes to admin service" type="high">Detects public load balancer paths to resources that appear to expose admin surfaces.&#xA;&#xA;Remediation: Remove public routing to the admin service or require private/authenticated access.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_ADMIN_SERVICE aws_lb.admin" classname="changegate.public_exposure">
+      <failure message="Internet-facing ALB routes to admin service" type="high">Detects public load balancer paths to resources that appear to expose admin surfaces.&#xA;&#xA;Remediation: Remove public routing to the admin service or require private/authenticated access.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_ADMIN_SERVICE aws_lb_listener.admin" classname="changegate.public_exposure">
+      <failure message="Internet-facing ALB routes to admin service" type="high">Detects public load balancer paths to resources that appear to expose admin surfaces.&#xA;&#xA;Remediation: Remove public routing to the admin service or require private/authenticated access.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_ADMIN_SERVICE aws_lb_target_group.admin" classname="changegate.public_exposure">
+      <failure message="Internet-facing ALB routes to admin service" type="high">Detects public load balancer paths to resources that appear to expose admin surfaces.&#xA;&#xA;Remediation: Remove public routing to the admin service or require private/authenticated access.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATASTORE aws_ecs_service.admin" classname="changegate.sensitive_data">
+      <failure message="Public resource can reach sensitive datastore" type="high">Detects public resources that can reach sensitive data stores through the graph.&#xA;&#xA;Remediation: Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATASTORE aws_lb.admin" classname="changegate.sensitive_data">
+      <failure message="Public resource can reach sensitive datastore" type="high">Detects public resources that can reach sensitive data stores through the graph.&#xA;&#xA;Remediation: Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATASTORE aws_lb_listener.admin" classname="changegate.sensitive_data">
+      <failure message="Public resource can reach sensitive datastore" type="high">Detects public resources that can reach sensitive data stores through the graph.&#xA;&#xA;Remediation: Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATASTORE aws_lb_target_group.admin" classname="changegate.sensitive_data">
+      <failure message="Public resource can reach sensitive datastore" type="high">Detects public resources that can reach sensitive data stores through the graph.&#xA;&#xA;Remediation: Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.</failure>
+    </testcase>
+    <testcase name="AWS_PUBLIC_TO_SENSITIVE_DATASTORE aws_security_group.public" classname="changegate.sensitive_data">
+      <failure message="Public resource can reach sensitive datastore" type="high">Detects public resources that can reach sensitive data stores through the graph.&#xA;&#xA;Remediation: Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

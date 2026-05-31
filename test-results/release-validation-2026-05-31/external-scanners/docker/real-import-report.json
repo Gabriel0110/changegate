@@ -1,0 +1,4251 @@
+{
+  "schema_version": "changegate.scan.report.v1",
+  "decision": "block",
+  "plan": {
+    "path": "examples/risk-tests/fixtures/public-alb-ecs-rds.json",
+    "tool": "terraform",
+    "format_version": "1.0",
+    "resources": 6,
+    "changes": 3
+  },
+  "graph": {
+    "nodes": 7,
+    "edges": 12
+  },
+  "imports": {
+    "imported": 32,
+    "deduplicated": 0,
+    "correlated": 0,
+    "downgraded": 32,
+    "upgraded": 0,
+    "by_source": {
+      "checkov": 10,
+      "kics": 11,
+      "trivy": 11
+    }
+  },
+  "risk_summary": {
+    "total": 44,
+    "blocking": 12,
+    "warnings": 12,
+    "informational": 20,
+    "suppressed": 0,
+    "downgraded": 32,
+    "upgraded": 0,
+    "by_severity": {
+      "critical": 1,
+      "high": 11,
+      "info": 15,
+      "low": 5,
+      "medium": 12
+    },
+    "by_category": {
+      "availability": 2,
+      "public_exposure": 11,
+      "sensitive_data": 6,
+      "unknown": 25
+    }
+  },
+  "reason_codes": [
+    "MEETS_BLOCK_THRESHOLD"
+  ],
+  "reasons": [
+    {
+      "finding_id": "CHG-ADDA7BDD1606AFBD",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "attack path attack-path-ebb91706401c9280 meets critical/high threshold"
+    },
+    {
+      "finding_id": "CHG-324BE933EF4E91DA",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-core",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-28B14F10CFF186A8",
+      "resource": "aws_db_instance.customer",
+      "policy": "aws-core",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E5D0DF2F843EB7BF",
+      "resource": "aws_ecs_service.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-779BDA1491490E30",
+      "resource": "aws_lb.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-5359252B1272D809",
+      "resource": "aws_lb_listener.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E1B57FB5A605AB56",
+      "resource": "aws_lb_target_group.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-682EA7087ACFF1DE",
+      "resource": "aws_ecs_service.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-B3E2427EF7BEFEA8",
+      "resource": "aws_lb.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-1C75450028581C46",
+      "resource": "aws_lb_listener.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-0208B6F700EA785A",
+      "resource": "aws_lb_target_group.admin",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    },
+    {
+      "finding_id": "CHG-E3AD0CFB5128E33C",
+      "resource": "aws_security_group.public",
+      "policy": "aws-public-exposure",
+      "code": "MEETS_BLOCK_THRESHOLD",
+      "reason": "finding meets block threshold"
+    }
+  ],
+  "findings": [
+    {
+      "id": "CHG-ADDA7BDD1606AFBD",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+      "rule_name": "Public to sensitive data attack path",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer",
+      "description": "ChangeGate detected a high-signal infrastructure attack path.",
+      "resource_address": "aws_db_instance.customer",
+      "category": "sensitive_data",
+      "severity": "critical",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "attack_path",
+          "resource": "aws_db_instance.customer",
+          "path": "attack_path.id",
+          "value": "attack-path-ebb91706401c9280",
+          "message": "attack path attack-path-ebb91706401c9280 produced block decision"
+        },
+        {
+          "type": "attack_path",
+          "resource": "aws_db_instance.customer",
+          "path": "attack_path.type",
+          "value": "public_to_sensitive_data",
+          "message": "attack path type is public_to_sensitive_data"
+        },
+        {
+          "type": "attack_path.graph_path",
+          "resource": "aws_db_instance.customer",
+          "path": "graph.path",
+          "value": [
+            "internet",
+            "aws_lb.admin",
+            "aws_lb_listener.admin",
+            "aws_lb_target_group.admin",
+            "aws_ecs_service.admin",
+            "aws_security_group.public",
+            "aws_db_instance.customer"
+          ],
+          "message": "public entrypoint reaches sensitive asset"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "has_public_access",
+          "value": [
+            "internet",
+            "aws_lb.admin"
+          ],
+          "message": "load balancer is internet exposed"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb.admin",
+            "aws_lb_listener.admin"
+          ],
+          "message": "load balancer routes to listener"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb_listener.admin",
+            "aws_lb_target_group.admin"
+          ],
+          "message": "listener forwards to target group"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "routes_to",
+          "value": [
+            "aws_lb_target_group.admin",
+            "aws_ecs_service.admin"
+          ],
+          "message": "target group routes to ECS service"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "allows_egress",
+          "value": [
+            "aws_ecs_service.admin",
+            "aws_security_group.public"
+          ],
+          "message": "resource can send traffic through security group"
+        },
+        {
+          "type": "attack_path.step",
+          "resource": "aws_db_instance.customer",
+          "path": "allows_ingress",
+          "value": [
+            "aws_security_group.public",
+            "aws_db_instance.customer"
+          ],
+          "message": "security group applies to resource"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove the public route to the workload or restrict ingress to approved CIDRs.",
+        "steps": [
+          "Allow sensitive assets only from reviewed workload security groups and roles.",
+          "Remove direct routing from public workloads to sensitive datastores or secrets.",
+          "Remove the public route to the workload or restrict ingress to approved CIDRs.",
+          "Restrict the public entrypoint to approved CIDRs or authenticated edge controls.",
+          "Segment the workload from sensitive data stores and secrets."
+        ],
+        "references": [
+          "https://changegate.dev/docs/attack-paths"
+        ],
+        "why_this_works": "Removing any required step breaks the attack path before deployment.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Attack path requires topology review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch multi-resource attack paths because the correct fix depends on service ownership, routing intent, and approved access patterns.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "adda7bdd1606afbdf1c68ffb4f829ad4017c8ed8782cace328cd2b2d5f3389de",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH|aws_db_instance.customer||sensitive_data|",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "resource": "aws_db_instance.customer",
+          "policy": "aws-public-exposure",
+          "code": "",
+          "reason": "attack path attack-path-ebb91706401c9280 meets critical/high threshold"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-28B14F10CFF186A8",
+        "CHG-324BE933EF4E91DA"
+      ]
+    },
+    {
+      "id": "CHG-324BE933EF4E91DA",
+      "rule_id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+      "rule_name": "Production RDS backup retention disabled",
+      "policy_pack": "aws-core",
+      "policy_pack_version": "0.1.0",
+      "title": "Production RDS backup retention disabled",
+      "description": "Detects production databases with backup retention disabled or reduced to zero.",
+      "resource_address": "aws_db_instance.customer",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "backup_retention_period",
+          "value": 0,
+          "message": "production database backup retention is disabled"
+        }
+      ],
+      "remediation": {
+        "summary": "Set backup retention to a non-zero period aligned with recovery requirements.",
+        "steps": [
+          "Confirm the planned delete or replacement is intentional.",
+          "Enable deletion protection where supported.",
+          "Take a backup or snapshot and document rollback."
+        ],
+        "why_this_works": "Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Availability changes require review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "324be933ef4e91da357ff6fb31ec2ac48d104978a1c6150ad08b7e00cf610f53",
+      "deduplication_key": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD|aws_db_instance.customer|registry.terraform.io/hashicorp/aws|availability|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-28B14F10CFF186A8",
+        "CHG-ADDA7BDD1606AFBD"
+      ]
+    },
+    {
+      "id": "CHG-28B14F10CFF186A8",
+      "rule_id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+      "rule_name": "Production RDS deletion protection disabled",
+      "policy_pack": "aws-core",
+      "policy_pack_version": "0.1.0",
+      "title": "Production RDS deletion protection disabled",
+      "description": "Detects production databases without deletion protection.",
+      "resource_address": "aws_db_instance.customer",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "deletion_protection",
+          "value": false,
+          "message": "production database deletion protection is disabled"
+        }
+      ],
+      "remediation": {
+        "summary": "Enable deletion protection for production databases.",
+        "steps": [
+          "Confirm the planned delete or replacement is intentional.",
+          "Enable deletion protection where supported.",
+          "Take a backup or snapshot and document rollback."
+        ],
+        "why_this_works": "Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Availability changes require review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "28b14f10cff186a89f57c31fa7f174f7f510a48939ede5ed994dd7d47ad6048b",
+      "deduplication_key": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD|aws_db_instance.customer|registry.terraform.io/hashicorp/aws|availability|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-324BE933EF4E91DA",
+        "CHG-ADDA7BDD1606AFBD"
+      ]
+    },
+    {
+      "id": "CHG-E5D0DF2F843EB7BF",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_ecs_service.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "aws_ecs_service.admin: security group applies to resource (security_groups)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "aws_security_group.public: security group allows public ingress (ingress)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e5d0df2f843eb7bf744541ef8250a37a4696f8b821b68b0e5cc24e8e7f4a4249",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_ecs_service.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-682EA7087ACFF1DE"
+      ]
+    },
+    {
+      "id": "CHG-779BDA1491490E30",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb.admin",
+          "path": "graph",
+          "value": "aws_lb.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "779bda1491490e30caa7b91608a3cfcb972141efa3ba5a7c9326114c017334ca",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-B3E2427EF7BEFEA8"
+      ]
+    },
+    {
+      "id": "CHG-5359252B1272D809",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb_listener.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "5359252b1272d809af55898f8f6baaaa72e734d8b7c295f32dc9763c6445e691",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb_listener.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-1C75450028581C46"
+      ]
+    },
+    {
+      "id": "CHG-E1B57FB5A605AB56",
+      "rule_id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "rule_name": "Internet-facing ALB routes to admin service",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "resource_address": "aws_lb_target_group.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb.admin: load balancer is internet exposed (scheme)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb_listener.admin: listener forwards to target group (default_action.target_group_arn)"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)"
+        }
+      ],
+      "remediation": {
+        "summary": "Remove public routing to the admin service or require private/authenticated access.",
+        "steps": [
+          "Confirm downstream services are not tagged as admin or production unless the exposure is intentional.",
+          "If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.",
+          "Set the ALB `internal` argument to `true` for private admin services."
+        ],
+        "why_this_works": "Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.",
+        "fix_confidence": "high",
+        "patches": [
+          {
+            "title": "Prefer internal ALB for admin services",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_lb\" \"admin\" {\n  internal = true\n\n  # Keep admin listeners reachable only from private subnets or a trusted proxy.\n}",
+            "applies_to": [
+              "aws_lb"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e1b57fb5a605ab56ec4be367ed050ecbc6fec7df730c4fa56470c69d63d080e5",
+      "deduplication_key": "AWS_PUBLIC_ADMIN_SERVICE|aws_lb_target_group.admin|registry.terraform.io/hashicorp/aws|public_exposure|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-0208B6F700EA785A"
+      ]
+    },
+    {
+      "id": "CHG-682EA7087ACFF1DE",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_ecs_service.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_ecs_service.admin",
+          "path": "graph",
+          "value": "aws_ecs_service.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "682ea7087acff1deefe76d3cc9614fc847b33e60ca16bd02743769878f186c97",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_ecs_service.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-E5D0DF2F843EB7BF"
+      ]
+    },
+    {
+      "id": "CHG-B3E2427EF7BEFEA8",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb.admin",
+          "path": "graph",
+          "value": "aws_lb.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "owner_hints": [
+          "service=admin"
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "b3e2427ef7befea8a80205ad6cf238cdf1912796ef0fe92e6e8294a4e4799cb7",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-779BDA1491490E30"
+      ]
+    },
+    {
+      "id": "CHG-1C75450028581C46",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb_listener.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_listener.admin",
+          "path": "graph",
+          "value": "aws_lb_listener.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "1c75450028581c46178634f121235b4ce68c59e0d33524a9e5d52001a826b39b",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb_listener.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-5359252B1272D809"
+      ]
+    },
+    {
+      "id": "CHG-0208B6F700EA785A",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_lb_target_group.admin",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_lb_target_group.admin",
+          "path": "graph",
+          "value": "aws_lb_target_group.admin",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "0208b6f700ea785aaa79039dcfa9fd521d134fb8bb245a93c4cdc52b7bd70035",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_lb_target_group.admin|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "CORRELATED",
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "correlated_finding_ids": [
+        "CHG-E1B57FB5A605AB56"
+      ]
+    },
+    {
+      "id": "CHG-E3AD0CFB5128E33C",
+      "rule_id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "rule_name": "Public resource can reach sensitive datastore",
+      "policy_pack": "aws-public-exposure",
+      "policy_pack_version": "0.1.0",
+      "title": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "resource_address": "aws_security_group.public",
+      "provider": "registry.terraform.io/hashicorp/aws",
+      "environment": "production",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "evidence": [
+        {
+          "type": "rule",
+          "resource": "aws_security_group.public",
+          "path": "graph",
+          "value": "aws_security_group.public",
+          "message": "resource is internet exposed"
+        },
+        {
+          "type": "rule",
+          "resource": "aws_db_instance.customer",
+          "path": "graph",
+          "value": "aws_db_instance.customer",
+          "message": "resource can reach sensitive datastore"
+        }
+      ],
+      "remediation": {
+        "summary": "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.",
+        "steps": [
+          "Enable access logging or equivalent audit telemetry.",
+          "Enable encryption with managed or customer-managed keys.",
+          "Restrict access to the workloads that need the data."
+        ],
+        "why_this_works": "Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Enable S3 bucket encryption",
+            "format": "terraform-snippet",
+            "language": "hcl",
+            "snippet": "resource \"aws_s3_bucket_server_side_encryption_configuration\" \"logs\" {\n  bucket = aws_s3_bucket.logs.id\n\n  rule {\n    apply_server_side_encryption_by_default {\n      sse_algorithm = \"aws:kms\"\n    }\n  }\n}",
+            "applies_to": [
+              "aws_s3_bucket_server_side_encryption_configuration"
+            ],
+            "safe_to_apply": false,
+            "rationale": "Snippet is advisory because variable names, module boundaries, and environment intent must be reviewed before use.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Attach evidence of the selected mitigation before apply.",
+          "Treat as release-blocking unless a reviewer approves a time-bounded waiver."
+        ]
+      },
+      "fingerprint": "e3ad0cfb5128e33c1baa2e50a1c436f6af88ea140072544b94dffe157fcd36ab",
+      "deduplication_key": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE|aws_security_group.public|registry.terraform.io/hashicorp/aws|sensitive_data|production",
+      "decision_reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ]
+    },
+    {
+      "id": "CHG-66B3D2F8C278556B",
+      "rule_id": "EXT_KICS_381C3F2A_EF6F_4EFF_99F7_B169CDA3422C",
+      "rule_name": "Sensitive Port Is Exposed To Entire Network",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Sensitive Port Is Exposed To Entire Network",
+      "description": "A sensitive port, such as port 23 or port 110, is open for the whole network in either TCP or UDP protocol",
+      "resource_address": "aws_security_group[web].ingress",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web].ingress",
+          "path": "kics",
+          "value": "EXT_KICS_381C3F2A_EF6F_4EFF_99F7_B169CDA3422C",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web].ingress",
+          "path": "../../src/main.tf:8",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Constrain public exposure to the smallest reviewed entry point.",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "66b3d2f8c278556b923863ff8d714b4bfd0c1676cdc4e6c1eeb12c2079395f30",
+      "deduplication_key": "EXT_KICS_381C3F2A_EF6F_4EFF_99F7_B169CDA3422C|aws_security_group[web].ingress|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-66B3D2F8C278556B",
+          "resource": "aws_security_group[web].ingress",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0B1DC7C1DCCB3813",
+        "CHG-4114533B9F4B0E8E"
+      ]
+    },
+    {
+      "id": "CHG-0B1DC7C1DCCB3813",
+      "rule_id": "EXT_KICS_65905CEC_D691_4320_B320_2000436CB696",
+      "rule_name": "Security Group With Unrestricted Access To SSH",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Security Group With Unrestricted Access To SSH",
+      "description": "'SSH' (TCP:22) should not be public in AWS Security Group",
+      "resource_address": "aws_security_group[web].ingress",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web].ingress",
+          "path": "kics",
+          "value": "EXT_KICS_65905CEC_D691_4320_B320_2000436CB696",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web].ingress",
+          "path": "../../src/main.tf:8",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Constrain public exposure to the smallest reviewed entry point.",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "0b1dc7c1dccb381329172ad80631b2c69aaec79f5933364465fffef55c73c994",
+      "deduplication_key": "EXT_KICS_65905CEC_D691_4320_B320_2000436CB696|aws_security_group[web].ingress|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-0B1DC7C1DCCB3813",
+          "resource": "aws_security_group[web].ingress",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-4114533B9F4B0E8E",
+        "CHG-66B3D2F8C278556B"
+      ]
+    },
+    {
+      "id": "CHG-C19BCD6A6D1CB52D",
+      "rule_id": "EXT_KICS_4728CD65_A20C_49DA_8B31_9C08B423E4DB",
+      "rule_name": "Unrestricted Security Group Ingress",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Unrestricted Security Group Ingress",
+      "description": "Security groups allow ingress from 0.0.0.0:0 and/or ::/0",
+      "resource_address": "aws_security_group[web].ingress.cidr_blocks",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web].ingress.cidr_blocks",
+          "path": "kics",
+          "value": "EXT_KICS_4728CD65_A20C_49DA_8B31_9C08B423E4DB",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web].ingress.cidr_blocks",
+          "path": "../../src/main.tf:12",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Constrain public exposure to the smallest reviewed entry point.",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "c19bcd6a6d1cb52d0e1d606f9080df93c08edb2a4ce07980a478d4b25c465e63",
+      "deduplication_key": "EXT_KICS_4728CD65_A20C_49DA_8B31_9C08B423E4DB|aws_security_group[web].ingress.cidr_blocks|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-C19BCD6A6D1CB52D",
+          "resource": "aws_security_group[web].ingress.cidr_blocks",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ]
+    },
+    {
+      "id": "CHG-420154410DB4141E",
+      "rule_id": "EXT_TRIVY_AWS_0086",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Access block should block public ACL",
+      "description": "S3 buckets should block public ACLs on buckets and any objects they contain. By blocking, PUTs with fail if the object has any public ACL a.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0086",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Enable blocking any PUT calls with a public ACL specified",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "420154410db4141e9d736a0ffcc754a570e88e1f3157bb80f5e9261bb0117aa7",
+      "deduplication_key": "EXT_TRIVY_AWS_0086|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-420154410DB4141E",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-03C811FFCB69F266",
+      "rule_id": "EXT_TRIVY_AWS_0087",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Access block should block public policy",
+      "description": "S3 bucket policy should have block public policy to prevent users from putting a policy that enable public access.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0087",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Prevent policies that allow public access being PUT",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "03c811ffcb69f2664dde3b17d108dd13c6f2b9fc23fd7d9d23f28cdc0311bd82",
+      "deduplication_key": "EXT_TRIVY_AWS_0087|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-03C811FFCB69F266",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-EA67641AE4A382E9",
+      "rule_id": "EXT_TRIVY_AWS_0090",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Data should be versioned",
+      "description": "Versioning in Amazon S3 is a means of keeping multiple variants of an object in the same bucket.\n\nYou can use the S3 Versioning feature to preserve, retrieve, and restore every version of every object stored in your buckets.\n\nWith versioning you can recover more easily from both unintended user actions and application failures.\n\nWhen you enable versioning, also keep in mind the potential costs of storing noncurrent versions of objects. To help manage those costs, consider setting up an S3 Lifecycle configuration.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0090",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Enable versioning to protect against accidental/malicious removal or modification",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "ea67641ae4a382e98535d0209f11974dcd195d9186c78295d1b1f65f4392445d",
+      "deduplication_key": "EXT_TRIVY_AWS_0090|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-EA67641AE4A382E9",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869"
+      ]
+    },
+    {
+      "id": "CHG-D9CD4287200FF869",
+      "rule_id": "EXT_TRIVY_AWS_0091",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Access Block should Ignore Public ACL",
+      "description": "S3 buckets should ignore public ACLs on buckets and any objects they contain. By ignoring rather than blocking, PUT calls with public ACLs will still be applied but the ACL will be ignored.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0091",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Enable ignoring the application of public ACLs in PUT calls",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "d9cd4287200ff8693c315f52f2eb59012441cf23137c4c174373c3c709135f6b",
+      "deduplication_key": "EXT_TRIVY_AWS_0091|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-D9CD4287200FF869",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-086AF944B41132CC",
+      "rule_id": "EXT_TRIVY_AWS_0093",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Access block should restrict public bucket to limit access",
+      "description": "S3 buckets should restrict public policies for the bucket. By enabling, the restrict_public_buckets, only the bucket owner and AWS Services can access if it has a public policy.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0093",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Limit the access to public buckets to only the owner or AWS Services (eg; CloudFront)",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "086af944b41132cc531f48a51609095036ba807d983b2ac961a6ce5b50914a5a",
+      "deduplication_key": "EXT_TRIVY_AWS_0093|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-086AF944B41132CC",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-792B14B70444CD7D",
+      "rule_id": "EXT_TRIVY_AWS_0132",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 encryption should use Customer Managed Keys",
+      "description": "Encryption using AWS keys provides protection for your S3 buckets. To gain greater control over encryption, such as key rotation, access policies, and auditability, use customer managed keys (CMKs) with SSE-KMS.\nNote that SSE-KMS is not supported for S3 server access logging destination buckets; in such cases, use SSE-S3 instead.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0132",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Use SSE-KMS with a customer managed key (CMK)",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "792b14b70444cd7d978bbb3adc831abc405df8d7e2ae605709f37e95eb741dbb",
+      "deduplication_key": "EXT_TRIVY_AWS_0132|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-792B14B70444CD7D",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-DA6E1DE815C512FF",
+      "rule_id": "EXT_KICS_568A4D22_3517_44A6_A7AD_6A7EED88722C",
+      "rule_name": "S3 Bucket Without Versioning",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "S3 Bucket Without Versioning",
+      "description": "S3 bucket should have versioning enabled",
+      "resource_address": "aws_s3_bucket[logs]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket[logs]",
+          "path": "kics",
+          "value": "EXT_KICS_568A4D22_3517_44A6_A7AD_6A7EED88722C",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket[logs]",
+          "path": "../../src/main.tf:1",
+          "value": "aws_s3_bucket",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "da6e1de815c512ffb48a798d45f94085ef9bef094e940407a7599187c1ffe980",
+      "deduplication_key": "EXT_KICS_568A4D22_3517_44A6_A7AD_6A7EED88722C|aws_s3_bucket[logs]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-DA6E1DE815C512FF",
+          "resource": "aws_s3_bucket[logs]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-5DD580DF56067121"
+      ]
+    },
+    {
+      "id": "CHG-5DD580DF56067121",
+      "rule_id": "EXT_KICS_F861041C_8C9F_4156_ACFC_5E6E524F5884",
+      "rule_name": "S3 Bucket Logging Disabled",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "S3 Bucket Logging Disabled",
+      "description": "Server Access Logging should be enabled on S3 Buckets so that all changes are logged and trackable",
+      "resource_address": "aws_s3_bucket[logs]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket[logs]",
+          "path": "kics",
+          "value": "EXT_KICS_F861041C_8C9F_4156_ACFC_5E6E524F5884",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket[logs]",
+          "path": "../../src/main.tf:1",
+          "value": "aws_s3_bucket",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "5dd580df56067121f9e4d2e9f885f78a960c2bba8dac6f7c88c2a20b19a7fc15",
+      "deduplication_key": "EXT_KICS_F861041C_8C9F_4156_ACFC_5E6E524F5884|aws_s3_bucket[logs]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-5DD580DF56067121",
+          "resource": "aws_s3_bucket[logs]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-DA6E1DE815C512FF"
+      ]
+    },
+    {
+      "id": "CHG-BB9BAA3AB1D4A15C",
+      "rule_id": "EXT_TRIVY_AWS_0107",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "Security groups should not allow unrestricted ingress to SSH or RDP from any IP address.",
+      "description": "Security groups provide stateful filtering of ingress and egress network traffic to AWS\nresources. It is recommended that no security group allows unrestricted ingress access to\nremote server administration ports, such as SSH to port 22 and RDP to port 3389.",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "medium",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0107",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "main.tf:12",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Set a more restrictive CIDR range",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Fix before merge when practical, or track with an owner and due date."
+        ]
+      },
+      "fingerprint": "bb9baa3ab1d4a15cdbe1a2339478f4cc06bbba73c9a60d5e4c42c471c9e83c96",
+      "deduplication_key": "EXT_TRIVY_AWS_0107|aws_security_group.web|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED",
+        "BELOW_BLOCK_THRESHOLD"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-BB9BAA3AB1D4A15C",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0126F886DBE61B33",
+        "CHG-0585266A056161CB",
+        "CHG-19AD7F5AC6D36440",
+        "CHG-438B36BE8B4452BB",
+        "CHG-7330815439414AA0"
+      ]
+    },
+    {
+      "id": "CHG-042B9A3917350CF2",
+      "rule_id": "EXT_TRIVY_AWS_0089",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 Bucket Logging",
+      "description": "Ensures S3 bucket logging is enabled for S3 buckets",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "low",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0089",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Add a logging block to the resource to enable access logging",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "042b9a3917350cf222529d076e1040d0855ae9a269c19566ba489efb6b8acc49",
+      "deduplication_key": "EXT_TRIVY_AWS_0089|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-042B9A3917350CF2",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-79117A8CE71360C4",
+      "rule_id": "EXT_TRIVY_AWS_0094",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "S3 buckets should each define an aws_s3_bucket_public_access_block",
+      "description": "The \"block public access\" settings in S3 override individual policies that apply to a given bucket, meaning that all public access can be controlled in one central types for that bucket. It is therefore good practice to define these settings for each bucket in order to clearly define the public access that can be allowed for it.",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "low",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0094",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "main.tf:1",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Define a aws_s3_bucket_public_access_block for the given bucket to control public access policies",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "79117a8ce71360c4dd043f04ba279d35a888a50a8e54a33299305c1900c7f9e6",
+      "deduplication_key": "EXT_TRIVY_AWS_0094|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-79117A8CE71360C4",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-438B36BE8B4452BB",
+      "rule_id": "EXT_TRIVY_AWS_0099",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "Missing description for security group.",
+      "description": "Security groups should include a description for auditing purposes.\n\nSimplifies auditing, debugging, and managing security groups.",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "low",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0099",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "main.tf:5",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Add descriptions for all security groups",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "438b36be8b4452bb03e2a2e4a7f7f88d47e99399e7889bb8b33d9c365a209604",
+      "deduplication_key": "EXT_TRIVY_AWS_0099|aws_security_group.web|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-438B36BE8B4452BB",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0126F886DBE61B33",
+        "CHG-0585266A056161CB",
+        "CHG-19AD7F5AC6D36440",
+        "CHG-7330815439414AA0",
+        "CHG-BB9BAA3AB1D4A15C"
+      ]
+    },
+    {
+      "id": "CHG-0585266A056161CB",
+      "rule_id": "EXT_TRIVY_AWS_0124",
+      "policy_pack": "external:trivy",
+      "policy_pack_version": "import",
+      "title": "Missing description for security group rule.",
+      "description": "Security group rules should include a description for auditing purposes.\n\nSimplifies auditing, debugging, and managing security groups.",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "low",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "trivy",
+          "value": "EXT_TRIVY_AWS_0124",
+          "message": "finding imported from trivy"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "main.tf:8",
+          "message": "Trivy misconfiguration"
+        }
+      ],
+      "remediation": {
+        "summary": "Add descriptions for all security groups rules",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "0585266a056161cbf949b12ecc925fcf66e1de3cf66f27ac26f30c0fab3422cc",
+      "deduplication_key": "EXT_TRIVY_AWS_0124|aws_security_group.web|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-0585266A056161CB",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0126F886DBE61B33",
+        "CHG-19AD7F5AC6D36440",
+        "CHG-438B36BE8B4452BB",
+        "CHG-7330815439414AA0",
+        "CHG-BB9BAA3AB1D4A15C"
+      ]
+    },
+    {
+      "id": "CHG-9D03CEF76DA0BACD",
+      "rule_id": "EXT_KICS_E592A0C5_5BDB_414C_9066_5DBA7CDEA370",
+      "rule_name": "IAM Access Analyzer Not Enabled",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "IAM Access Analyzer Not Enabled",
+      "description": "IAM Access Analyzer should be enabled and configured to continuously monitor resource permissions",
+      "resource_address": "resource",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "low",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "resource",
+          "path": "kics",
+          "value": "EXT_KICS_E592A0C5_5BDB_414C_9066_5DBA7CDEA370",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "resource",
+          "path": "../../src/main.tf:1",
+          "value": "n/a",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "9d03cef76da0bacdbbd8ef255138b77216daff34eccb8459346c5f0b0787c05c",
+      "deduplication_key": "EXT_KICS_E592A0C5_5BDB_414C_9066_5DBA7CDEA370|resource|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-9D03CEF76DA0BACD",
+          "resource": "resource",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ]
+    },
+    {
+      "id": "CHG-CC11EADA9822D176",
+      "rule_id": "EXT_CHECKOV_CKV2_AWS_6",
+      "rule_name": "Ensure that S3 bucket has a Public Access block",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure that S3 bucket has a Public Access block",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV2_AWS_6",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "block_public_policy",
+              "resource_type",
+              "block_public_acls"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-networking-policies/s3-bucket-should-have-public-access-blocks-defaults-to-false-if-the-public-access-block-is-not-attached",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "cc11eada9822d176e253c73be0dcfef1cfe383e590762da24ec393212ea11c1d",
+      "deduplication_key": "EXT_CHECKOV_CKV2_AWS_6|aws_s3_bucket.logs|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-CC11EADA9822D176",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-19AD7F5AC6D36440",
+      "rule_id": "EXT_CHECKOV_CKV2_AWS_5",
+      "rule_name": "Ensure that Security Groups are attached to another resource",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure that Security Groups are attached to another resource",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV2_AWS_5",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "/main.tf:5",
+          "value": {
+            "entity": {
+              "aws_security_group": {
+                "web": {
+                  "__address__": "aws_security_group.web",
+                  "__end_line__": 14,
+                  "__start_line__": 5,
+                  "ingress": [
+                    {
+                      "cidr_blocks": [
+                        [
+                          "0.0.0.0/0"
+                        ]
+                      ],
+                      "from_port": [
+                        22
+                      ],
+                      "protocol": [
+                        "tcp"
+                      ],
+                      "to_port": [
+                        22
+                      ]
+                    }
+                  ],
+                  "name": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "resource_type",
+              "networking"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-networking-policies/ensure-that-security-groups-are-attached-to-ec2-instances-or-elastic-network-interfaces-enis",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "19ad7f5ac6d36440bb8416e8460a5489d9a564a3858b8473cf4457378342e56d",
+      "deduplication_key": "EXT_CHECKOV_CKV2_AWS_5|aws_security_group.web|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-19AD7F5AC6D36440",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0126F886DBE61B33",
+        "CHG-0585266A056161CB",
+        "CHG-438B36BE8B4452BB",
+        "CHG-7330815439414AA0",
+        "CHG-BB9BAA3AB1D4A15C"
+      ]
+    },
+    {
+      "id": "CHG-0126F886DBE61B33",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_23",
+      "rule_name": "Ensure every security group and rule has a description",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure every security group and rule has a description",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_23",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "/main.tf:5",
+          "value": {
+            "evaluated_keys": [
+              "ingress/[0]"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-networking-policies/networking-31",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "0126f886dbe61b33ce41eca66c61fee2ecb0d3269aa3a59eeacffcd5904d7911",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_23|aws_security_group.web|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-0126F886DBE61B33",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0585266A056161CB",
+        "CHG-19AD7F5AC6D36440",
+        "CHG-438B36BE8B4452BB",
+        "CHG-7330815439414AA0",
+        "CHG-BB9BAA3AB1D4A15C"
+      ]
+    },
+    {
+      "id": "CHG-7330815439414AA0",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_24",
+      "rule_name": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure no security groups allow ingress from 0.0.0.0:0 to port 22",
+      "resource_address": "aws_security_group.web",
+      "provider": "external",
+      "category": "public_exposure",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group.web",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_24",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group.web",
+          "path": "/main.tf:5",
+          "value": {
+            "evaluated_keys": [
+              "ingress/[0]/from_port",
+              "ingress/[0]/to_port",
+              "ingress/[0]/cidr_blocks",
+              "ingress/[0]/ipv6_cidr_blocks"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-networking-policies/networking-1-port-security",
+        "steps": [
+          "Document any intentional public exposure in policy or a time-bounded waiver.",
+          "Prefer private subnets, internal load balancers, or authenticated edge controls.",
+          "Remove public CIDRs unless internet access is required."
+        ],
+        "why_this_works": "Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.",
+        "fix_confidence": "medium",
+        "patches": [
+          {
+            "title": "Public exposure requires review",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "7330815439414aa0b7d4e27260679985f12872516b0bce7bf9ba5cdd9867dc20",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_24|aws_security_group.web|external|public_exposure|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-7330815439414AA0",
+          "resource": "aws_security_group.web",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0126F886DBE61B33",
+        "CHG-0585266A056161CB",
+        "CHG-19AD7F5AC6D36440",
+        "CHG-438B36BE8B4452BB",
+        "CHG-BB9BAA3AB1D4A15C"
+      ]
+    },
+    {
+      "id": "CHG-58EDCFCF20E98D65",
+      "rule_id": "EXT_CHECKOV_CKV2_AWS_61",
+      "rule_name": "Ensure that an S3 bucket has a lifecycle configuration",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure that an S3 bucket has a lifecycle configuration",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV2_AWS_61",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "resource_type",
+              "lifecycle_rule"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-logging-policies/bc-aws-2-61",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "58edcfcf20e98d652fec41266241259202b3da294d0753bc5601a3ad0a47dfd7",
+      "deduplication_key": "EXT_CHECKOV_CKV2_AWS_61|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-58EDCFCF20E98D65",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-99AC5C3E5F48BA10",
+      "rule_id": "EXT_CHECKOV_CKV2_AWS_62",
+      "rule_name": "Ensure S3 buckets should have event notifications enabled",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure S3 buckets should have event notifications enabled",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV2_AWS_62",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "resource_type"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-logging-policies/bc-aws-2-62",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "99ac5c3e5f48ba107e6415658d903c1a8e521f09077b1c379d0992c14574eef4",
+      "deduplication_key": "EXT_CHECKOV_CKV2_AWS_62|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-99AC5C3E5F48BA10",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-8EC82E8A238C08E3",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_144",
+      "rule_name": "Ensure that S3 bucket has cross-region replication enabled",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure that S3 bucket has cross-region replication enabled",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_144",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "rule/*/status",
+              "resource_type",
+              "replication_configuration/rules/*/status"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-general-policies/ensure-that-s3-bucket-has-cross-region-replication-enabled",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "8ec82e8a238c08e338f7a53fbc7d7225d76a3038e4462c61c70ac28636ab17e8",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_144|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-8EC82E8A238C08E3",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-1FB57AF40996941C",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_145",
+      "rule_name": "Ensure that S3 buckets are encrypted with KMS by default",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure that S3 buckets are encrypted with KMS by default",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_145",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "server_side_encryption_configuration/rule/apply_server_side_encryption_by_default/sse_algorithm",
+              "resource_type",
+              "rule/apply_server_side_encryption_by_default/sse_algorithm"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/aws-general-policies/ensure-that-s3-buckets-are-encrypted-with-kms-by-default",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "1fb57af40996941cde727b6d5f7a71e62847c2e4b1cc5f160670b45432cb9537",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_145|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-1FB57AF40996941C",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-2F35CE44EE637377",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-40C41A20A3DE7418",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_18",
+      "rule_name": "Ensure the S3 bucket has access logging enabled",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure the S3 bucket has access logging enabled",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_18",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "resource_type",
+              "logging"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/s3-policies/s3-13-enable-logging",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "40c41a20a3de7418d12900e63c9e887634fbe306c7c2d8317f2d90a7d36afa91",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_18|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-40C41A20A3DE7418",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-2F35CE44EE637377",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-2F35CE44EE637377",
+      "rule_id": "EXT_CHECKOV_CKV_AWS_21",
+      "rule_name": "Ensure all data stored in the S3 bucket have versioning enabled",
+      "policy_pack": "external:checkov",
+      "policy_pack_version": "import",
+      "title": "Ensure all data stored in the S3 bucket have versioning enabled",
+      "resource_address": "aws_s3_bucket.logs",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket.logs",
+          "path": "checkov",
+          "value": "EXT_CHECKOV_CKV_AWS_21",
+          "message": "finding imported from checkov"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket.logs",
+          "path": "/main.tf:1",
+          "value": {
+            "entity": {
+              "aws_s3_bucket": {
+                "logs": {
+                  "__address__": "aws_s3_bucket.logs",
+                  "__end_line__": 3,
+                  "__start_line__": 1,
+                  "bucket": [
+                    "changegate-scanner-smoke"
+                  ]
+                }
+              }
+            },
+            "evaluated_keys": [
+              "versioning_configuration/status",
+              "resource_type",
+              "versioning/enabled"
+            ],
+            "result": "FAILED"
+          },
+          "message": "Checkov failed check"
+        }
+      ],
+      "remediation": {
+        "summary": "https://docs.prismacloud.io/en/enterprise-edition/policy-reference/aws-policies/s3-policies/s3-16-enable-versioning",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "2f35ce44ee63737788c4f56f5c66ec5a80bc3bce2ba34303a4bb8c5d7c38da5d",
+      "deduplication_key": "EXT_CHECKOV_CKV_AWS_21|aws_s3_bucket.logs|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-2F35CE44EE637377",
+          "resource": "aws_s3_bucket.logs",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-03C811FFCB69F266",
+        "CHG-042B9A3917350CF2",
+        "CHG-086AF944B41132CC",
+        "CHG-1FB57AF40996941C",
+        "CHG-40C41A20A3DE7418",
+        "CHG-420154410DB4141E",
+        "CHG-58EDCFCF20E98D65",
+        "CHG-79117A8CE71360C4",
+        "CHG-792B14B70444CD7D",
+        "CHG-8EC82E8A238C08E3",
+        "CHG-99AC5C3E5F48BA10",
+        "CHG-CC11EADA9822D176",
+        "CHG-D9CD4287200FF869",
+        "CHG-EA67641AE4A382E9"
+      ]
+    },
+    {
+      "id": "CHG-E64E266331FD909D",
+      "rule_id": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10",
+      "rule_name": "Resource Not Using Tags",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Resource Not Using Tags",
+      "description": "AWS services resource tags are an essential part of managing components. As a best practice, the field 'tags' should have additional tags defined other than 'Name'",
+      "resource_address": "aws_s3_bucket[{{logs}}]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_s3_bucket[{{logs}}]",
+          "path": "kics",
+          "value": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_s3_bucket[{{logs}}]",
+          "path": "../../src/main.tf:1",
+          "value": "aws_s3_bucket",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "e64e266331fd909d1792566f6ce37480f807e98f05d991856b052eba6e91cacd",
+      "deduplication_key": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10|aws_s3_bucket[{{logs}}]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-E64E266331FD909D",
+          "resource": "aws_s3_bucket[{{logs}}]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ]
+    },
+    {
+      "id": "CHG-CB08630C1F88CFE3",
+      "rule_id": "EXT_KICS_4849211B_AC39_479E_AE78_5694D506CB24",
+      "rule_name": "Security Group Not Used",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Security Group Not Used",
+      "description": "Security group must be used or not declared",
+      "resource_address": "aws_security_group[web]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web]",
+          "path": "kics",
+          "value": "EXT_KICS_4849211B_AC39_479E_AE78_5694D506CB24",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web]",
+          "path": "../../src/main.tf:5",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "cb08630c1f88cfe366a2d2fd3d6f256047b96cc99db2ee9fe82acb888415a209",
+      "deduplication_key": "EXT_KICS_4849211B_AC39_479E_AE78_5694D506CB24|aws_security_group[web]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-CB08630C1F88CFE3",
+          "resource": "aws_security_group[web]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-510C7772A7249176"
+      ]
+    },
+    {
+      "id": "CHG-510C7772A7249176",
+      "rule_id": "EXT_KICS_CB3F5ED6_0D18_40DE_A93D_B3538DB31E8C",
+      "rule_name": "Security Group Without Description",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Security Group Without Description",
+      "description": "It's considered a best practice for AWS Security Group to have a description",
+      "resource_address": "aws_security_group[web]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web]",
+          "path": "kics",
+          "value": "EXT_KICS_CB3F5ED6_0D18_40DE_A93D_B3538DB31E8C",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web]",
+          "path": "../../src/main.tf:5",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "510c7772a724917641a0e451ddf54de443ce0e815e172722754cf20082a31e2d",
+      "deduplication_key": "EXT_KICS_CB3F5ED6_0D18_40DE_A93D_B3538DB31E8C|aws_security_group[web]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-510C7772A7249176",
+          "resource": "aws_security_group[web]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-CB08630C1F88CFE3"
+      ]
+    },
+    {
+      "id": "CHG-4114533B9F4B0E8E",
+      "rule_id": "EXT_KICS_68EB4BF3_F9BF_463D_B5CF_E029BB446D2E",
+      "rule_name": "Security Group Rule Without Description",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Security Group Rule Without Description",
+      "description": "It's considered a best practice for all rules in AWS Security Group to have a description",
+      "resource_address": "aws_security_group[web].ingress",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[web].ingress",
+          "path": "kics",
+          "value": "EXT_KICS_68EB4BF3_F9BF_463D_B5CF_E029BB446D2E",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[web].ingress",
+          "path": "../../src/main.tf:8",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "4114533b9f4b0e8e95dab10981e517a69d57e084fcd089bd3aad7fdedad15742",
+      "deduplication_key": "EXT_KICS_68EB4BF3_F9BF_463D_B5CF_E029BB446D2E|aws_security_group[web].ingress|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED",
+        "CORRELATED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-4114533B9F4B0E8E",
+          "resource": "aws_security_group[web].ingress",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ],
+      "correlated_finding_ids": [
+        "CHG-0B1DC7C1DCCB3813",
+        "CHG-66B3D2F8C278556B"
+      ]
+    },
+    {
+      "id": "CHG-B5F1B671EF017E91",
+      "rule_id": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10",
+      "rule_name": "Resource Not Using Tags",
+      "policy_pack": "external:kics",
+      "policy_pack_version": "import",
+      "title": "Resource Not Using Tags",
+      "description": "AWS services resource tags are an essential part of managing components. As a best practice, the field 'tags' should have additional tags defined other than 'Name'",
+      "resource_address": "aws_security_group[{{web}}]",
+      "provider": "external",
+      "category": "unknown",
+      "severity": "info",
+      "confidence": "medium",
+      "evidence": [
+        {
+          "type": "external_scanner",
+          "resource": "aws_security_group[{{web}}]",
+          "path": "kics",
+          "value": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10",
+          "message": "finding imported from kics"
+        },
+        {
+          "type": "external_location",
+          "resource": "aws_security_group[{{web}}]",
+          "path": "../../src/main.tf:5",
+          "value": "aws_security_group",
+          "message": "KICS query match"
+        }
+      ],
+      "remediation": {
+        "summary": "Review the finding evidence and choose a resource-specific mitigation.",
+        "steps": [
+          "Add a targeted fix or a time-bounded waiver if the risk is accepted.",
+          "Identify the owning team.",
+          "Inspect the finding evidence."
+        ],
+        "why_this_works": "Unknown-risk findings require human review because the risk class is not specific enough for a safe patch.",
+        "fix_confidence": "low",
+        "patches": [
+          {
+            "title": "No automatic patch for unknown risk",
+            "format": "advisory",
+            "snippet": "",
+            "safe_to_apply": false,
+            "rationale": "The risk category is too broad to generate a safe Terraform/OpenTofu patch.",
+            "review_needed": true
+          }
+        ],
+        "next_steps": [
+          "Review during normal infrastructure hygiene work."
+        ]
+      },
+      "fingerprint": "b5f1b671ef017e91665288caaebed3607d1be31ddc3100875e39354c184ea88e",
+      "deduplication_key": "EXT_KICS_E38A8E0A_B88B_4902_B3FE_B0FCB17D5C10|aws_security_group[{{web}}]|external|unknown|",
+      "decision_reason_codes": [
+        "DOWNGRADED"
+      ],
+      "decision_reasons": [
+        {
+          "finding_id": "CHG-B5F1B671EF017E91",
+          "resource": "aws_security_group[{{web}}]",
+          "code": "DOWNGRADED",
+          "reason": "imported finding did not correlate to a changed graph resource"
+        }
+      ]
+    }
+  ],
+  "rules": {
+    "AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH": {
+      "id": "AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH",
+      "name": "CloudFront and S3 public exposure mismatch",
+      "description": "Detects S3 buckets exposed publicly while also fronted by CloudFront.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EC2_PUBLIC_IP_ADMIN_INGRESS": {
+      "id": "AWS_EC2_PUBLIC_IP_ADMIN_INGRESS",
+      "name": "EC2 instance has public IP and admin ingress",
+      "description": "Detects EC2 instances with public IPs reachable through public admin ingress.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD": {
+      "id": "AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD",
+      "name": "Sensitive workload egress opened to internet",
+      "description": "Detects broad egress from sensitive workloads.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_EXTERNAL_ACCOUNT_TRUST": {
+      "id": "AWS_EXTERNAL_ACCOUNT_TRUST",
+      "name": "Trust policy allows external account assumption",
+      "description": "Detects trust policies granting role assumption to an external account.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_GITHUB_OIDC_TRUST_BROAD": {
+      "id": "AWS_GITHUB_OIDC_TRUST_BROAD",
+      "name": "GitHub OIDC trust policy is too broad",
+      "description": "Detects GitHub OIDC trust policies without repository or branch constraints.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_IAM_ADMIN_POLICY_ATTACHMENT": {
+      "id": "AWS_IAM_ADMIN_POLICY_ATTACHMENT",
+      "name": "IAM administrator policy attachment",
+      "description": "Detects attachment of AdministratorAccess to IAM identities.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_IAM_ASSUME_ADMIN_PATH": {
+      "id": "AWS_IAM_ASSUME_ADMIN_PATH",
+      "name": "IAM assume admin path",
+      "description": "Detects sts:AssumeRole paths to administrator or sensitive roles.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_IAM_PASSROLE_FUNCTION_ESCALATION": {
+      "id": "AWS_IAM_PASSROLE_FUNCTION_ESCALATION",
+      "name": "IAM pass-role function escalation path",
+      "description": "Detects iam:PassRole combined with Lambda or ECS compute mutation.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_IAM_WILDCARD_ADMIN": {
+      "id": "AWS_IAM_WILDCARD_ADMIN",
+      "name": "Wildcard IAM administration",
+      "description": "Detects IAM policies with broad iam:* or Action:* grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_KMS_DECRYPT_BROAD": {
+      "id": "AWS_KMS_DECRYPT_BROAD",
+      "name": "KMS decrypt access granted broadly",
+      "description": "Detects broad KMS decrypt grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PASSROLE_WITH_COMPUTE_MUTATION": {
+      "id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
+      "name": "iam:PassRole with compute mutation",
+      "description": "Detects IAM principals that can pass roles and mutate compute resources.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PRIVATE_SUBNET_ROUTE_TO_IGW": {
+      "id": "AWS_PRIVATE_SUBNET_ROUTE_TO_IGW",
+      "name": "Private subnet route to internet gateway",
+      "description": "Detects route table changes that route private subnets to an internet gateway.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG": {
+      "id": "AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG",
+      "name": "Private workload exposed by NAT or security group change",
+      "description": "Detects changes that expose internal or private workloads through public ingress or NAT routing.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_ADMIN_SERVICE": {
+      "id": "AWS_PUBLIC_ADMIN_SERVICE",
+      "name": "Internet-facing ALB routes to admin service",
+      "description": "Detects public load balancer paths to resources that appear to expose admin surfaces.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_ADMIN_SERVICE_PATH": {
+      "id": "AWS_PUBLIC_ADMIN_SERVICE_PATH",
+      "name": "Public admin service path",
+      "description": "Detects public entrypoints reaching admin-like workloads without sensitive downstream context.",
+      "category": "public_exposure",
+      "severity": "medium",
+      "confidence": "medium",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_PUBLIC_EKS_ENDPOINT_PROD": {
+      "id": "AWS_PUBLIC_EKS_ENDPOINT_PROD",
+      "name": "Production EKS endpoint is public",
+      "description": "Detects production EKS clusters with public endpoints enabled.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_INTERNAL_SERVICE": {
+      "id": "AWS_PUBLIC_INTERNAL_SERVICE",
+      "name": "Public load balancer routes to internal service",
+      "description": "Detects public load balancers routing to downstream services tagged internal.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_OPENSEARCH_DOMAIN": {
+      "id": "AWS_PUBLIC_OPENSEARCH_DOMAIN",
+      "name": "Public OpenSearch domain",
+      "description": "Detects OpenSearch domains with broad public access policies.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_RDS_INSTANCE": {
+      "id": "AWS_PUBLIC_RDS_INSTANCE",
+      "name": "Public RDS instance",
+      "description": "Detects publicly accessible RDS instances.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_TO_SENSITIVE_DATASTORE": {
+      "id": "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+      "name": "Public resource can reach sensitive datastore",
+      "description": "Detects public resources that can reach sensitive data stores through the graph.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH": {
+      "id": "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+      "name": "Public path reaches sensitive data",
+      "description": "Detects a graph-backed public entrypoint to sensitive data attack path.",
+      "category": "sensitive_data",
+      "severity": "critical",
+      "confidence": "high",
+      "remediation": [
+        "Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
+        "Scope IAM and network access to the minimum required resources."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD": {
+      "id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+      "name": "Production RDS backup retention disabled",
+      "description": "Detects production databases with backup retention disabled or reduced to zero.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD": {
+      "id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+      "name": "Production RDS deletion protection disabled",
+      "description": "Detects production databases without deletion protection.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_RDS_REPLACEMENT_PROD": {
+      "id": "AWS_RDS_REPLACEMENT_PROD",
+      "name": "Production RDS replacement",
+      "description": "Detects replacement of production RDS instances.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_ROLE_ASSUME_ADMIN_PATH": {
+      "id": "AWS_ROLE_ASSUME_ADMIN_PATH",
+      "name": "Role assumption path to admin role",
+      "description": "Detects graph paths that allow a principal to assume an administrator role.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD": {
+      "id": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
+      "name": "Production S3 public access block disabled",
+      "description": "Detects production S3 public access block resources that disable one or more protections.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED": {
+      "id": "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED",
+      "name": "Sensitive S3 bucket logging disabled",
+      "description": "Detects sensitive buckets without access logging.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SECRETS_READ_BROAD": {
+      "id": "AWS_SECRETS_READ_BROAD",
+      "name": "Secrets Manager read access granted broadly",
+      "description": "Detects broad Secrets Manager read grants.",
+      "category": "privilege_escalation",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED": {
+      "id": "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED",
+      "name": "Sensitive storage encryption disabled",
+      "description": "Detects sensitive storage resources with encryption disabled.",
+      "category": "sensitive_data",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SG_WORLD_OPEN_ADMIN_PORT": {
+      "id": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
+      "name": "Security group opens admin port to the world",
+      "description": "Detects public ingress to administrative ports.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_SG_WORLD_OPEN_DB_PORT": {
+      "id": "AWS_SG_WORLD_OPEN_DB_PORT",
+      "name": "Security group opens database port to the world",
+      "description": "Detects public ingress to database ports.",
+      "category": "public_exposure",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_STATEFUL_REPLACEMENT": {
+      "id": "AWS_STATEFUL_REPLACEMENT",
+      "name": "Stateful resource replacement",
+      "description": "Detects destructive replacement of stateful resources.",
+      "category": "availability",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    },
+    "AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET": {
+      "id": "AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET",
+      "name": "Transit or peering route expands access to sensitive subnet",
+      "description": "Detects transit gateway or VPC peering routes that target sensitive or private route tables.",
+      "category": "network_blast_radius",
+      "severity": "high",
+      "confidence": "high",
+      "remediation": [
+        "Review the planned change before apply.",
+        "Constrain the risky permission, exposure, or destructive action to the minimum required scope."
+      ]
+    }
+  },
+  "run": {
+    "schema_version": "changegate.audit.run.v1",
+    "cli_version": "dev",
+    "cli_commit": "unknown",
+    "cli_date": "unknown",
+    "plan_hash": "d820e9a150a0df0beb9fbf9064415901aeb129ed7bc7563ee70aa422ea4c4114",
+    "policy_digest": "2a40dc48315cfd3e6970d683d8c70172a75e7fbcb92b2bda1adc3994ec9b2ad0",
+    "plan_digest": "d820e9a150a0df0beb9fbf9064415901aeb129ed7bc7563ee70aa422ea4c4114",
+    "policy_pack_versions": {
+      "aws-core": "0.1.0",
+      "aws-iam-escalation": "0.1.0",
+      "aws-public-exposure": "0.1.0"
+    },
+    "redaction_report": {
+      "status": "redacted",
+      "sensitive_evidence": 0,
+      "redacted_values": 0
+    }
+  },
+  "audit": {},
+  "compliance": {
+    "mappings": {
+      "AWS_IAM_ADMIN_POLICY_ATTACHMENT": {
+        "frameworks": {
+          "cis_aws": [
+            "1.16"
+          ],
+          "nist_800_53": [
+            "AC-2",
+            "AC-6"
+          ],
+          "pci_dss": [
+            "7.2"
+          ]
+        }
+      },
+      "AWS_IAM_WILDCARD_ADMIN": {
+        "frameworks": {
+          "cis_aws": [
+            "1.16"
+          ],
+          "nist_800_53": [
+            "AC-2",
+            "AC-6"
+          ],
+          "pci_dss": [
+            "7.2"
+          ]
+        }
+      },
+      "AWS_KMS_DECRYPT_BROAD": {
+        "frameworks": {
+          "nist_800_53": [
+            "SC-12",
+            "SC-28"
+          ],
+          "pci_dss": [
+            "3.6"
+          ]
+        }
+      },
+      "AWS_PUBLIC_RDS_INSTANCE": {
+        "frameworks": {
+          "cis_aws": [
+            "2.3.3"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2"
+          ]
+        }
+      },
+      "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD": {
+        "frameworks": {
+          "nist_800_53": [
+            "CP-9"
+          ],
+          "pci_dss": [
+            "12.10"
+          ]
+        }
+      },
+      "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD": {
+        "frameworks": {
+          "nist_800_53": [
+            "CP-10",
+            "SI-13"
+          ]
+        }
+      },
+      "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.5"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2"
+          ]
+        }
+      },
+      "AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.4"
+          ],
+          "nist_800_53": [
+            "AU-12",
+            "AU-2"
+          ],
+          "pci_dss": [
+            "10.2"
+          ]
+        }
+      },
+      "AWS_SECRETS_READ_BROAD": {
+        "frameworks": {
+          "nist_800_53": [
+            "AC-6",
+            "IA-5"
+          ],
+          "pci_dss": [
+            "8.2"
+          ]
+        }
+      },
+      "AWS_SENSITIVE_STORAGE_ENCRYPTION_DISABLED": {
+        "frameworks": {
+          "cis_aws": [
+            "2.1.1"
+          ],
+          "nist_800_53": [
+            "SC-28"
+          ],
+          "pci_dss": [
+            "3.5"
+          ]
+        }
+      },
+      "AWS_SG_WORLD_OPEN_ADMIN_PORT": {
+        "frameworks": {
+          "cis_aws": [
+            "4.1"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2.1"
+          ]
+        }
+      },
+      "AWS_SG_WORLD_OPEN_DB_PORT": {
+        "frameworks": {
+          "cis_aws": [
+            "4.2"
+          ],
+          "nist_800_53": [
+            "AC-4",
+            "SC-7"
+          ],
+          "pci_dss": [
+            "1.2.1"
+          ]
+        }
+      }
+    },
+    "findings": [
+      {
+        "finding_id": "CHG-324BE933EF4E91DA",
+        "rule_id": "AWS_RDS_BACKUP_RETENTION_DISABLED_PROD",
+        "resource": "aws_db_instance.customer",
+        "frameworks": {
+          "nist_800_53": [
+            "CP-9"
+          ],
+          "pci_dss": [
+            "12.10"
+          ]
+        },
+        "actual_risk": true,
+        "suppressed": false
+      },
+      {
+        "finding_id": "CHG-28B14F10CFF186A8",
+        "rule_id": "AWS_RDS_DELETION_PROTECTION_DISABLED_PROD",
+        "resource": "aws_db_instance.customer",
+        "frameworks": {
+          "nist_800_53": [
+            "CP-10",
+            "SI-13"
+          ]
+        },
+        "actual_risk": true,
+        "suppressed": false
+      }
+    ],
+    "summary": {
+      "nist_800_53": 2,
+      "pci_dss": 1
+    }
+  },
+  "message": "plan parsed, graph built, and policy evaluated"
+}
