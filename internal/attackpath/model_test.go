@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Gabriel0110/changegate/internal/graph"
@@ -20,8 +21,10 @@ func TestRenderJSONGolden(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got)+"\n" != string(want) {
-		t.Fatalf("unexpected JSON\nwant:\n%s\ngot:\n%s\n", want, got)
+	wantText := strings.ReplaceAll(string(want), "\r\n", "\n")
+	gotText := strings.ReplaceAll(string(got)+"\n", "\r\n", "\n")
+	if gotText != wantText {
+		t.Fatalf("unexpected JSON\nwant:\n%s\ngot:\n%s\n", wantText, gotText)
 	}
 	var result Result
 	if err := json.Unmarshal(got, &result); err != nil {

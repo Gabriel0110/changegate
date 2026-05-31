@@ -317,8 +317,10 @@ func assertGraphGolden(t *testing.T, path string, got string) {
 	if err != nil {
 		t.Fatalf("read golden %s: %v\ngot:\n%s", path, err, got)
 	}
-	if string(want) != got {
-		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", path, string(want), got)
+	wantText := strings.ReplaceAll(string(want), "\r\n", "\n")
+	gotText := strings.ReplaceAll(got, "\r\n", "\n")
+	if wantText != gotText {
+		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", path, wantText, gotText)
 	}
 }
 

@@ -1824,8 +1824,10 @@ func assertGolden(t *testing.T, name string, got string) {
 		t.Fatalf("read golden %s: %v", path, err)
 	}
 
-	if got != string(wantBytes) {
-		t.Fatalf("output mismatch for %s\nwant:\n%s\ngot:\n%s", name, string(wantBytes), got)
+	want := strings.ReplaceAll(string(wantBytes), "\r\n", "\n")
+	got = strings.ReplaceAll(got, "\r\n", "\n")
+	if got != want {
+		t.Fatalf("output mismatch for %s\nwant:\n%s\ngot:\n%s", name, want, got)
 	}
 }
 

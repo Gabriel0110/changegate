@@ -142,8 +142,10 @@ func TestV2SnapshotSchemaGolden(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read golden: %v", err)
 	}
-	if buf.String() != string(golden) {
-		t.Fatalf("snapshot JSON mismatch\nwant:\n%s\ngot:\n%s", string(golden), buf.String())
+	want := strings.ReplaceAll(string(golden), "\r\n", "\n")
+	got := strings.ReplaceAll(buf.String(), "\r\n", "\n")
+	if got != want {
+		t.Fatalf("snapshot JSON mismatch\nwant:\n%s\ngot:\n%s", want, got)
 	}
 	var decoded map[string]any
 	if err := json.Unmarshal(buf.Bytes(), &decoded); err != nil {
