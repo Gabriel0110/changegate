@@ -178,6 +178,10 @@ jobs:
 
 See [GitHub Actions](docs/github-actions.md), [GitLab CI](docs/gitlab-ci.md), [Atlantis](docs/atlantis.md), and [Terraform Cloud/Enterprise](docs/terraform-cloud.md).
 
+## Risk Tests
+
+Platform teams can define deterministic risk test manifests for Terraform/OpenTofu module fixtures. Risk tests assert ChangeGate decisions, required or forbidden findings, attack paths, graph paths, risk movement, waiver state, and stable output snapshots. See [risk tests](docs/risk-tests.md).
+
 ## Roll Out Safely
 
 Adopt ChangeGate in phases:

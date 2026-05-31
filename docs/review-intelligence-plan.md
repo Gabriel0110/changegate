@@ -1510,6 +1510,7 @@ Support:
 * Manifest parser validates unknown fields.
 * Failures are precise and developer-friendly.
 * Test runner supports one file or directory discovery.
+* Implemented in `internal/risktest`; the CLI command is delivered in Tranche 24.
 
 ### Tests
 
