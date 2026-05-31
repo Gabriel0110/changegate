@@ -69,7 +69,7 @@ func newRootCommand(ctx context.Context, opts *options, stdin io.Reader, stdout 
 	root.SetErr(stderr)
 
 	flags := root.PersistentFlags()
-	flags.StringVar(&opts.format, "format", opts.format, "output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle")
+	flags.StringVar(&opts.format, "format", opts.format, "output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle, dot, mermaid")
 	flags.StringVar(&opts.outPath, "out", opts.outPath, "write output to a file")
 	flags.StringVar(&opts.policy, "policy", opts.policy, "path to .changegate.yaml policy file")
 	flags.StringVar(&opts.cacheDir, "cache-dir", opts.cacheDir, "cache directory for policy packs and cloud context")

@@ -1,12 +1,10 @@
 package cli
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/Gabriel0110/changegate/internal/attackpath"
 	"github.com/Gabriel0110/changegate/internal/cloudcontext"
 	graphpkg "github.com/Gabriel0110/changegate/internal/graph"
+	"github.com/Gabriel0110/changegate/internal/visual"
 	"github.com/spf13/cobra"
 )
 
@@ -41,6 +39,40 @@ without evaluating deployment policy or returning a block exit code.`,
 				return err
 			}
 			return writeAttackPaths(state, paths)
+		},
+	}
+	cmd.Flags().StringArrayVar(&opts.planPaths, "plan", nil, "path to Terraform/OpenTofu plan JSON produced by show -json; repeat for multiple plans")
+	cmd.Flags().StringVar(&opts.principal, "principal", "", "only include attack paths starting from this IAM principal")
+	cmd.Flags().BoolVar(&opts.toSensitiveData, "to-sensitive-data", false, "only include public-to-sensitive-data attack paths")
+	cmd.Flags().StringVar(&opts.cloudContext, "cloud-context", "", "optional cloud context provider: aws")
+	cmd.Flags().StringVar(&opts.contextFile, "context-file", "", "offline cloud context snapshot file")
+	cmd.Flags().IntVar(&opts.maxDepth, "max-depth", 12, "maximum graph path depth")
+	cmd.Flags().IntVar(&opts.maxPaths, "max-paths", 25, "maximum attack paths to return")
+	cmd.AddCommand(newAttackPathsVisualizeCommand())
+	return cmd
+}
+
+func newAttackPathsVisualizeCommand() *cobra.Command {
+	opts := &attackPathOptions{}
+	cmd := &cobra.Command{
+		Use:   "visualize --plan tfplan.json",
+		Short: "Write a self-contained interactive HTML attack-path visualization",
+		Long: `Write a self-contained HTML visualization for detected attack paths. The
+output includes filtering, role toggles, highlighted path edges, and a node
+evidence inspector without requiring a hosted service.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := validateAttackPathsFormat(opts); err != nil {
+				return err
+			}
+			state, err := appFrom(cmd)
+			if err != nil {
+				return err
+			}
+			paths, err := buildAttackPaths(cmd, state, opts)
+			if err != nil {
+				return err
+			}
+			return writeBytes(state, visual.RenderHTML(visual.NewAttackPathDiagram(paths)))
 		},
 	}
 	cmd.Flags().StringArrayVar(&opts.planPaths, "plan", nil, "path to Terraform/OpenTofu plan JSON produced by show -json; repeat for multiple plans")
@@ -132,26 +164,17 @@ func writeAttackPaths(state *appState, paths []attackpath.AttackPath) error {
 		body = []byte(attackpath.RenderMarkdown(paths))
 	case "json":
 		body, err = attackpath.RenderJSON(paths)
+	case "dot":
+		body = visual.RenderDOT(visual.NewAttackPathDiagram(paths))
+	case "mermaid":
+		body = visual.RenderMermaid(visual.NewAttackPathDiagram(paths))
 	default:
-		return usageError("--format for attack-paths must be markdown or json", "Run changegate attack-paths --format markdown or changegate attack-paths --format json.")
+		return usageError("--format for attack-paths must be markdown, json, dot, or mermaid", "Run changegate attack-paths --format markdown, json, dot, or mermaid.")
 	}
 	if err != nil {
 		return internalError(err.Error(), "Report this as a ChangeGate bug.")
 	}
-	if state.opts.outPath != "" {
-		if err := os.WriteFile(state.opts.outPath, body, 0o644); err != nil {
-			return inputError(fmt.Sprintf("write output %q: %v", state.opts.outPath, err), "Check the output path and directory permissions.")
-		}
-		return nil
-	}
-	if _, err := state.renderer.out.Write(body); err != nil {
-		return err
-	}
-	if len(body) > 0 && body[len(body)-1] != '\n' {
-		_, err := fmt.Fprintln(state.renderer.out)
-		return err
-	}
-	return nil
+	return writeBytes(state, body)
 }
 
 func perDetectorPathLimit(limit int) int {

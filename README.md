@@ -38,7 +38,9 @@ ChangeGate includes review-oriented commands for pull requests, merge requests, 
 changegate impact --plan tfplan.json --format markdown
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
+changegate graph visualize --plan tfplan.json --view exposure --resource aws_ecs_service.admin --out exposure.html
 changegate attack-paths --plan tfplan.json --to-sensitive-data
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 changegate review github --report changegate.json --comment --annotations
 changegate review gitlab --report changegate.json --comment
 changegate context aws snapshot --out .changegate/aws-context.json --collect
@@ -126,6 +128,17 @@ Generate machine-readable output:
 changegate scan --plan tfplan.json --format json --out changegate.json
 changegate scan --plan tfplan.json --format sarif --out changegate.sarif
 changegate scan --plan tfplan.json --format markdown --out changegate.md
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out graph-path.mmd
+changegate graph export --plan tfplan.json --format dot --out graph.dot
+```
+
+Generate visual review artifacts:
+
+```bash
+changegate graph visualize --plan tfplan.json --out graph.html
+changegate graph visualize --plan tfplan.json --view path --from aws_lb.admin --to aws_db_instance.customer --out path.html
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
+changegate graph render --plan tfplan.json --view exposure --resource aws_ecs_service.admin --render-format svg --out exposure.svg
 ```
 
 Archive audit evidence:

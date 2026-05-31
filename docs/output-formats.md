@@ -23,6 +23,11 @@ changegate graph summary --plan tfplan.json --format json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format json
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin --format json
 changegate graph export --plan tfplan.json --format json --out graph.json
+changegate graph export --plan tfplan.json --format dot --out graph.dot
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out graph-path.mmd
+changegate graph visualize --plan tfplan.json --out graph.html
+changegate attack-paths --plan tfplan.json --format dot --out attack-paths.dot
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 ```
 
 ## Canonical JSON
@@ -59,9 +64,20 @@ The impact audit bundle is deterministic and contains:
 
 ## Graph JSON
 
-`changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation and emit graph result `version: 2`. `changegate graph export` emits the full graph v2 JSON artifact and requires `--format json`.
+`changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation and emit graph result `version: 2`. `changegate graph export` emits the full graph v2 JSON artifact with `--format json`.
 
 Graph v2 is documented by [../schemas/changegate-graph.schema.json](../schemas/changegate-graph.schema.json). Pre-release graph v1 JSON is not emitted; regenerate old artifacts with `changegate graph export --plan tfplan.json --format json`.
+
+## Diagram Formats
+
+Graph and attack-path commands support renderable diagram source for review artifacts:
+
+* `--format dot` emits Graphviz DOT.
+* `--format mermaid` emits Mermaid `flowchart LR`.
+* `graph visualize` and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, highlighted paths, and an evidence inspector.
+* `graph render` optionally shells out to Graphviz `dot` to render SVG, PNG, or PDF when Graphviz is installed.
+
+The HTML visualizations do not fetch network assets or external JavaScript. They are suitable for CI artifacts, audit bundles produced outside ChangeGate, internal docs, and pull-request links.
 
 ## SARIF
 

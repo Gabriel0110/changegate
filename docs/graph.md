@@ -38,9 +38,19 @@ changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
+changegate graph export --plan tfplan.json --format dot --out graph.dot
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out graph-path.mmd
+changegate graph visualize --plan tfplan.json --out graph.html
+changegate graph visualize --plan tfplan.json --view path --from aws_lb.admin --to aws_db_instance.customer --out graph-path.html
+changegate graph visualize --plan tfplan.json --view exposure --resource aws_ecs_service.admin --out exposure.html
+changegate graph render --plan tfplan.json --view exposure --resource aws_ecs_service.admin --render-format svg --out exposure.svg
 ```
 
-`summary`, `path`, and `exposure` render human-readable output by default and support `--format json` for automation. `export` writes the full graph and requires `--format json`.
+`summary`, `path`, and `exposure` render human-readable output by default and support `--format json` for automation. The graph commands also support `--format dot` and `--format mermaid` for renderable diagram source. `export` writes the full graph as JSON, DOT, or Mermaid.
+
+`graph visualize` writes a dependency-free HTML file with an interactive SVG graph, search, role filters, highlighted paths, and a node evidence inspector. It is the recommended artifact when reviewers need to understand blast radius without reading JSON. The HTML is self-contained and does not load external scripts.
+
+`graph render` is an optional convenience wrapper around Graphviz `dot`. It renders the same DOT model to SVG, PNG, or PDF and requires Graphviz to be installed on the machine running ChangeGate. If Graphviz is not available, use `--format dot` or `graph visualize`.
 
 Scan, review, and impact commands merge cloud context into the graph when `--context-file` or `--cloud-context aws` is supplied. The merge preserves provenance:
 

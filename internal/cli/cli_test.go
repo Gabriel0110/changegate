@@ -288,6 +288,90 @@ func TestGraphJSONOutputsAreValid(t *testing.T) {
 	}
 }
 
+func TestGraphVisualFormats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			name: "graph export dot",
+			args: []string{"--format", "dot", "graph", "export", "--plan", "testdata/graph-plan.json"},
+			want: []string{"digraph ChangeGate", "ChangeGate Graph Export", "aws_ecs_service.admin"},
+		},
+		{
+			name: "graph path mermaid",
+			args: []string{"--format", "mermaid", "graph", "path", "--plan", "testdata/graph-plan.json", "--from", "aws_lb.admin", "--to", "aws_db_instance.customer", "--max-paths", "1"},
+			want: []string{"flowchart LR", "ChangeGate Graph Path", "-->|\"routes to\"|"},
+		},
+		{
+			name: "graph exposure dot",
+			args: []string{"--format", "dot", "graph", "exposure", "--plan", "testdata/graph-plan.json", "--resource", "aws_ecs_service.admin", "--max-paths", "1"},
+			want: []string{"digraph ChangeGate", "ChangeGate Exposure Graph", "customer"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, code := runCLI(tt.args...)
+			if code != exitAllowed {
+				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(stdout, want) {
+					t.Fatalf("output missing %q:\n%s", want, stdout)
+				}
+			}
+		})
+	}
+}
+
+func TestGraphVisualizeHTML(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			name: "full graph",
+			args: []string{"graph", "visualize", "--plan", "testdata/graph-plan.json"},
+			want: []string{"<!doctype html>", "CHANGEGATE_DIAGRAM", "ChangeGate Graph", "aws_ecs_service.admin", "data-role=\"workload\""},
+		},
+		{
+			name: "path",
+			args: []string{"graph", "visualize", "--plan", "testdata/graph-plan.json", "--view", "path", "--from", "aws_lb.admin", "--to", "aws_db_instance.customer", "--max-paths", "1"},
+			want: []string{"<!doctype html>", "ChangeGate Graph Path", "aws_lb.admin", "aws_db_instance.customer", "data-role=\"path\""},
+		},
+		{
+			name: "exposure",
+			args: []string{"graph", "visualize", "--plan", "testdata/graph-plan.json", "--view", "exposure", "--resource", "aws_ecs_service.admin", "--max-paths", "1"},
+			want: []string{"<!doctype html>", "ChangeGate Exposure Graph", "Blast radius for aws_ecs_service.admin", "aws_db_instance.customer"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, code := runCLI(tt.args...)
+			if code != exitAllowed {
+				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(stdout, want) {
+					t.Fatalf("HTML output missing %q:\n%s", want, stdout)
+				}
+			}
+		})
+	}
+}
+
 func TestImpactJSONOutputIsStableAndRoundTrips(t *testing.T) {
 	t.Parallel()
 
@@ -345,6 +429,77 @@ func TestAttackPathsJSONOutputIsStableAndRoundTrips(t *testing.T) {
 	}
 	if result.Paths[0].Type != "public_to_sensitive_data" || result.Paths[0].Metadata["graph_path_id"] == "" {
 		t.Fatalf("attack path missing type or graph path id: %#v", result.Paths[0])
+	}
+}
+
+func TestAttackPathVisualFormats(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{
+			name: "dot",
+			args: []string{"--format", "dot", "attack-paths", "--plan", "testdata/graph-plan.json", "--max-paths", "1"},
+			want: []string{"digraph ChangeGate", "ChangeGate Attack Paths", "aws_db_instance.customer"},
+		},
+		{
+			name: "mermaid",
+			args: []string{"--format", "mermaid", "attack-paths", "--plan", "testdata/graph-plan.json", "--max-paths", "1"},
+			want: []string{"flowchart LR", "ChangeGate Attack Paths", "classDef block"},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			stdout, stderr, code := runCLI(tt.args...)
+			if code != exitAllowed {
+				t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+			}
+			for _, want := range tt.want {
+				if !strings.Contains(stdout, want) {
+					t.Fatalf("output missing %q:\n%s", want, stdout)
+				}
+			}
+		})
+	}
+}
+
+func TestAttackPathsVisualizeHTML(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("attack-paths", "visualize", "--plan", "testdata/graph-plan.json", "--max-paths", "1")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	for _, want := range []string{"<!doctype html>", "CHANGEGATE_DIAGRAM", "ChangeGate Attack Paths", "aws_db_instance.customer", "data-role=\"block\""} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("HTML output missing %q:\n%s", want, stdout)
+		}
+	}
+}
+
+func TestGraphRenderValidation(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("graph", "render", "--plan", "testdata/graph-plan.json")
+	if code != exitUsage {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitUsage, stdout, stderr)
+	}
+	if !strings.Contains(stderr, "graph render requires --out") {
+		t.Fatalf("stderr missing --out diagnostic:\n%s", stderr)
+	}
+
+	stdout, stderr, code = runCLI("graph", "render", "--plan", "testdata/graph-plan.json", "--out", filepath.Join(t.TempDir(), "graph.svg"), "--engine", "other")
+	if code != exitUsage {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitUsage, stdout, stderr)
+	}
+	if !strings.Contains(stderr, "--engine must be graphviz") {
+		t.Fatalf("stderr missing engine diagnostic:\n%s", stderr)
 	}
 }
 

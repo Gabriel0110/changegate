@@ -39,12 +39,22 @@ changegate graph path --plan examples/risk-tests/fixtures/public-alb-ecs-rds.jso
   --from aws_lb.admin --to aws_db_instance.customer --format json
 changegate graph exposure --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json \
   --resource aws_ecs_service.admin --format json
+changegate graph path --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json \
+  --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out /tmp/changegate-graph-path.mmd
+changegate graph visualize --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json \
+  --view exposure --resource aws_ecs_service.admin --out /tmp/changegate-exposure.html
+changegate graph render --plan examples/risk-tests/fixtures/public-alb-ecs-rds.json \
+  --view exposure --resource aws_ecs_service.admin --render-format svg --out /tmp/changegate-exposure.svg
 changegate attack-paths --plan examples/risk-tests/fixtures/passrole-lambda-update.json \
   --format json
+changegate attack-paths visualize --plan examples/risk-tests/fixtures/passrole-lambda-update.json \
+  --out /tmp/changegate-attack-paths.html
 ```
 
 Blocking fixtures should exit with status `1`; that is the expected enforcement
-result, not a test failure.
+result, not a test failure. The `graph render` command requires Graphviz; skip
+only that render step when `dot` is unavailable and keep the DOT, Mermaid, and
+HTML checks.
 
 ### Performance and release checks
 

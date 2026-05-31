@@ -2,7 +2,7 @@ package cli
 
 import "slices"
 
-var validFormats = []string{"table", "json", "sarif", "junit", "markdown", "github-step-summary", "github-annotations", "gitlab-code-quality", "pr-comment", "audit-bundle"}
+var validFormats = []string{"table", "json", "sarif", "junit", "markdown", "github-step-summary", "github-annotations", "gitlab-code-quality", "pr-comment", "audit-bundle", "dot", "mermaid"}
 var validModes = []string{"block", "warn", "audit"}
 
 type options struct {

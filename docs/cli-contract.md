@@ -41,6 +41,12 @@ changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
+changegate graph export --plan tfplan.json --format dot --out graph.dot
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out graph-path.mmd
+changegate graph visualize --plan tfplan.json --out graph.html
+changegate graph visualize --plan tfplan.json --view exposure --resource aws_ecs_service.admin --out exposure.html
+changegate graph render --plan tfplan.json --view path --from aws_lb.admin --to aws_db_instance.customer --render-format svg --out graph-path.svg
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 changegate context aws snapshot --out .changegate/aws-context.json --collect
 changegate context aws snapshot --out .changegate/aws-context.json --collect network,edge,iam,compute,data --regions us-east-1,us-west-2 --profile prod-readonly
 changegate review github --report changegate.json --comment
@@ -94,7 +100,7 @@ changegate policy validate .changegate.yaml # validates custom_rules and rego fi
 
 | Flag | Values | Contract |
 | --- | --- | --- |
-| `--format` | `table`, `json`, `sarif`, `junit`, `markdown`, `github-step-summary`, `github-annotations`, `gitlab-code-quality`, `pr-comment`, `audit-bundle` | Select output format. `table` is the human console default. |
+| `--format` | `table`, `json`, `sarif`, `junit`, `markdown`, `github-step-summary`, `github-annotations`, `gitlab-code-quality`, `pr-comment`, `audit-bundle`, `dot`, `mermaid` | Select output format. `table` is the human console default. DOT and Mermaid are supported by graph and attack-path commands. |
 | `--out` | path | Write selected output to a file instead of stdout where supported. |
 | `--policy` | path | Load `.changegate.yaml`-compatible configuration. |
 | `--cache-dir` | path | Prepare cache directories for policy packs and cloud context. |

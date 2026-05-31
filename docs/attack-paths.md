@@ -14,7 +14,12 @@ changegate attack-paths --plan tfplan.json
 changegate attack-paths --plan tfplan.json --to-sensitive-data
 changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actions
 changegate attack-paths --plan tfplan.json --format json --out attack-paths.json
+changegate attack-paths --plan tfplan.json --format dot --out attack-paths.dot
+changegate attack-paths --plan tfplan.json --format mermaid --out attack-paths.mmd
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 ```
+
+DOT and Mermaid output are intended for teams that already publish diagrams in docs or CI artifacts. `attack-paths visualize` writes a self-contained interactive HTML file with highlighted path edges, role filters, search, and a node evidence inspector. It is the preferred human review artifact when JSON is too dense for pull-request review.
 
 Public-to-sensitive detection is available as the first v1 detector. It uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 

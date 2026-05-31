@@ -1,13 +1,17 @@
 package cli
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"sort"
 	"strings"
 
 	graphpkg "github.com/Gabriel0110/changegate/internal/graph"
 	"github.com/Gabriel0110/changegate/internal/model"
+	"github.com/Gabriel0110/changegate/internal/visual"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +24,9 @@ type graphOptions struct {
 	resource string
 	maxDepth int
 	maxPaths int
+	view     string
+	render   string
+	engine   string
 }
 
 type graphSummaryResult struct {
@@ -79,6 +86,8 @@ policy rules or returning a deployment decision.`,
 	root.AddCommand(newGraphPathCommand())
 	root.AddCommand(newGraphExposureCommand())
 	root.AddCommand(newGraphExportCommand())
+	root.AddCommand(newGraphVisualizeCommand())
+	root.AddCommand(newGraphRenderCommand())
 	return root
 }
 
@@ -97,7 +106,7 @@ func newGraphSummaryCommand() *cobra.Command {
 				return err
 			}
 			result := buildGraphSummary(opts.planPath, plan, resourceGraph)
-			return writeGraphSummary(state, result)
+			return writeGraphSummary(state, result, resourceGraph)
 		},
 	}
 	addGraphPlanFlag(cmd, opts)
@@ -118,29 +127,11 @@ func newGraphPathCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.from == "" {
-				return usageError("graph path requires --from", "Pass the source resource address, for example --from aws_lb.admin.")
-			}
-			if opts.to == "" {
-				return usageError("graph path requires --to", "Pass the target resource address, for example --to aws_db_instance.customer.")
-			}
-			if err := requireGraphNode(resourceGraph, graphpkg.ResourceID(opts.from), "--from"); err != nil {
+			result, err := buildGraphPathResult(resourceGraph, opts)
+			if err != nil {
 				return err
 			}
-			if err := requireGraphNode(resourceGraph, graphpkg.ResourceID(opts.to), "--to"); err != nil {
-				return err
-			}
-			result := graphPathResult{
-				Version: graphOutputVersion,
-				From:    graphpkg.ResourceID(opts.from),
-				To:      graphpkg.ResourceID(opts.to),
-				Paths: resourceGraph.Paths(graphpkg.ResourceID(opts.from), graphpkg.ResourceID(opts.to), graphpkg.PathOptions{
-					MaxDepth: opts.maxDepth,
-					MaxPaths: opts.maxPaths,
-				}),
-			}
-			result.Found = len(result.Paths) > 0
-			return writeGraphPath(state, result)
+			return writeGraphPath(state, result, resourceGraph)
 		},
 	}
 	addGraphPlanFlag(cmd, opts)
@@ -165,27 +156,11 @@ func newGraphExposureCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.resource == "" {
-				return usageError("graph exposure requires --resource", "Pass the resource address to analyze, for example --resource aws_ecs_service.admin.")
-			}
-			resource := graphpkg.ResourceID(opts.resource)
-			if err := requireGraphNode(resourceGraph, resource, "--resource"); err != nil {
+			result, err := buildGraphExposureResult(resourceGraph, opts)
+			if err != nil {
 				return err
 			}
-			radius := resourceGraph.BlastRadius(resource, graphpkg.BlastRadiusOptions{
-				MaxDepth: opts.maxDepth,
-				MaxPaths: opts.maxPaths,
-			})
-			result := graphExposureResult{
-				Version:     graphOutputVersion,
-				Resource:    resource,
-				Kind:        resourceGraph.Nodes[resource].Kind,
-				Exposure:    radius.Exposure,
-				BlastRadius: radius,
-				Level:       exposureLevel(radius),
-				TopPath:     topExposurePath(radius),
-			}
-			return writeGraphExposure(state, result)
+			return writeGraphExposure(state, result, resourceGraph)
 		},
 	}
 	addGraphPlanFlag(cmd, opts)
@@ -198,19 +173,26 @@ func newGraphExposureCommand() *cobra.Command {
 func newGraphExportCommand() *cobra.Command {
 	opts := &graphOptions{}
 	cmd := &cobra.Command{
-		Use:   "export --plan tfplan.json --format json",
-		Short: "Export the full graph as JSON",
+		Use:   "export --plan tfplan.json --format json|dot|mermaid",
+		Short: "Export the full graph as JSON or a renderable diagram",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			state, err := appFrom(cmd)
 			if err != nil {
 				return err
 			}
-			if state.opts.format != "json" {
-				return usageError("graph export requires --format json", "Run changegate graph export --plan tfplan.json --format json.")
-			}
 			_, resourceGraph, err := loadGraphPlan(cmd, state, opts.planPath)
 			if err != nil {
 				return err
+			}
+			if state.opts.format == "dot" || state.opts.format == "mermaid" {
+				diagram := visual.NewGraphDiagram(resourceGraph, visual.GraphOptions{
+					Title:       "ChangeGate Graph Export",
+					Description: "Full infrastructure relationship graph",
+				})
+				return writeGraphDiagram(state, diagram)
+			}
+			if state.opts.format != "json" {
+				return usageError("graph export requires --format json, dot, or mermaid", "Run changegate graph export --plan tfplan.json --format json.")
 			}
 			result := graphExportResult{
 				Version: graphOutputVersion,
@@ -222,6 +204,148 @@ func newGraphExportCommand() *cobra.Command {
 	}
 	addGraphPlanFlag(cmd, opts)
 	return cmd
+}
+
+func newGraphVisualizeCommand() *cobra.Command {
+	opts := &graphOptions{view: "graph"}
+	cmd := &cobra.Command{
+		Use:   "visualize --plan tfplan.json",
+		Short: "Write a self-contained interactive HTML graph visualization",
+		Long: `Write a self-contained HTML visualization for the full graph, a focused
+path, or a blast-radius exposure view. The output does not require network
+access, JavaScript packages, or a hosted service.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			state, err := appFrom(cmd)
+			if err != nil {
+				return err
+			}
+			_, resourceGraph, err := loadGraphPlan(cmd, state, opts.planPath)
+			if err != nil {
+				return err
+			}
+			diagram, err := graphVisualizationDiagram(resourceGraph, opts)
+			if err != nil {
+				return err
+			}
+			return writeBytes(state, visual.RenderHTML(diagram))
+		},
+	}
+	addGraphPlanFlag(cmd, opts)
+	addGraphViewFlags(cmd, opts)
+	return cmd
+}
+
+func newGraphRenderCommand() *cobra.Command {
+	opts := &graphOptions{view: "graph", render: "svg", engine: "graphviz"}
+	cmd := &cobra.Command{
+		Use:   "render --plan tfplan.json --out graph.svg",
+		Short: "Render a graph visualization with an optional external renderer",
+		Long: `Render a graph, path, or exposure diagram with an external Graphviz
+installation. ChangeGate still emits DOT without this helper; render is a
+convenience wrapper for teams that want committed SVG, PNG, or PDF artifacts.`,
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			state, err := appFrom(cmd)
+			if err != nil {
+				return err
+			}
+			if state.opts.outPath == "" {
+				return usageError("graph render requires --out", "Pass an output file, for example --out graph.svg.")
+			}
+			if opts.engine != "graphviz" {
+				return usageError("--engine must be graphviz", "Graphviz is the only external renderer supported by this release.")
+			}
+			if !isGraphvizRenderFormat(opts.render) {
+				return usageError("--render-format must be svg, png, or pdf", "Use --render-format svg for CI-friendly review artifacts.")
+			}
+			_, resourceGraph, err := loadGraphPlan(cmd, state, opts.planPath)
+			if err != nil {
+				return err
+			}
+			diagram, err := graphVisualizationDiagram(resourceGraph, opts)
+			if err != nil {
+				return err
+			}
+			body, err := runGraphviz(cmd.Context(), "dot", opts.render, visual.RenderDOT(diagram))
+			if err != nil {
+				return err
+			}
+			if err := os.WriteFile(state.opts.outPath, body, 0o644); err != nil {
+				return inputError(fmt.Sprintf("write output %q: %v", state.opts.outPath, err), "Check the output path and directory permissions.")
+			}
+			return nil
+		},
+	}
+	addGraphPlanFlag(cmd, opts)
+	addGraphViewFlags(cmd, opts)
+	cmd.Flags().StringVar(&opts.engine, "engine", opts.engine, "external renderer engine: graphviz")
+	cmd.Flags().StringVar(&opts.render, "render-format", opts.render, "rendered artifact format: svg, png, or pdf")
+	return cmd
+}
+
+func addGraphViewFlags(cmd *cobra.Command, opts *graphOptions) {
+	cmd.Flags().StringVar(&opts.view, "view", opts.view, "visualization view: graph, path, or exposure")
+	cmd.Flags().StringVar(&opts.from, "from", "", "source graph resource address for --view path")
+	cmd.Flags().StringVar(&opts.to, "to", "", "target graph resource address for --view path")
+	cmd.Flags().StringVar(&opts.resource, "resource", "", "resource address for --view exposure")
+	cmd.Flags().IntVar(&opts.maxDepth, "max-depth", 12, "maximum graph path depth")
+	cmd.Flags().IntVar(&opts.maxPaths, "max-paths", 10, "maximum paths to return")
+}
+
+func graphVisualizationDiagram(resourceGraph *graphpkg.Graph, opts *graphOptions) (visual.Diagram, error) {
+	switch opts.view {
+	case "", "graph":
+		return visual.NewGraphDiagram(resourceGraph, visual.GraphOptions{
+			Title:       "ChangeGate Graph",
+			Description: "Full infrastructure relationship graph",
+		}), nil
+	case "path":
+		result, err := buildGraphPathResult(resourceGraph, opts)
+		if err != nil {
+			return visual.Diagram{}, err
+		}
+		return visual.NewGraphPathDiagram(resourceGraph, result.From, result.To, result.Paths), nil
+	case "exposure":
+		result, err := buildGraphExposureResult(resourceGraph, opts)
+		if err != nil {
+			return visual.Diagram{}, err
+		}
+		return visual.NewGraphExposureDiagram(resourceGraph, result.Resource, result.BlastRadius), nil
+	default:
+		return visual.Diagram{}, usageError("--view must be graph, path, or exposure", "Run changegate graph visualize --view graph, --view path, or --view exposure.")
+	}
+}
+
+func isGraphvizRenderFormat(format string) bool {
+	switch format {
+	case "svg", "png", "pdf":
+		return true
+	default:
+		return false
+	}
+}
+
+func runGraphviz(ctx context.Context, dotBinary string, format string, dot []byte) ([]byte, error) {
+	path, err := exec.LookPath(dotBinary)
+	if err != nil {
+		return nil, usageError(
+			"Graphviz dot executable not found",
+			"Install Graphviz, or use --format dot / graph visualize for dependency-free artifacts.",
+		)
+	}
+	command := exec.CommandContext(ctx, path, "-T"+format)
+	command.Stdin = bytes.NewReader(dot)
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+	command.Stdout = &stdout
+	command.Stderr = &stderr
+	if err := command.Run(); err != nil {
+		detail := strings.TrimSpace(stderr.String())
+		if detail == "" {
+			detail = err.Error()
+		}
+		return nil, inputError("Graphviz render failed: "+detail, "Validate the generated DOT with changegate graph export --format dot.")
+	}
+	return stdout.Bytes(), nil
 }
 
 func addGraphPlanFlag(cmd *cobra.Command, opts *graphOptions) {
@@ -262,9 +386,66 @@ func buildGraphSummary(planPath string, plan *model.Plan, resourceGraph *graphpk
 	}
 }
 
-func writeGraphSummary(state *appState, result graphSummaryResult) error {
+func buildGraphPathResult(resourceGraph *graphpkg.Graph, opts *graphOptions) (graphPathResult, error) {
+	if opts.from == "" {
+		return graphPathResult{}, usageError("graph path requires --from", "Pass the source resource address, for example --from aws_lb.admin.")
+	}
+	if opts.to == "" {
+		return graphPathResult{}, usageError("graph path requires --to", "Pass the target resource address, for example --to aws_db_instance.customer.")
+	}
+	from := graphpkg.ResourceID(opts.from)
+	to := graphpkg.ResourceID(opts.to)
+	if err := requireGraphNode(resourceGraph, from, "--from"); err != nil {
+		return graphPathResult{}, err
+	}
+	if err := requireGraphNode(resourceGraph, to, "--to"); err != nil {
+		return graphPathResult{}, err
+	}
+	result := graphPathResult{
+		Version: graphOutputVersion,
+		From:    from,
+		To:      to,
+		Paths: resourceGraph.Paths(from, to, graphpkg.PathOptions{
+			MaxDepth: opts.maxDepth,
+			MaxPaths: opts.maxPaths,
+		}),
+	}
+	result.Found = len(result.Paths) > 0
+	return result, nil
+}
+
+func buildGraphExposureResult(resourceGraph *graphpkg.Graph, opts *graphOptions) (graphExposureResult, error) {
+	if opts.resource == "" {
+		return graphExposureResult{}, usageError("graph exposure requires --resource", "Pass the resource address to analyze, for example --resource aws_ecs_service.admin.")
+	}
+	resource := graphpkg.ResourceID(opts.resource)
+	if err := requireGraphNode(resourceGraph, resource, "--resource"); err != nil {
+		return graphExposureResult{}, err
+	}
+	radius := resourceGraph.BlastRadius(resource, graphpkg.BlastRadiusOptions{
+		MaxDepth: opts.maxDepth,
+		MaxPaths: opts.maxPaths,
+	})
+	return graphExposureResult{
+		Version:     graphOutputVersion,
+		Resource:    resource,
+		Kind:        resourceGraph.Nodes[resource].Kind,
+		Exposure:    radius.Exposure,
+		BlastRadius: radius,
+		Level:       exposureLevel(radius),
+		TopPath:     topExposurePath(radius),
+	}, nil
+}
+
+func writeGraphSummary(state *appState, result graphSummaryResult, resourceGraph *graphpkg.Graph) error {
 	if state.opts.format == "json" {
 		return writeGraphJSON(state, result)
+	}
+	if state.opts.format == "dot" || state.opts.format == "mermaid" {
+		return writeGraphDiagram(state, visual.NewGraphDiagram(resourceGraph, visual.GraphOptions{
+			Title:       "ChangeGate Graph Summary",
+			Description: fmt.Sprintf("%d nodes, %d edges", result.Nodes, result.Edges),
+		}))
 	}
 	if err := validateGraphTableFormat(state.opts.format); err != nil {
 		return err
@@ -287,9 +468,12 @@ func writeGraphSummary(state *appState, result graphSummaryResult) error {
 	return nil
 }
 
-func writeGraphPath(state *appState, result graphPathResult) error {
+func writeGraphPath(state *appState, result graphPathResult, resourceGraph *graphpkg.Graph) error {
 	if state.opts.format == "json" {
 		return writeGraphJSON(state, result)
+	}
+	if state.opts.format == "dot" || state.opts.format == "mermaid" {
+		return writeGraphDiagram(state, visual.NewGraphPathDiagram(resourceGraph, result.From, result.To, result.Paths))
 	}
 	if err := validateGraphTableFormat(state.opts.format); err != nil {
 		return err
@@ -314,9 +498,12 @@ func writeGraphPath(state *appState, result graphPathResult) error {
 	return nil
 }
 
-func writeGraphExposure(state *appState, result graphExposureResult) error {
+func writeGraphExposure(state *appState, result graphExposureResult, resourceGraph *graphpkg.Graph) error {
 	if state.opts.format == "json" {
 		return writeGraphJSON(state, result)
+	}
+	if state.opts.format == "dot" || state.opts.format == "mermaid" {
+		return writeGraphDiagram(state, visual.NewGraphExposureDiagram(resourceGraph, result.Resource, result.BlastRadius))
 	}
 	if err := validateGraphTableFormat(state.opts.format); err != nil {
 		return err
@@ -356,12 +543,42 @@ func writeGraphJSON(state *appState, result any) error {
 	return writeJSON(state.renderer.out, result)
 }
 
+func writeGraphDiagram(state *appState, diagram visual.Diagram) error {
+	var body []byte
+	switch state.opts.format {
+	case "dot":
+		body = visual.RenderDOT(diagram)
+	case "mermaid":
+		body = visual.RenderMermaid(diagram)
+	default:
+		return usageError("--format for graph diagram must be dot or mermaid", "Run graph commands with --format dot or --format mermaid.")
+	}
+	return writeBytes(state, body)
+}
+
+func writeBytes(state *appState, body []byte) error {
+	if state.opts.outPath != "" {
+		if err := os.WriteFile(state.opts.outPath, body, 0o644); err != nil {
+			return inputError(fmt.Sprintf("write output %q: %v", state.opts.outPath, err), "Check the output path and directory permissions.")
+		}
+		return nil
+	}
+	if _, err := state.renderer.out.Write(body); err != nil {
+		return err
+	}
+	if len(body) > 0 && body[len(body)-1] != '\n' {
+		_, err := fmt.Fprintln(state.renderer.out)
+		return err
+	}
+	return nil
+}
+
 func validateGraphTableFormat(format string) error {
 	switch format {
 	case "", "table":
 		return nil
 	default:
-		return usageError("--format for graph must be table or json", "Run graph commands with --format table or --format json.")
+		return usageError("--format for graph must be table, json, dot, or mermaid", "Run graph commands with --format table, --format json, --format dot, or --format mermaid.")
 	}
 }
 

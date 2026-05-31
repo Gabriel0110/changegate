@@ -27,7 +27,7 @@ Flags:
 Global Flags:
       --cache-dir string   cache directory for policy packs and cloud context
       --debug              enable debug diagnostics without secrets
-      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle (default "table")
+      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle, dot, mermaid (default "table")
       --mode string        enforcement mode: block, warn, audit (default "block")
       --no-color           disable ANSI color output
       --out string         write output to a file

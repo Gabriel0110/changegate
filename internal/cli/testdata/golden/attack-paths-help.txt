@@ -4,6 +4,10 @@ without evaluating deployment policy or returning a block exit code.
 
 Usage:
   changegate attack-paths --plan tfplan.json [flags]
+  changegate attack-paths [command]
+
+Available Commands:
+  visualize   Write a self-contained interactive HTML attack-path visualization
 
 Flags:
       --cloud-context string   optional cloud context provider: aws
@@ -18,10 +22,12 @@ Flags:
 Global Flags:
       --cache-dir string   cache directory for policy packs and cloud context
       --debug              enable debug diagnostics without secrets
-      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle (default "table")
+      --format string      output format: table, json, sarif, junit, markdown, github-step-summary, github-annotations, gitlab-code-quality, pr-comment, audit-bundle, dot, mermaid (default "table")
       --mode string        enforcement mode: block, warn, audit (default "block")
       --no-color           disable ANSI color output
       --out string         write output to a file
       --policy string      path to .changegate.yaml policy file
       --quiet              suppress non-essential human output
       --verbose            enable informational diagnostics
+
+Use "changegate attack-paths [command] --help" for more information about a command.

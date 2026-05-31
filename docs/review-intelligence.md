@@ -50,7 +50,10 @@ changegate graph summary --plan tfplan.json
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
 changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
 changegate graph export --plan tfplan.json --format json
+changegate graph visualize --plan tfplan.json --view exposure --resource aws_ecs_service.admin --out exposure.html
 ```
+
+Graph visualizations are available as DOT, Mermaid, self-contained interactive HTML, and optional Graphviz-rendered SVG/PNG/PDF artifacts. Use HTML for review links and CI artifacts when reviewers need to understand blast radius without opening JSON.
 
 The PR/MR comment renderer is implemented as a pure internal renderer over the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details.
 
@@ -78,6 +81,7 @@ changegate attack-paths --plan tfplan.json
 changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actions
 changegate attack-paths --plan tfplan.json --to-sensitive-data
 changegate attack-paths --plan tfplan.json --format json
+changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 ```
 
 AWS cloud context collection and risk tests are available:
