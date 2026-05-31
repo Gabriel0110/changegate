@@ -66,6 +66,7 @@ func detectSensitivePaths(g *graph.Graph, entrypoint graph.ResourceID, opts Dete
 				},
 				Mitigations: publicSensitiveMitigations(targetNode),
 				References:  []string{"https://changegate.dev/docs/attack-paths"},
+				Metadata:    map[string]string{"graph_path_id": graphPathID(fullPath)},
 			})
 		}
 	}
@@ -103,10 +104,22 @@ func detectPublicWorkloadWarnings(g *graph.Graph, entrypoint graph.ResourceID, o
 					"Attach cloud context or tags for downstream sensitive data when available.",
 				},
 				References: []string{"https://changegate.dev/docs/attack-paths"},
+				Metadata:   map[string]string{"graph_path_id": graphPathID(fullPath)},
 			})
 		}
 	}
 	return out
+}
+
+func graphPathID(path graph.Path) string {
+	nodes := make([]string, 0, len(path.Nodes))
+	for _, node := range path.Nodes {
+		nodes = append(nodes, string(node))
+	}
+	if len(nodes) == 0 {
+		return ""
+	}
+	return "graph-path-" + strings.ReplaceAll(strings.Join(nodes, "-"), ".", "-")
 }
 
 func withPublicIngress(g *graph.Graph, entrypoint graph.ResourceID, path graph.Path) graph.Path {

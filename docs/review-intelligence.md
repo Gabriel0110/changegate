@@ -69,21 +69,25 @@ changegate review gitlab --plan tfplan.json --comment
 changegate review gitlab --report changegate.json --comment --dry-run --project 123 --merge-request 456
 ```
 
-Planned commands still in progress:
+Attack path inspection is available through `changegate attack-paths`. It detects v1 public-to-sensitive-data and IAM privilege-escalation paths without running deployment enforcement.
 
 ```bash
-
 changegate attack-paths --plan tfplan.json
 changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actions
 changegate attack-paths --plan tfplan.json --to-sensitive-data
+changegate attack-paths --plan tfplan.json --format json
+```
 
+Planned commands still in progress:
+
+```bash
 changegate context aws snapshot --out .changegate/aws-context.json --collect
 
 changegate test
 changegate test ./changegate-tests
 ```
 
-Attack path modeling is available as an internal, versioned contract for upcoming detector and CLI work. See [Attack Paths](attack-paths.md) for the JSON schema, Markdown rendering behavior, and policy eligibility rules.
+See [Attack Paths](attack-paths.md) for the JSON schema, Markdown rendering behavior, detector behavior, and policy eligibility rules.
 
 ## Configuration
 

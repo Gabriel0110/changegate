@@ -54,6 +54,13 @@ func TestGoldenOutput(t *testing.T) {
 			stream:   "stdout",
 		},
 		{
+			name:     "attack paths help",
+			args:     []string{"attack-paths", "--help"},
+			golden:   "attack-paths-help.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
+		{
 			name:     "graph help",
 			args:     []string{"graph", "--help"},
 			golden:   "graph-help.txt",
@@ -86,6 +93,13 @@ func TestGoldenOutput(t *testing.T) {
 			args:     []string{"--no-color", "--format", "markdown", "impact", "--plan", "../input/testdata/terraform-plan.json"},
 			golden:   "impact-markdown.md",
 			wantCode: exitBlocked,
+			stream:   "stdout",
+		},
+		{
+			name:     "attack paths markdown",
+			args:     []string{"--no-color", "attack-paths", "--plan", "testdata/graph-plan.json", "--max-paths", "1"},
+			golden:   "attack-paths.md",
+			wantCode: exitAllowed,
 			stream:   "stdout",
 		},
 	}
@@ -294,6 +308,57 @@ func TestImpactJSONOutputIsStableAndRoundTrips(t *testing.T) {
 	}
 	if len(statement.TopFindings) != 1 {
 		t.Fatalf("top findings = %d, want 1", len(statement.TopFindings))
+	}
+}
+
+func TestAttackPathsJSONOutputIsStableAndRoundTrips(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "attack-paths", "--plan", "testdata/graph-plan.json", "--to-sensitive-data", "--max-paths", "1")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var result struct {
+		Version int `json:"version"`
+		Paths   []struct {
+			ID       string            `json:"id"`
+			Type     string            `json:"type"`
+			Metadata map[string]string `json:"metadata"`
+		} `json:"paths"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("invalid attack paths JSON: %v\n%s", err, stdout)
+	}
+	if result.Version != 1 || len(result.Paths) != 1 {
+		t.Fatalf("unexpected attack paths result: %#v", result)
+	}
+	if result.Paths[0].Type != "public_to_sensitive_data" || result.Paths[0].Metadata["graph_path_id"] == "" {
+		t.Fatalf("attack path missing type or graph path id: %#v", result.Paths[0])
+	}
+}
+
+func TestAttackPathsEmptyResult(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "attack-paths", "--plan", "testdata/graph-plan.json", "--principal", "aws_iam_role.missing")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var result struct {
+		Version int   `json:"version"`
+		Paths   []any `json:"paths"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+		t.Fatalf("invalid attack paths JSON: %v\n%s", err, stdout)
+	}
+	if result.Version != 1 || len(result.Paths) != 0 {
+		t.Fatalf("unexpected empty result: %#v", result)
 	}
 }
 
