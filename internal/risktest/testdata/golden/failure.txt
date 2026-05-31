@@ -1,12 +1,12 @@
+FAIL bad_case
+  decision: expected decision "block", got "allow"
+  findings.include: expected finding AWS_PUBLIC_ADMIN_SERVICE to be present
+  findings.exclude: expected finding AWS_PUBLIC_RDS_INSTANCE to be absent
+  severity_count.critical: expected 1 critical findings, got 0
+  attack_paths.include: expected "public_to_sensitive_data" in attack_paths; got (none)
+  risk_movement.new_high: expected 1, got 0
+  waivers.applied: expected waiver to apply to AWS_PUBLIC_RDS_INSTANCE
+
 Risk tests: failed
 Manifests: 1
 Tests: 0 passed, 1 failed, 0 errors
-
-changegate-test.yaml: bad_case
-  - decision: expected decision "block", got "allow"
-  - findings.include: expected finding AWS_PUBLIC_ADMIN_SERVICE to be present
-  - findings.exclude: expected finding AWS_PUBLIC_RDS_INSTANCE to be absent
-  - severity_count.critical: expected 1 critical findings, got 0
-  - attack_paths.include: expected "public_to_sensitive_data" in attack_paths; got (none)
-  - risk_movement.new_high: expected 1, got 0
-  - waivers.applied: expected waiver to apply to AWS_PUBLIC_RDS_INSTANCE

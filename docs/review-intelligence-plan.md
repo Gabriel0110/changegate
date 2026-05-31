@@ -1548,6 +1548,7 @@ FAIL public_admin_service_should_block
 * Exit code non-zero on failed tests.
 * JSON and JUnit outputs work in CI.
 * `--update` updates snapshots only, not expected decisions.
+* Implemented as `changegate test` with manifest/directory discovery and optional `--junit` output.
 
 ### Tests
 

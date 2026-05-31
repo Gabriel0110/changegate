@@ -1,0 +1,9 @@
+version: 1
+tests:
+  - name: public_admin_service_should_allow
+    plan: ../../graph-plan.json
+    expect:
+      decision: allow
+      findings:
+        exclude:
+          - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH

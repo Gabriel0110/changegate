@@ -180,7 +180,7 @@ See [GitHub Actions](docs/github-actions.md), [GitLab CI](docs/gitlab-ci.md), [A
 
 ## Risk Tests
 
-Platform teams can define deterministic risk test manifests for Terraform/OpenTofu module fixtures. Risk tests assert ChangeGate decisions, required or forbidden findings, attack paths, graph paths, risk movement, waiver state, and stable output snapshots. See [risk tests](docs/risk-tests.md).
+Platform teams can define deterministic risk test manifests for Terraform/OpenTofu module fixtures and run them with `changegate test`. Risk tests assert ChangeGate decisions, required or forbidden findings, attack paths, graph paths, risk movement, waiver state, and stable output snapshots. See [risk tests](docs/risk-tests.md).
 
 ## Roll Out Safely
 

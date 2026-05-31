@@ -103,6 +103,13 @@ func TestGoldenOutput(t *testing.T) {
 			wantCode: exitAllowed,
 			stream:   "stdout",
 		},
+		{
+			name:     "risk test",
+			args:     []string{"--no-color", "test", "testdata/risktests/pass"},
+			golden:   "risk-test.txt",
+			wantCode: exitAllowed,
+			stream:   "stdout",
+		},
 	}
 
 	for _, tt := range tests {
@@ -425,6 +432,89 @@ func TestAttackPathFindingsParticipateInBaselines(t *testing.T) {
 	}
 	if report.RiskSummary.Suppressed == 0 {
 		t.Fatalf("risk summary suppressed count = 0, want attack path baseline suppression")
+	}
+}
+
+func TestRiskTestJSONJUnitAndFailures(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "test", "testdata/risktests/pass")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	assertValidJSON(t, stdout)
+	if !strings.Contains(stdout, `"passed": true`) || !strings.Contains(stdout, `"public_admin_service_should_block"`) {
+		t.Fatalf("risk test JSON missing pass result:\n%s", stdout)
+	}
+
+	junitPath := filepath.Join(t.TempDir(), "changegate-tests.xml")
+	stdout, stderr, code = runCLI("--no-color", "test", "--junit", junitPath, "testdata/risktests/pass")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	body, err := os.ReadFile(junitPath)
+	if err != nil {
+		t.Fatalf("read junit: %v", err)
+	}
+	for _, want := range []string{`<testsuites name="changegate.risk-tests" tests="1" failures="0" errors="0">`, `public_admin_service_should_block`} {
+		if !strings.Contains(string(body), want) {
+			t.Fatalf("JUnit output missing %q:\n%s", want, string(body))
+		}
+	}
+
+	stdout, stderr, code = runCLI("--no-color", "test", "testdata/risktests/fail")
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	for _, want := range []string{"FAIL public_admin_service_should_allow", `decision: expected decision "allow", got "block"`, "findings.exclude"} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("failed risk test output missing %q:\n%s", want, stdout)
+		}
+	}
+}
+
+func TestRiskTestUpdateOnlyUpdatesSnapshots(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	planPath := filepath.Join(tempDir, "plan.json")
+	planBody, err := os.ReadFile(filepath.Join("testdata", "graph-plan.json"))
+	if err != nil {
+		t.Fatalf("read graph plan: %v", err)
+	}
+	if err := os.WriteFile(planPath, planBody, 0o644); err != nil {
+		t.Fatalf("write plan: %v", err)
+	}
+	manifestPath := filepath.Join(tempDir, "changegate-test.yaml")
+	manifest := `version: 1
+tests:
+  - name: update_snapshot_not_decision
+    plan: plan.json
+    expect:
+      decision: allow
+      snapshot: snapshots/report.json
+`
+	if err := os.WriteFile(manifestPath, []byte(manifest), 0o644); err != nil {
+		t.Fatalf("write manifest: %v", err)
+	}
+
+	stdout, stderr, code := runCLI("--no-color", "test", "--update", tempDir)
+	if code != exitBlocked {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
+	}
+	if !strings.Contains(stdout, `decision: expected decision "allow", got "block"`) {
+		t.Fatalf("--update unexpectedly changed decision assertion:\n%s", stdout)
+	}
+	snapshotPath := filepath.Join(tempDir, "snapshots", "report.json")
+	body, err := os.ReadFile(snapshotPath)
+	if err != nil {
+		t.Fatalf("snapshot was not written: %v", err)
+	}
+	if !strings.Contains(string(body), `"decision": "block"`) {
+		t.Fatalf("snapshot missing scan report:\n%s", string(body))
 	}
 }
 

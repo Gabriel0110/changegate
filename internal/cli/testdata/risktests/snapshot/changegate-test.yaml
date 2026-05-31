@@ -1,0 +1,7 @@
+version: 1
+tests:
+  - name: update_snapshot_only
+    plan: ../../graph-plan.json
+    expect:
+      decision: block
+      snapshot: snapshots/report.json

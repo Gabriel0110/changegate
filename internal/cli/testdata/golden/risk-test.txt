@@ -1,0 +1,5 @@
+PASS public_admin_service_should_block
+
+Risk tests: passed
+Manifests: 1
+Tests: 1 passed, 0 failed, 0 errors

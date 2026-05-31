@@ -2,7 +2,18 @@
 
 Risk tests let Terraform/OpenTofu module authors keep security behavior under regression test. A risk test points ChangeGate at a saved plan fixture and declares the deployment decision, findings, attack paths, graph paths, baseline movement, waiver state, or snapshot output that must remain true.
 
-The `changegate test` command is planned in the next tranche. This page documents the manifest contract implemented by the risk test engine.
+Run risk tests locally or in CI:
+
+```bash
+changegate test
+changegate test ./changegate-tests
+changegate test --format json
+changegate test --format junit --out changegate-tests.xml
+changegate test --junit changegate-tests.xml
+changegate test --update
+```
+
+The command exits `0` when all tests pass and exits non-zero when any test fails, errors, or cannot be discovered.
 
 ## Manifest
 
@@ -46,6 +57,25 @@ tests:
 ```
 
 Paths are resolved relative to the manifest file. The parser is strict: unknown fields fail validation so test files do not silently drift.
+
+## Output
+
+Default output is concise and developer-oriented:
+
+```text
+PASS public_web_alb_should_pass
+FAIL public_admin_service_should_block
+  decision: expected decision "block", got "warn"
+  findings.include: expected finding AWS_PUBLIC_ADMIN_SERVICE to be present
+
+Risk tests: failed
+Manifests: 1
+Tests: 1 passed, 1 failed, 0 errors
+```
+
+Use `--format json` for machine-readable CI output. Use `--format junit --out changegate-tests.xml`, or keep console output and also write JUnit with `--junit changegate-tests.xml`.
+
+`--update` updates snapshot files only. It does not rewrite expected decisions, findings, attack path expectations, or any other assertions.
 
 ## Assertions
 

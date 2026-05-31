@@ -1,0 +1,15 @@
+version: 1
+tests:
+  - name: public_admin_service_should_block
+    plan: ../../graph-plan.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH
+      attack_paths:
+        include:
+          - public_to_sensitive_data
+      graph_paths:
+        include:
+          - aws_lb.admin -> aws_lb_listener.admin
