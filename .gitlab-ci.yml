@@ -53,6 +53,11 @@ changegate-artifacts:
 
 release-smoke:
   stage: package
+  before_script:
+    - go version
+    - go mod download
+    - apt-get update
+    - apt-get install -y zip
   script:
     - CHANGEGATE_SKIP_SBOM=1 CHANGEGATE_SKIP_SIGN=1 scripts/release-build.sh v0.0.0-gitlab-smoke
     - mkdir /tmp/changegate-release
