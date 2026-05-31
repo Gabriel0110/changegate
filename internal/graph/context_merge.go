@@ -288,6 +288,12 @@ func contextValues(key string, resource cloudcontext.Resource) map[string]any {
 	if resource.Sensitivity.Reason != "" {
 		values["sensitivity_reason"] = resource.Sensitivity.Reason
 	}
+	if len(resource.CompensatingControls) > 0 {
+		values["compensating_controls"] = append([]string(nil), resource.CompensatingControls...)
+	}
+	if len(resource.RelatedSensitiveData) > 0 {
+		values["related_sensitive_data"] = append([]string(nil), resource.RelatedSensitiveData...)
+	}
 	return values
 }
 
