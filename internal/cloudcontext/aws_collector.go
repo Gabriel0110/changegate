@@ -13,6 +13,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/rds"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 )
 
@@ -58,12 +66,18 @@ type AWSClientSet interface {
 	EnabledRegions(ctx context.Context) ([]Region, error)
 	NetworkInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
 	EdgeInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
+	IAMInventory(ctx context.Context, accountID string) (AWSInventory, error)
+	ComputeInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
+	DataInventory(ctx context.Context, region string, accountID string) (AWSInventory, error)
 }
 
 // AWSInventory is a normalized slice of provider inventory for one or more AWS APIs.
 type AWSInventory struct {
 	Network       ResourceSet
 	Edge          ResourceSet
+	IAM           ResourceSet
+	Compute       ResourceSet
+	Data          ResourceSet
 	Relationships []Relationship
 }
 
@@ -176,6 +190,16 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 	} else {
 		snapshot.Regions = regionsFromNames(regions)
 	}
+	if hasGroup(groups, CollectIAM) {
+		inventory, err := c.clients.IAMInventory(ctx, snapshot.Account.ID)
+		if err != nil {
+			diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_IAM_FAILED", "collect AWS IAM inventory: "+err.Error()))
+		} else {
+			mergeResourceSet(&snapshot.IAM, inventory.IAM)
+			snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+			snapshot.Capabilities.IAM = true
+		}
+	}
 	for _, region := range enabledRegionNames(snapshot.Regions) {
 		if hasGroup(groups, CollectNetwork) {
 			inventory, err := c.clients.NetworkInventory(ctx, region, snapshot.Account.ID)
@@ -198,6 +222,29 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 				snapshot.Capabilities.Network = true
 			}
 		}
+		if hasGroup(groups, CollectCompute) {
+			inventory, err := c.clients.ComputeInventory(ctx, region, snapshot.Account.ID)
+			if err != nil {
+				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_COMPUTE_FAILED", "collect AWS compute inventory for "+region+": "+err.Error()))
+			} else {
+				mergeResourceSet(&snapshot.Compute, inventory.Compute)
+				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+				snapshot.Capabilities.EKS = true
+			}
+		}
+		if hasGroup(groups, CollectData) {
+			inventory, err := c.clients.DataInventory(ctx, region, snapshot.Account.ID)
+			if err != nil {
+				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_DATA_FAILED", "collect AWS data inventory for "+region+": "+err.Error()))
+			} else {
+				mergeResourceSet(&snapshot.Data, inventory.Data)
+				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+				snapshot.Capabilities.S3 = true
+				snapshot.Capabilities.RDS = true
+				snapshot.Capabilities.KMS = true
+				snapshot.Capabilities.SecretsManager = true
+			}
+		}
 	}
 	diagnostics = append(diagnostics, pendingGroupDiagnostics(groups)...)
 	sortRegions(snapshot.Regions)
@@ -211,6 +258,7 @@ type sdkAWSClientSet struct {
 	sts        *sts.Client
 	ec2        *ec2.Client
 	cloudfront *cloudfront.Client
+	iam        *iam.Client
 }
 
 func newSDKAWSClientSet(cfg aws.Config) *sdkAWSClientSet {
@@ -219,7 +267,50 @@ func newSDKAWSClientSet(cfg aws.Config) *sdkAWSClientSet {
 		sts:        sts.NewFromConfig(cfg),
 		ec2:        ec2.NewFromConfig(cfg),
 		cloudfront: cloudfront.NewFromConfig(cfg),
+		iam:        iam.NewFromConfig(cfg),
 	}
+}
+
+func (c *sdkAWSClientSet) ecsForRegion(region string) *ecs.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return ecs.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) eksForRegion(region string) *eks.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return eks.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) lambdaForRegion(region string) *lambda.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return lambda.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) rdsForRegion(region string) *rds.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return rds.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) s3ForRegion(region string) *s3.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return s3.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) secretsForRegion(region string) *secretsmanager.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return secretsmanager.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) kmsForRegion(region string) *kms.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return kms.NewFromConfig(cfg)
 }
 
 func (c *sdkAWSClientSet) CallerIdentity(ctx context.Context) (AWSCallerIdentity, error) {
@@ -284,10 +375,8 @@ func pendingGroupDiagnostics(groups []string) []model.Diagnostic {
 	diagnostics := make([]model.Diagnostic, 0)
 	for _, group := range groups {
 		switch group {
-		case CollectIdentity, CollectNetwork, CollectEdge:
+		case CollectIdentity, CollectNetwork, CollectEdge, CollectIAM, CollectData, CollectCompute:
 			continue
-		case CollectIAM, CollectData, CollectCompute:
-			diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_GROUP_PENDING", "collector group "+group+" is selected but implemented in a later tranche"))
 		}
 	}
 	return diagnostics
