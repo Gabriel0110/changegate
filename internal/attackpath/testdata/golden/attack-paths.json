@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "paths": [
+    {
+      "id": "attack-path-public-admin",
+      "type": "public_to_sensitive_data",
+      "title": "Public admin service reaches customer database",
+      "severity": "critical",
+      "confidence": "high",
+      "decision": "block",
+      "entrypoint": "aws_lb.admin",
+      "target": "aws_db_instance.customer",
+      "steps": [
+        {
+          "from": "internet",
+          "to": "aws_lb.admin",
+          "action": "public HTTP ingress",
+          "edge_type": "routes_to",
+          "explanation": "internet-facing load balancer accepts public traffic"
+        },
+        {
+          "from": "aws_lb.admin",
+          "to": "aws_ecs_service.admin",
+          "action": "listener forwards",
+          "edge_type": "routes_to",
+          "explanation": "load balancer routes to admin workload"
+        },
+        {
+          "from": "aws_ecs_service.admin",
+          "to": "aws_db_instance.customer",
+          "action": "network reachability",
+          "edge_type": "routes_to",
+          "explanation": "admin workload can reach sensitive customer datastore"
+        }
+      ],
+      "evidence": [
+        {
+          "type": "graph_path",
+          "resource": "aws_db_instance.customer",
+          "path": "internet-\u003eaws_lb.admin-\u003eaws_ecs_service.admin-\u003eaws_db_instance.customer",
+          "value": [
+            "internet",
+            "aws_lb.admin",
+            "aws_ecs_service.admin",
+            "aws_db_instance.customer"
+          ],
+          "message": "public entrypoint reaches sensitive datastore"
+        }
+      ],
+      "mitigations": [
+        "Make the load balancer internal or restrict ingress to approved CIDRs.",
+        "Separate the admin workload from customer data network paths."
+      ],
+      "references": [
+        "https://changegate.dev/docs/attack-paths"
+      ]
+    },
+    {
+      "id": "attack-path-passrole-lambda",
+      "type": "iam_privilege_escalation",
+      "title": "Deploy principal can update Lambda with privileged role",
+      "severity": "high",
+      "confidence": "high",
+      "decision": "block",
+      "principal": "aws_iam_role.github_actions",
+      "target": "aws_iam_role.admin_execution",
+      "steps": [
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_iam_role.admin_execution",
+          "action": "iam:PassRole",
+          "edge_type": "can_pass_role",
+          "explanation": "principal can pass an administrative execution role"
+        },
+        {
+          "from": "aws_iam_role.github_actions",
+          "to": "aws_lambda_function.worker",
+          "action": "lambda:UpdateFunctionCode",
+          "edge_type": "grants_permission",
+          "explanation": "principal can update executable code"
+        }
+      ],
+      "mitigations": [
+        "Scope iam:PassRole to non-admin execution roles."
+      ]
+    }
+  ]
+}

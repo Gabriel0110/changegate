@@ -83,6 +83,8 @@ changegate test
 changegate test ./changegate-tests
 ```
 
+Attack path modeling is available as an internal, versioned contract for upcoming detector and CLI work. See [Attack Paths](attack-paths.md) for the JSON schema, Markdown rendering behavior, and policy eligibility rules.
+
 ## Configuration
 
 Review Intelligence configuration lives in `.changegate.yaml` and is accepted by the strict policy schema.

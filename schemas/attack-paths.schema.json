@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://changegate.dev/schemas/attack-paths.schema.json",
+  "title": "ChangeGate Attack Paths",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "paths"],
+  "properties": {
+    "version": { "const": 1 },
+    "paths": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/attack_path" }
+    }
+  },
+  "$defs": {
+    "attack_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "title", "severity", "confidence", "decision"],
+      "properties": {
+        "id": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["public_to_sensitive_data", "iam_privilege_escalation"]
+        },
+        "title": { "type": "string" },
+        "severity": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low", "info"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low", "unknown"]
+        },
+        "decision": {
+          "type": "string",
+          "enum": ["allow", "warn", "block", "error"]
+        },
+        "principal": { "type": "string" },
+        "entrypoint": { "type": "string" },
+        "target": { "type": "string" },
+        "steps": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "evidence": { "type": "array" },
+        "mitigations": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "references": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "action"],
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "action": { "type": "string" },
+        "edge_type": { "type": "string" },
+        "explanation": { "type": "string" }
+      }
+    }
+  }
+}
