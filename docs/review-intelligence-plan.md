@@ -1735,6 +1735,10 @@ Make the feature set legible to early adopters.
 * Every command in docs is tested or generated from tests where feasible.
 * Examples install ChangeGate instead of assuming it exists.
 
+### Implementation Status
+
+Complete. Added the missing Security Impact Statement guide, refreshed Review Intelligence, attack-path, cloud-context, Terraform Cloud, audit, product, and README documentation to match the implemented CLI, and added a checked-in AWS read-only context policy example generated from `changegate context aws permissions-template`. HCP adapter deployment examples remain explicitly deferred with the HCP adapter tranches rather than documented as available.
+
 ## 36. Tranche 30: Release Readiness
 
 ### Goal

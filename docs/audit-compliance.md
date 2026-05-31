@@ -36,7 +36,7 @@ The zip uses a stable `changegate-audit/` prefix and deterministic member orderi
 * `attack-paths.json` contains the attack path summaries promoted into review output.
 * `cloud-context-summary.json` records only cloud-context metadata, capability coverage, resource counts, relationship counts, and diagnostics. It does not include full cloud inventory.
 * `risk-tests.json` records whether this bundle came from a risk-test run.
-* `hcp-run-task.json` records run-task-compatible pass/fail evidence for adapters and later HCP Terraform integrations.
+* `hcp-run-task.json` records run-task-compatible pass/fail evidence for future adapters and later HCP Terraform integrations.
 
 The bundle does not include raw plan JSON or raw cloud inventory. It includes only the plan digest, redacted finding evidence, sanitized graph evidence, and summary-level cloud-context metadata.
 

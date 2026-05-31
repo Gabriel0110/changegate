@@ -30,6 +30,23 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 | Governed exceptions | Supports expiring waivers and baselines for existing debt. |
 | Evidence-rich output | Emits findings with evidence, graph paths, remediation, fingerprints, and audit bundles. |
 
+## Review Intelligence
+
+ChangeGate includes review-oriented commands for pull requests, merge requests, approval workflows, and module regression tests:
+
+```bash
+changegate impact --plan tfplan.json --format markdown
+changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer
+changegate graph exposure --plan tfplan.json --resource aws_ecs_service.admin
+changegate attack-paths --plan tfplan.json --to-sensitive-data
+changegate review github --report changegate.json --comment --annotations
+changegate review gitlab --report changegate.json --comment
+changegate context aws snapshot --out .changegate/aws-context.json --collect
+changegate test examples/risk-tests
+```
+
+These commands reuse the same deterministic scan engine. The default path remains local and credential-free; AWS cloud context is opt-in and produces redacted offline snapshots. See [Review Intelligence](docs/review-intelligence.md), [Security Impact Statement](docs/security-impact-statement.md), [Blast-Radius Graph](docs/graph.md), and [Attack Paths](docs/attack-paths.md).
+
 ## What It Catches
 
 The built-in AWS rule pack currently includes 29 stable high-confidence rules, including:
@@ -273,6 +290,8 @@ Reference:
 * [Product spec](docs/product-spec.md)
 * [CLI contract](docs/cli-contract.md)
 * [Decision model](docs/decision-model.md)
+* [Security Impact Statement](docs/security-impact-statement.md)
+* [Review Intelligence](docs/review-intelligence.md)
 * [Performance and scale](docs/performance.md)
 * [JSON report schema](schemas/changegate-report.schema.json)
 * [Graph JSON schema](schemas/changegate-graph.schema.json)

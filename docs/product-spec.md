@@ -28,7 +28,7 @@ The default journey must require no cloud credentials, no SaaS account, no netwo
 * OpenTofu-compatible plan JSON produced by `tofu show -json`.
 * Optional `.changegate.yaml` policy configuration.
 
-State JSON, external scanner output, live cloud context, and waivers are planned extensions. Baselines are available for existing-debt rollout.
+External scanner output, optional AWS cloud context snapshots, waivers, and baselines are available for existing-debt rollout and review context. Raw Terraform state ingestion remains a future extension; the primary supported input is still plan JSON from `terraform show -json` or `tofu show -json`.
 
 ## v0.1 IaC and Provider Scope
 

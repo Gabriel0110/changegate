@@ -7,7 +7,14 @@ The v1 model supports two categories:
 * `public_to_sensitive_data`: a public entrypoint can reach a sensitive datastore, secret, or key.
 * `iam_privilege_escalation`: a principal can reach admin or sensitive access through high-signal IAM actions such as pass-role, assume-role, or function/service update.
 
-The detector commands are implemented in later Review Intelligence tranches. The model, JSON contract, Markdown renderer, and policy eligibility helpers are available now for the detector and CLI work.
+The detector commands are available through `changegate attack-paths`, and high-confidence attack paths are integrated into scan, impact, review comment, and audit-bundle output when attack-path policy is enabled.
+
+```bash
+changegate attack-paths --plan tfplan.json
+changegate attack-paths --plan tfplan.json --to-sensitive-data
+changegate attack-paths --plan tfplan.json --principal aws_iam_role.github_actions
+changegate attack-paths --plan tfplan.json --format json --out attack-paths.json
+```
 
 Public-to-sensitive detection is available as the first v1 detector. It uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 
@@ -49,3 +56,12 @@ Attack path JSON uses schema version 1 and is documented by [`schemas/attack-pat
 Attack paths are deterministic evidence. They can affect deployment decisions only when attack path analysis is enabled and the path confidence is high. Medium-confidence paths can be rendered as warnings when explicitly configured, but they should not create high-confidence blocking decisions.
 
 This keeps ChangeGate’s enforcement posture conservative while still giving reviewers useful context for ambiguous paths.
+
+## Current Scope
+
+Attack Path v1 is intentionally narrow. It does not attempt to be a full CSPM pathfinding engine. It focuses on high-signal infrastructure changes that are practical to gate before apply:
+
+* public entrypoint to workload to sensitive datastore, secret, or key
+* principal to `iam:PassRole`, `sts:AssumeRole`, Lambda update, or ECS update paths that reach admin or sensitive access
+
+When graph or IAM evidence is ambiguous, detectors lower confidence and produce warning-oriented evidence instead of pretending the path is certain.

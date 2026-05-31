@@ -2,7 +2,7 @@
 
 Review Intelligence is the next ChangeGate feature track. It turns the existing plan parser, graph engine, policy decisions, waivers, baselines, remediation, and audit bundles into a production-grade infrastructure change review experience.
 
-The feature set is experimental while it is being implemented. Existing `changegate scan` behavior remains stable unless a later release explicitly documents a backward-compatible extension or a new opt-in flag.
+The feature set is implemented as local CLI functionality. Existing `changegate scan` behavior remains stable unless a later release explicitly documents a compatible extension or a new opt-in flag.
 
 ## Goals
 
@@ -28,7 +28,7 @@ The final workflow should let teams answer these questions from a pull request o
 * Which graph or attack paths justify the decision?
 * What should the author or reviewer do next?
 
-## Planned Commands
+## Commands
 
 The active implementation cycle targets these commands:
 
@@ -40,6 +40,8 @@ changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 ```
 
 `changegate impact` is available now. It reuses the same scan engine as `changegate scan`, including policy config, baselines, waivers, cloud context files, external scanner imports, and multi-plan input. Markdown is intended for pull requests and approval workflows; JSON is the stable machine contract.
+
+See [Security Impact Statement](security-impact-statement.md) for the statement contract and output behavior.
 
 Blast-Radius Graph v2 is available through `changegate graph`. It classifies public entrypoints, workloads, data stores, secrets, KMS keys, principals, policies, and network boundaries, then exposes deterministic path, exposure, blast-radius, sensitive-asset, and changed-boundary-crossing queries. See [Blast-Radius Graph](graph.md).
 
@@ -78,16 +80,16 @@ changegate attack-paths --plan tfplan.json --to-sensitive-data
 changegate attack-paths --plan tfplan.json --format json
 ```
 
-Planned commands still in progress:
+AWS cloud context collection and risk tests are available:
 
 ```bash
 changegate context aws snapshot --out .changegate/aws-context.json --collect
-
 changegate test
 changegate test ./changegate-tests
 ```
 
 See [Attack Paths](attack-paths.md) for the JSON schema, Markdown rendering behavior, detector behavior, and policy eligibility rules.
+See [Cloud Context](cloud-context.md) for AWS snapshot collection and [Risk Tests](risk-tests.md) for module regression manifests.
 
 ## Configuration
 
