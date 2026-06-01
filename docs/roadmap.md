@@ -16,6 +16,12 @@ Stable capabilities are intended for normal CI use:
 * baselines
 * expiring waivers
 * audit bundles
+* ChangeGate Review Intelligence CLI commands: impact statements, Graph v2, PR/MR review comments, attack-path evidence, and risk tests
+* AWS cloud-context snapshot schema and read-only collector with explicit partial-permission diagnostics
+* external scanner import normalization for SARIF, Checkov, Trivy, KICS, Grype, and generic JSON
+* custom YAML and Rego policy validation workflows
+* compliance metadata for bundled stable AWS rules
+* structured remediation metadata in JSON, SARIF, PR/MR comments, and audit bundles
 * GitHub Actions, GitLab CI, Atlantis, and Terraform Cloud guidance
 * signed release archives, checksums, SBOMs, and Docker images
 
@@ -23,13 +29,11 @@ Stable capabilities are intended for normal CI use:
 
 Experimental capabilities may change before v1:
 
-* ChangeGate Review Intelligence; see [overview](review-intelligence.md) and [implementation plan](review-intelligence-plan.md)
-* broader cloud-context enrichment
-* external scanner adapter normalization
-* custom Rego policy workflows
-* custom YAML policy workflows
-* deeper compliance mapping
-* richer remediation metadata
+* additional AWS cloud-context API coverage beyond the current read-only collector
+* multi-cloud context collection
+* multi-plan external scanner correlation
+* broad attack-path enforcement beyond the current deterministic v1 path types
+* visual graph layout and UX iteration
 
 Experimental features must be documented as experimental in release notes when their behavior can affect CI outcomes.
 

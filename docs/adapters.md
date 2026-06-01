@@ -61,9 +61,11 @@ This makes imported findings visually distinct while keeping them suppressable w
 
 ## Deduplication and correlation
 
-Imported findings are deduplicated against native findings by fingerprint and by resource/category. Native ChangeGate findings win because they have richer graph evidence.
+Imported findings are deduplicated by stable fingerprint when the same scanner artifact is imported more than once. Imported findings are also deduplicated against native findings by fingerprint and by resource/category. Native ChangeGate findings win because they have richer graph evidence.
 
 If an imported finding references a changed graph resource, ChangeGate adds `external_correlation` evidence. If the graph shows public exposure or sensitive-data access for that resource, ChangeGate can upgrade the imported finding's materiality. If the imported finding cannot be correlated to a changed resource, ChangeGate downgrades high-severity/high-confidence imported noise.
+
+Adapter normalization is tested against real scanner JSON fixtures for Checkov, Trivy, KICS, and Grype in addition to minimal schema fixtures. This keeps parser behavior tied to actual tool output shapes while preserving ChangeGate's local-only model: external tools are never installed or run by ChangeGate.
 
 ## Failure behavior
 

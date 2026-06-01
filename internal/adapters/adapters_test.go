@@ -1,6 +1,7 @@
 package adapters
 
 import (
+	"os"
 	"strings"
 	"testing"
 
@@ -81,6 +82,59 @@ func TestImportAdaptersNormalizeFindings(t *testing.T) {
 	}
 }
 
+func TestImportAdaptersParseRealScannerOutputs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		source    Source
+		path      string
+		wantCount int
+		wantRule  string
+	}{
+		{name: "checkov", source: SourceCheckov, path: "testdata/real/checkov-real.json", wantCount: 10, wantRule: "EXT_CHECKOV_CKV_AWS_18"},
+		{name: "trivy", source: SourceTrivy, path: "testdata/real/trivy-real.json", wantCount: 11, wantRule: "EXT_TRIVY_AWS_0086"},
+		{name: "kics", source: SourceKICS, path: "testdata/real/kics-real.json", wantCount: 11, wantRule: "EXT_KICS_381C3F2A_EF6F_4EFF_99F7_B169CDA3422C"},
+		{name: "grype-empty", source: SourceGrype, path: "testdata/real/grype-real.json", wantCount: 0},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			body, err := os.ReadFile(tt.path)
+			if err != nil {
+				t.Fatalf("read real scanner output: %v", err)
+			}
+			result := Import(tt.source, strings.NewReader(string(body)))
+			if len(result.Diagnostics) > 0 {
+				t.Fatalf("diagnostics = %#v", result.Diagnostics)
+			}
+			if len(result.Findings) != tt.wantCount {
+				t.Fatalf("findings = %d, want %d", len(result.Findings), tt.wantCount)
+			}
+			if result.Summary.Imported != tt.wantCount || result.Summary.BySource[tt.source] != tt.wantCount {
+				t.Fatalf("summary = %#v, want imported/by-source count %d", result.Summary, tt.wantCount)
+			}
+			if tt.wantRule != "" && !hasRuleID(result.Findings, tt.wantRule) {
+				t.Fatalf("missing normalized rule %s in findings", tt.wantRule)
+			}
+			for _, finding := range result.Findings {
+				if finding.ResourceAddress == "" || finding.Fingerprint == "" {
+					t.Fatalf("finding missing normalized identity: %#v", finding)
+				}
+				if finding.PolicyPack != "external:"+string(tt.source) {
+					t.Fatalf("policy pack = %q, want external:%s", finding.PolicyPack, tt.source)
+				}
+				if len(finding.Evidence) == 0 || finding.Evidence[0].Type != "external_scanner" {
+					t.Fatalf("missing external scanner evidence: %#v", finding)
+				}
+			}
+		})
+	}
+}
+
 func TestMergeDeduplicatesAndCorrelatesImportedFindings(t *testing.T) {
 	t.Parallel()
 
@@ -141,4 +195,36 @@ func TestMergeDeduplicatesAndCorrelatesImportedFindings(t *testing.T) {
 	if summary.BySource[SourceCheckov] != 1 || summary.BySource[SourceTrivy] != 1 || summary.BySource[SourceKICS] != 1 {
 		t.Fatalf("by source = %#v", summary.BySource)
 	}
+}
+
+func TestMergeDeduplicatesRepeatedImportedFindings(t *testing.T) {
+	t.Parallel()
+
+	imported := model.NormalizeFinding(model.Finding{
+		RuleID:          "EXT_CHECKOV_CKV_AWS_20",
+		Title:           "public bucket",
+		ResourceAddress: "aws_s3_bucket.logs",
+		Provider:        "external",
+		PolicyPack:      "external:checkov",
+		Category:        model.RiskCategoryPublicExposure,
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceMedium,
+	})
+
+	merged, summary := Merge(nil, []model.Finding{imported, imported}, nil)
+	if len(merged) != 1 {
+		t.Fatalf("merged findings = %d, want 1", len(merged))
+	}
+	if summary.Imported != 2 || summary.Deduplicated != 1 || summary.BySource[SourceCheckov] != 2 {
+		t.Fatalf("summary = %#v", summary)
+	}
+}
+
+func hasRuleID(findings []model.Finding, ruleID string) bool {
+	for _, finding := range findings {
+		if finding.RuleID == ruleID {
+			return true
+		}
+	}
+	return false
 }

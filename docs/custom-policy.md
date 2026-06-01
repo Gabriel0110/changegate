@@ -15,6 +15,8 @@ custom_rules:
 
 Paths are resolved relative to the policy file. Globs are supported. Malformed custom rules fail `changegate policy validate` and fail scans before evaluation.
 
+`custom_rules.required` controls empty glob behavior. When `false` or omitted, an empty optional custom-rule directory is allowed so teams can share one policy file across repos. When `true`, an empty glob fails `policy validate`.
+
 ## YAML rule format
 
 ```yaml
@@ -132,6 +134,8 @@ findings contains f if {
 ```
 
 ChangeGate rejects Rego modules that use network/runtime-oriented builtins such as `http.send`, `net.lookup_ip_addr`, and `opa.runtime`. Evaluation uses a context timeout and a maximum serialized input size. The Terraform/OpenTofu plan model is already redacted before it reaches Rego.
+
+`policy validate` compiles configured Rego modules and queries before scan time. Syntax errors, invalid queries, unsafe builtins, missing files, and oversized input settings fail validation so CI can catch policy authoring problems before evaluating a plan.
 
 ## Test locally
 

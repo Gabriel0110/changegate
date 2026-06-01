@@ -119,11 +119,33 @@ type Remediation struct {
 	References       []string          `json:"references,omitempty"`
 	WhyThisWorks     string            `json:"why_this_works,omitempty"`
 	FixConfidence    Confidence        `json:"fix_confidence,omitempty"`
+	Effort           string            `json:"effort,omitempty"`
+	DowntimeRisk     string            `json:"downtime_risk,omitempty"`
+	Destructive      bool              `json:"destructive,omitempty"`
 	AutoFixAvailable bool              `json:"auto_fix_available,omitempty"`
+	FixOptions       []FixOption       `json:"fix_options,omitempty"`
+	TerraformHints   []TerraformHint   `json:"terraform_hints,omitempty"`
 	Patches          []PatchSuggestion `json:"patches,omitempty"`
 	OwnerHints       []string          `json:"owner_hints,omitempty"`
 	NextSteps        []string          `json:"next_steps,omitempty"`
 	Docs             []string          `json:"docs,omitempty"`
+}
+
+// FixOption describes one remediation route with operational tradeoffs.
+type FixOption struct {
+	Title        string `json:"title"`
+	Description  string `json:"description"`
+	Effort       string `json:"effort,omitempty"`
+	DowntimeRisk string `json:"downtime_risk,omitempty"`
+	Preferred    bool   `json:"preferred,omitempty"`
+}
+
+// TerraformHint identifies a likely Terraform/OpenTofu attribute or resource to inspect.
+type TerraformHint struct {
+	ResourceType string `json:"resource_type,omitempty"`
+	Attribute    string `json:"attribute,omitempty"`
+	Preferred    string `json:"preferred,omitempty"`
+	Notes        string `json:"notes,omitempty"`
 }
 
 // PatchSuggestion describes an advisory patch without applying it automatically.

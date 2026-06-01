@@ -78,3 +78,28 @@ allow if { http.send({"method": "get", "url": "https://example.com"}) }`), 0o644
 		t.Fatalf("diagnostics = %#v", diagnostics)
 	}
 }
+
+func TestRegoRuleRejectsInvalidModulesAtLoadTime(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	regoPath := filepath.Join(tempDir, "policy.rego")
+	if err := os.WriteFile(regoPath, []byte(`package changegate
+findings contains f if {
+	f := {
+}`), 0o644); err != nil {
+		t.Fatalf("write rego: %v", err)
+	}
+	rule, diagnostics := LoadRegoRule(RegoOptions{
+		PolicyPath: filepath.Join(tempDir, ".changegate.yaml"),
+		Files:      []string{"policy.rego"},
+		Query:      "data.changegate.findings",
+		Timeout:    time.Second,
+	})
+	if rule != nil {
+		t.Fatalf("rule = %#v, want nil", rule)
+	}
+	if len(diagnostics) != 1 || diagnostics[0].Code != "REGO_COMPILE_FAILED" {
+		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+}

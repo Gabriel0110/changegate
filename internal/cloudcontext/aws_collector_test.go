@@ -155,6 +155,9 @@ func TestAWSCollectorMergesEdgeInventory(t *testing.T) {
 	if snapshot.Edge.Resources[albARN].Public == nil || !*snapshot.Edge.Resources[albARN].Public {
 		t.Fatalf("edge inventory was not merged: %+v", snapshot.Edge.Resources)
 	}
+	if !snapshot.Capabilities.Edge || !snapshot.Capabilities.ELBv2 || !snapshot.Capabilities.CloudFront || !snapshot.Capabilities.APIGateway {
+		t.Fatalf("edge capabilities were not set: %+v", snapshot.Capabilities)
+	}
 	if len(snapshot.Relationships) != 1 || snapshot.Relationships[0].Source != relationshipSourceELBV2 {
 		t.Fatalf("edge relationships were not merged: %+v", snapshot.Relationships)
 	}
@@ -214,7 +217,7 @@ func TestAWSCollectorMergesIAMComputeAndDataInventory(t *testing.T) {
 	if len(diagnostics) != 0 {
 		t.Fatalf("diagnostics = %+v, want none", diagnostics)
 	}
-	if !snapshot.Capabilities.IAM || !snapshot.Capabilities.RDS || !snapshot.Capabilities.S3 || !snapshot.Capabilities.KMS || !snapshot.Capabilities.SecretsManager || !snapshot.Capabilities.EKS {
+	if !snapshot.Capabilities.IAM || !snapshot.Capabilities.Compute || !snapshot.Capabilities.EC2 || !snapshot.Capabilities.ECS || !snapshot.Capabilities.Lambda || !snapshot.Capabilities.RDS || !snapshot.Capabilities.S3 || !snapshot.Capabilities.KMS || !snapshot.Capabilities.SecretsManager || !snapshot.Capabilities.EKS {
 		t.Fatalf("capabilities not set: %+v", snapshot.Capabilities)
 	}
 	if snapshot.IAM.Resources[roleARN].ARN == "" || snapshot.Compute.Resources[functionARN].ARN == "" || !snapshot.Data.Resources[dbARN].Sensitivity.Data {

@@ -16,6 +16,10 @@ The output includes:
 * recommended fix
 * why the fix works
 * fix confidence
+* effort and downtime-risk estimates
+* whether the change is potentially destructive
+* fix options with operational tradeoffs
+* Terraform/OpenTofu resource and attribute hints
 * advisory patch snippets when safe enough to suggest
 * severity-specific next steps
 
@@ -29,6 +33,35 @@ changegate explain CHG-1234567890ABCDEF --report changegate.json
 The argument can be a finding ID, rule ID, or fingerprint from the report.
 
 ## Patch suggestions
+
+Remediation metadata is machine-readable in JSON, SARIF properties, PR comments, and audit bundles. A finding can include structured fields such as:
+
+```json
+{
+  "effort": "medium",
+  "downtime_risk": "low",
+  "destructive": false,
+  "fix_options": [
+    {
+      "title": "Restrict ingress",
+      "description": "Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.",
+      "effort": "low",
+      "downtime_risk": "low",
+      "preferred": true
+    }
+  ],
+  "terraform_hints": [
+    {
+      "resource_type": "aws_security_group_rule",
+      "attribute": "cidr_blocks",
+      "preferred": "trusted CIDRs only",
+      "notes": "Avoid 0.0.0.0/0 and ::/0 for administrative or data paths."
+    }
+  ]
+}
+```
+
+These fields are guidance, not enforcement inputs. Policy decisions still come from deterministic rule severity, confidence, baselines, waivers, and policy thresholds.
 
 Patch suggestions use a structured format:
 

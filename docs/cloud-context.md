@@ -50,7 +50,7 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 The same policy is checked in at [`examples/aws-context-readonly-policy.json`](../examples/aws-context-readonly-policy.json) for teams that prefer to review or vendor the IAM document.
 
-`validate-permissions` checks the snapshot capability flags and reports missing coverage as warnings.
+`validate-permissions` checks the snapshot capability flags and reports missing coverage as warnings. Capability flags are intentionally granular: broad domains such as `network`, `edge`, `compute`, and `data` are supported by service-level flags such as `security_groups`, `elbv2`, `cloudfront`, `api_gateway`, `ec2`, `ecs`, `lambda`, `eks`, `s3`, `rds`, `kms`, and `secrets_manager`. This lets partial-permission snapshots remain useful while making missing context explicit.
 
 ## Snapshot schema
 
@@ -68,7 +68,15 @@ Cloud context snapshots use schema version 2. The supported JSON Schema is publi
     "identity": true,
     "network": true,
     "security_groups": true,
+    "edge": true,
+    "elbv2": true,
+    "cloudfront": true,
+    "api_gateway": true,
     "iam": true,
+    "compute": true,
+    "ec2": true,
+    "ecs": true,
+    "lambda": true,
     "s3": true,
     "rds": true,
     "kms": true,

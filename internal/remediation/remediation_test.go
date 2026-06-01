@@ -30,6 +30,15 @@ func TestEnrichFindingAddsConcreteGuidance(t *testing.T) {
 	if enriched.Remediation.FixConfidence != model.ConfidenceHigh {
 		t.Fatalf("fix confidence = %q", enriched.Remediation.FixConfidence)
 	}
+	if enriched.Remediation.Effort == "" || enriched.Remediation.DowntimeRisk == "" {
+		t.Fatalf("operational metadata missing: %#v", enriched.Remediation)
+	}
+	if len(enriched.Remediation.FixOptions) == 0 || !enriched.Remediation.FixOptions[0].Preferred {
+		t.Fatalf("fix options missing preferred route: %#v", enriched.Remediation.FixOptions)
+	}
+	if len(enriched.Remediation.TerraformHints) == 0 {
+		t.Fatalf("terraform hints missing: %#v", enriched.Remediation.TerraformHints)
+	}
 	if enriched.Remediation.AutoFixAvailable {
 		t.Fatalf("autofix should not be enabled")
 	}
@@ -53,6 +62,9 @@ func TestExplainRuleUsesTemplate(t *testing.T) {
 	}
 	if explanation.Recommended.AutoFixAvailable {
 		t.Fatalf("stateful replacement should not have automatic patch")
+	}
+	if !explanation.Recommended.Destructive || explanation.Recommended.DowntimeRisk != "high" {
+		t.Fatalf("stateful replacement missing destructive metadata: %#v", explanation.Recommended)
 	}
 	if len(explanation.Recommended.Patches) == 0 || explanation.Recommended.Patches[0].Format != "advisory" {
 		t.Fatalf("expected advisory patch: %#v", explanation.Recommended.Patches)

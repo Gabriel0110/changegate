@@ -102,7 +102,15 @@ type Capabilities struct {
 	Identity       bool `json:"identity"`
 	Network        bool `json:"network"`
 	SecurityGroups bool `json:"security_groups"`
+	Edge           bool `json:"edge"`
+	ELBv2          bool `json:"elbv2"`
+	CloudFront     bool `json:"cloudfront"`
+	APIGateway     bool `json:"api_gateway"`
 	IAM            bool `json:"iam"`
+	Compute        bool `json:"compute"`
+	EC2            bool `json:"ec2"`
+	ECS            bool `json:"ecs"`
+	Lambda         bool `json:"lambda"`
 	S3             bool `json:"s3"`
 	RDS            bool `json:"rds"`
 	KMS            bool `json:"kms"`
@@ -318,7 +326,15 @@ func ValidatePermissions(snapshot Snapshot) []model.Diagnostic {
 		"identity":        snapshot.Capabilities.Identity,
 		"network":         snapshot.Capabilities.Network,
 		"security_groups": snapshot.Capabilities.SecurityGroups,
+		"edge":            snapshot.Capabilities.Edge,
+		"elbv2":           snapshot.Capabilities.ELBv2,
+		"cloudfront":      snapshot.Capabilities.CloudFront,
+		"api_gateway":     snapshot.Capabilities.APIGateway,
 		"iam":             snapshot.Capabilities.IAM,
+		"compute":         snapshot.Capabilities.Compute,
+		"ec2":             snapshot.Capabilities.EC2,
+		"ecs":             snapshot.Capabilities.ECS,
+		"lambda":          snapshot.Capabilities.Lambda,
 		"s3":              snapshot.Capabilities.S3,
 		"rds":             snapshot.Capabilities.RDS,
 		"kms":             snapshot.Capabilities.KMS,
@@ -421,7 +437,15 @@ func capabilitiesEmpty(capabilities Capabilities) bool {
 	return !capabilities.Identity &&
 		!capabilities.Network &&
 		!capabilities.SecurityGroups &&
+		!capabilities.Edge &&
+		!capabilities.ELBv2 &&
+		!capabilities.CloudFront &&
+		!capabilities.APIGateway &&
 		!capabilities.IAM &&
+		!capabilities.Compute &&
+		!capabilities.EC2 &&
+		!capabilities.ECS &&
+		!capabilities.Lambda &&
 		!capabilities.S3 &&
 		!capabilities.RDS &&
 		!capabilities.KMS &&

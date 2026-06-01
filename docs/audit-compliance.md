@@ -42,7 +42,7 @@ The bundle does not include raw plan JSON or raw cloud inventory. It includes on
 
 ## Compliance mapping
 
-Compliance metadata is intentionally separate from rule evaluation. A rule maps to frameworks such as CIS AWS, NIST 800-53, or PCI DSS, but ChangeGate only reports framework coverage when an actual finding exists.
+Compliance metadata is intentionally separate from rule evaluation. A rule maps to frameworks such as CIS AWS, NIST 800-53, PCI DSS, SOC 2, or ISO 27001, but ChangeGate only reports framework coverage when an actual finding exists.
 
 Example:
 
@@ -56,6 +56,14 @@ AWS_PUBLIC_RDS_INSTANCE:
       - "SC-7"
     pci_dss:
       - "1.2"
+    soc2:
+      - "CC6.6"
+      - "CC7.1"
+    iso_27001:
+      - "A.8.20"
+      - "A.8.22"
 ```
 
 This means compliance reports can help audit teams route evidence without turning checklist metadata into separate blocking risks.
+
+The bundled AWS rule pack has mapping coverage tests so newly added stable AWS rules cannot silently ship without compliance metadata. These mappings are evidence routing aids, not legal claims of compliance.

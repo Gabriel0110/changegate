@@ -268,7 +268,7 @@ func registryForPolicy(policyPath string, config policy.Config) (*rules.Registry
 		return nil, nil, internalError(err.Error(), "Report this as a ChangeGate bug.")
 	}
 	var diagnostics []model.Diagnostic
-	customRules, customDiagnostics := custompolicy.LoadYAMLRules(policyPath, config.CustomRules.Files, config.CustomRules.MaxFileSize)
+	customRules, customDiagnostics := custompolicy.LoadYAMLRules(policyPath, config.CustomRules.Files, config.CustomRules.MaxFileSize, config.CustomRules.Required)
 	diagnostics = append(diagnostics, customModelDiagnostics(customDiagnostics, model.DiagnosticError)...)
 	for _, rule := range customRules {
 		if err := registry.Register(rule); err != nil {

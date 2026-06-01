@@ -289,7 +289,18 @@
             },
             "why_this_works": { "type": "string" },
             "fix_confidence": { "enum": ["high", "medium", "low", "unknown"] },
+            "effort": { "type": "string" },
+            "downtime_risk": { "type": "string" },
+            "destructive": { "type": "boolean" },
             "auto_fix_available": { "type": "boolean" },
+            "fix_options": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/fix_option" }
+            },
+            "terraform_hints": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/terraform_hint" }
+            },
             "patches": {
               "type": "array",
               "items": { "$ref": "#/$defs/patch_suggestion" }
@@ -326,6 +337,28 @@
           "type": "array",
           "items": { "type": "string" }
         }
+      }
+    },
+    "fix_option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "description"],
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "effort": { "type": "string" },
+        "downtime_risk": { "type": "string" },
+        "preferred": { "type": "boolean" }
+      }
+    },
+    "terraform_hint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resource_type": { "type": "string" },
+        "attribute": { "type": "string" },
+        "preferred": { "type": "string" },
+        "notes": { "type": "string" }
       }
     },
     "patch_suggestion": {

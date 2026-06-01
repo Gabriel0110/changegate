@@ -73,6 +73,10 @@ func LoadRegoRule(options RegoOptions) (rules.Rule, []Diagnostic) {
 	if len(modules) == 0 {
 		return nil, diagnostics
 	}
+	if err := validateRegoModules(options.Query, modules, options.Timeout); err != nil {
+		diagnostics = append(diagnostics, Diagnostic{Code: "REGO_COMPILE_FAILED", Message: err.Error()})
+		return nil, diagnostics
+	}
 	return regoRule{modules: modules, query: options.Query, timeout: options.Timeout, maxInputBytes: options.MaxInputBytes}, diagnostics
 }
 
@@ -233,6 +237,20 @@ func unsafeRegoBuiltin(module string) string {
 		}
 	}
 	return ""
+}
+
+func validateRegoModules(query string, modules map[string]string, timeout time.Duration) error {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	args := []func(*rego.Rego){rego.Query(query)}
+	for name, module := range modules {
+		args = append(args, rego.Module(name, module))
+	}
+	_, err := rego.New(args...).PrepareForEval(ctx)
+	if err != nil {
+		return fmt.Errorf("compile Rego modules: %w", err)
+	}
+	return nil
 }
 
 func resources(plan *model.Plan) []model.Resource {

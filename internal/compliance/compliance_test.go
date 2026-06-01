@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Gabriel0110/changegate/internal/model"
+	"github.com/Gabriel0110/changegate/internal/rules"
 )
 
 func TestBuildReportMapsOnlyActualFindings(t *testing.T) {
@@ -34,5 +35,27 @@ func TestBuildReportMapsOnlyActualFindings(t *testing.T) {
 	}
 	if report.Summary["cis_aws"] != 1 {
 		t.Fatalf("cis_aws summary = %d, want 1", report.Summary["cis_aws"])
+	}
+	if report.Summary["soc2"] != 1 || report.Summary["iso_27001"] != 1 {
+		t.Fatalf("expected SOC 2 and ISO summaries: %+v", report.Summary)
+	}
+}
+
+func TestDefaultMappingsCoverStableAWSRules(t *testing.T) {
+	t.Parallel()
+
+	registry, err := rules.DefaultRegistry()
+	if err != nil {
+		t.Fatalf("default registry: %v", err)
+	}
+	mappings := defaultMappings()
+	for _, rule := range registry.Rules() {
+		meta := rule.Metadata()
+		if meta.PolicyPack != "aws-core" && meta.PolicyPack != "aws-public-exposure" && meta.PolicyPack != "aws-iam-escalation" {
+			continue
+		}
+		if _, ok := mappings[meta.ID]; !ok {
+			t.Fatalf("missing compliance mapping for %s", meta.ID)
+		}
 	}
 }

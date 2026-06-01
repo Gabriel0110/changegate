@@ -41,6 +41,7 @@ func EnrichFindings(findings []model.Finding, resourceTags map[string]map[string
 // EnrichFinding adds remediation details to one finding while preserving rule-provided guidance.
 func EnrichFinding(finding model.Finding, tags map[string]string, options Options) model.Finding {
 	template := TemplateFor(finding.RuleID, finding.Category)
+	template = mergeTemplateDefaults(template, categoryOperationalDefaults(finding.Category))
 	if finding.Remediation.Summary == "" {
 		finding.Remediation.Summary = template.Summary
 	}
@@ -52,7 +53,18 @@ func EnrichFinding(finding model.Finding, tags map[string]string, options Option
 	if finding.Remediation.FixConfidence == "" {
 		finding.Remediation.FixConfidence = template.FixConfidence
 	}
+	if finding.Remediation.Effort == "" {
+		finding.Remediation.Effort = template.Effort
+	}
+	if finding.Remediation.DowntimeRisk == "" {
+		finding.Remediation.DowntimeRisk = template.DowntimeRisk
+	}
+	if !finding.Remediation.Destructive {
+		finding.Remediation.Destructive = template.Destructive
+	}
 	finding.Remediation.AutoFixAvailable = false
+	finding.Remediation.FixOptions = mergeFixOptions(finding.Remediation.FixOptions, template.FixOptions)
+	finding.Remediation.TerraformHints = mergeTerraformHints(finding.Remediation.TerraformHints, template.TerraformHints)
 	finding.Remediation.Patches = mergePatches(finding.Remediation.Patches, template.Patches)
 	finding.Remediation.NextSteps = mergeStrings(finding.Remediation.NextSteps, severityNextSteps(finding.Severity, finding.Confidence)...)
 	finding.Remediation.OwnerHints = mergeStrings(finding.Remediation.OwnerHints, ownerHints(tags)...)
@@ -63,6 +75,7 @@ func EnrichFinding(finding model.Finding, tags map[string]string, options Option
 // ExplainRule returns a developer explanation for a rule ID and optional finding context.
 func ExplainRule(ruleID string, title string, description string, category model.RiskCategory, severity model.Severity, confidence model.Confidence, finding *model.Finding, options Options) RuleExplanation {
 	template := TemplateFor(ruleID, category)
+	template = mergeTemplateDefaults(template, categoryOperationalDefaults(category))
 	remediation := template.Remediation()
 	if finding != nil {
 		enriched := EnrichFinding(*finding, nil, options)
@@ -89,15 +102,20 @@ func ExplainRule(ruleID string, title string, description string, category model
 
 // Template describes reusable remediation guidance.
 type Template struct {
-	ID            string
-	Summary       string
-	Steps         []string
-	References    []string
-	WhyThisWorks  string
-	FixConfidence model.Confidence
-	Patches       []model.PatchSuggestion
-	WhatHappened  string
-	WhyItMatters  string
+	ID             string
+	Summary        string
+	Steps          []string
+	References     []string
+	WhyThisWorks   string
+	FixConfidence  model.Confidence
+	Effort         string
+	DowntimeRisk   string
+	Destructive    bool
+	FixOptions     []model.FixOption
+	TerraformHints []model.TerraformHint
+	Patches        []model.PatchSuggestion
+	WhatHappened   string
+	WhyItMatters   string
 }
 
 // Remediation converts a template into the model remediation object.
@@ -108,7 +126,12 @@ func (t Template) Remediation() model.Remediation {
 		References:       append([]string(nil), t.References...),
 		WhyThisWorks:     t.WhyThisWorks,
 		FixConfidence:    t.FixConfidence,
+		Effort:           t.Effort,
+		DowntimeRisk:     t.DowntimeRisk,
+		Destructive:      t.Destructive,
 		AutoFixAvailable: false,
+		FixOptions:       append([]model.FixOption(nil), t.FixOptions...),
+		TerraformHints:   append([]model.TerraformHint(nil), t.TerraformHints...),
 		Patches:          append([]model.PatchSuggestion(nil), t.Patches...),
 	}
 }
@@ -306,6 +329,87 @@ var categoryTemplates = map[model.RiskCategory]Template{
 	},
 }
 
+func categoryOperationalDefaults(category model.RiskCategory) Template {
+	switch category {
+	case model.RiskCategoryPublicExposure:
+		return Template{
+			Effort:       "medium",
+			DowntimeRisk: "medium",
+			FixOptions: []model.FixOption{
+				{Title: "Make the endpoint private", Description: "Move the exposed resource behind private networking or an internal load balancer.", Effort: "medium", DowntimeRisk: "medium", Preferred: true},
+				{Title: "Restrict ingress", Description: "Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.", Effort: "low", DowntimeRisk: "low"},
+			},
+			TerraformHints: []model.TerraformHint{
+				{ResourceType: "aws_security_group_rule", Attribute: "cidr_blocks", Preferred: "trusted CIDRs only", Notes: "Avoid 0.0.0.0/0 and ::/0 for administrative or data paths."},
+				{ResourceType: "aws_lb", Attribute: "internal", Preferred: "true", Notes: "Admin and private services should use internal load balancers."},
+			},
+		}
+	case model.RiskCategoryPrivilegeEscalation:
+		return Template{
+			Effort:       "medium",
+			DowntimeRisk: "low",
+			FixOptions: []model.FixOption{
+				{Title: "Scope privileged actions", Description: "Replace wildcard IAM actions and resources with exact deployment permissions.", Effort: "medium", DowntimeRisk: "low", Preferred: true},
+				{Title: "Split duties", Description: "Separate role-passing, trust-management, and compute-mutation permissions across different principals.", Effort: "high", DowntimeRisk: "low"},
+			},
+			TerraformHints: []model.TerraformHint{
+				{ResourceType: "aws_iam_policy_document", Attribute: "statement.actions", Preferred: "least-privilege action list", Notes: "Review iam:PassRole, sts:AssumeRole, and compute update permissions together."},
+				{ResourceType: "aws_iam_policy_document", Attribute: "statement.resources", Preferred: "specific ARNs", Notes: "Avoid '*' for privileged actions."},
+			},
+		}
+	case model.RiskCategorySensitiveData:
+		return Template{
+			Effort:       "medium",
+			DowntimeRisk: "low",
+			FixOptions: []model.FixOption{
+				{Title: "Enable protection controls", Description: "Turn on encryption, public-access blocks, and logging where supported.", Effort: "low", DowntimeRisk: "low", Preferred: true},
+				{Title: "Segment access", Description: "Limit sensitive asset access to the workloads and roles that require it.", Effort: "medium", DowntimeRisk: "medium"},
+			},
+			TerraformHints: []model.TerraformHint{
+				{ResourceType: "aws_s3_bucket_public_access_block", Attribute: "block_public_acls", Preferred: "true", Notes: "Set all S3 public access block booleans to true unless explicitly justified."},
+				{ResourceType: "aws_db_instance", Attribute: "storage_encrypted", Preferred: "true", Notes: "Use KMS-backed encryption for database storage."},
+			},
+		}
+	case model.RiskCategoryAvailability:
+		return Template{
+			Effort:       "medium",
+			DowntimeRisk: "high",
+			Destructive:  true,
+			FixOptions: []model.FixOption{
+				{Title: "Avoid replacement", Description: "Prefer an in-place supported change or staged migration instead of replacing stateful infrastructure.", Effort: "medium", DowntimeRisk: "medium", Preferred: true},
+				{Title: "Approve replacement with recovery plan", Description: "If replacement is intentional, require a snapshot, rollback plan, and maintenance window.", Effort: "medium", DowntimeRisk: "high"},
+			},
+			TerraformHints: []model.TerraformHint{
+				{ResourceType: "aws_db_instance", Attribute: "deletion_protection", Preferred: "true", Notes: "Use deletion protection for production stateful resources."},
+				{ResourceType: "lifecycle", Attribute: "prevent_destroy", Preferred: "true", Notes: "Use when accidental replacement would be unacceptable."},
+			},
+		}
+	default:
+		return Template{
+			Effort:       "unknown",
+			DowntimeRisk: "unknown",
+			FixOptions: []model.FixOption{
+				{Title: "Review evidence", Description: "Use the finding evidence and owning team context to select a resource-specific mitigation.", Effort: "unknown", DowntimeRisk: "unknown", Preferred: true},
+			},
+		}
+	}
+}
+
+func mergeTemplateDefaults(template Template, defaults Template) Template {
+	if template.Effort == "" {
+		template.Effort = defaults.Effort
+	}
+	if template.DowntimeRisk == "" {
+		template.DowntimeRisk = defaults.DowntimeRisk
+	}
+	if !template.Destructive {
+		template.Destructive = defaults.Destructive
+	}
+	template.FixOptions = mergeFixOptions(template.FixOptions, defaults.FixOptions)
+	template.TerraformHints = mergeTerraformHints(template.TerraformHints, defaults.TerraformHints)
+	return template
+}
+
 func terraformSnippet(title string, appliesTo string, snippet string) model.PatchSuggestion {
 	return model.PatchSuggestion{
 		Title:        title,
@@ -428,6 +532,49 @@ func mergePatches(existing []model.PatchSuggestion, incoming []model.PatchSugges
 	}
 	sort.SliceStable(out, func(i int, j int) bool {
 		return out[i].Title < out[j].Title
+	})
+	return out
+}
+
+func mergeFixOptions(existing []model.FixOption, incoming []model.FixOption) []model.FixOption {
+	out := append([]model.FixOption(nil), existing...)
+	seen := make(map[string]bool, len(existing)+len(incoming))
+	for _, option := range existing {
+		seen[option.Title+"|"+option.Description] = true
+	}
+	for _, option := range incoming {
+		key := option.Title + "|" + option.Description
+		if strings.TrimSpace(option.Title) == "" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, option)
+	}
+	sort.SliceStable(out, func(i int, j int) bool {
+		if out[i].Preferred != out[j].Preferred {
+			return out[i].Preferred
+		}
+		return out[i].Title < out[j].Title
+	})
+	return out
+}
+
+func mergeTerraformHints(existing []model.TerraformHint, incoming []model.TerraformHint) []model.TerraformHint {
+	out := append([]model.TerraformHint(nil), existing...)
+	seen := make(map[string]bool, len(existing)+len(incoming))
+	for _, hint := range existing {
+		seen[hint.ResourceType+"|"+hint.Attribute] = true
+	}
+	for _, hint := range incoming {
+		key := hint.ResourceType + "|" + hint.Attribute
+		if key == "|" || seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, hint)
+	}
+	sort.SliceStable(out, func(i int, j int) bool {
+		return out[i].ResourceType+"|"+out[i].Attribute < out[j].ResourceType+"|"+out[j].Attribute
 	})
 	return out
 }

@@ -220,6 +220,10 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 				mergeResourceSet(&snapshot.Edge, inventory.Edge)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.Network = true
+				snapshot.Capabilities.Edge = true
+				snapshot.Capabilities.ELBv2 = true
+				snapshot.Capabilities.CloudFront = true
+				snapshot.Capabilities.APIGateway = true
 			}
 		}
 		if hasGroup(groups, CollectCompute) {
@@ -229,6 +233,10 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			} else {
 				mergeResourceSet(&snapshot.Compute, inventory.Compute)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
+				snapshot.Capabilities.Compute = true
+				snapshot.Capabilities.EC2 = true
+				snapshot.Capabilities.ECS = true
+				snapshot.Capabilities.Lambda = true
 				snapshot.Capabilities.EKS = true
 			}
 		}

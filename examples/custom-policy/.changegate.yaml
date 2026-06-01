@@ -1,0 +1,13 @@
+version: 1
+
+custom_rules:
+  required: true
+  files:
+    - rules/*.yaml
+
+rego:
+  files:
+    - rego/*.rego
+  query: data.changegate.findings
+  timeout: 500ms
+  max_input_bytes: 5242880

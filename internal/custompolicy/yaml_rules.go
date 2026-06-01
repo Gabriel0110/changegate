@@ -29,7 +29,7 @@ type Diagnostic struct {
 }
 
 // LoadYAMLRules loads declarative custom rules from files or glob patterns.
-func LoadYAMLRules(policyPath string, patterns []string, maxFileSize int64) ([]rules.Rule, []Diagnostic) {
+func LoadYAMLRules(policyPath string, patterns []string, maxFileSize int64, required bool) ([]rules.Rule, []Diagnostic) {
 	if len(patterns) == 0 {
 		return nil, nil
 	}
@@ -45,7 +45,9 @@ func LoadYAMLRules(policyPath string, patterns []string, maxFileSize int64) ([]r
 			continue
 		}
 		if len(matches) == 0 {
-			diagnostics = append(diagnostics, Diagnostic{Code: "CUSTOM_RULE_PATTERN_EMPTY", Message: "no custom rule files matched " + pattern})
+			if required {
+				diagnostics = append(diagnostics, Diagnostic{Code: "CUSTOM_RULE_PATTERN_EMPTY", Message: "no custom rule files matched " + pattern})
+			}
 			continue
 		}
 		for _, path := range matches {

@@ -37,7 +37,7 @@ remediation: Place admin service behind VPN.
 		t.Fatalf("write rule: %v", err)
 	}
 
-	loaded, diagnostics := LoadYAMLRules(filepath.Join(tempDir, ".changegate.yaml"), []string{"rules.yaml"}, 0)
+	loaded, diagnostics := LoadYAMLRules(filepath.Join(tempDir, ".changegate.yaml"), []string{"rules.yaml"}, 0, false)
 	if len(diagnostics) > 0 {
 		t.Fatalf("diagnostics = %#v", diagnostics)
 	}
@@ -78,5 +78,19 @@ remediation: Place admin service behind VPN.
 	}
 	if findings[0].ResourceAddress != "aws_lb.admin" {
 		t.Fatalf("resource = %q", findings[0].ResourceAddress)
+	}
+}
+
+func TestYAMLRuleOptionalEmptyPatternDoesNotFail(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	loaded, diagnostics := LoadYAMLRules(filepath.Join(tempDir, ".changegate.yaml"), []string{"rules/*.yaml"}, 0, false)
+	if len(loaded) != 0 || len(diagnostics) != 0 {
+		t.Fatalf("optional empty pattern loaded=%d diagnostics=%#v, want none", len(loaded), diagnostics)
+	}
+	_, diagnostics = LoadYAMLRules(filepath.Join(tempDir, ".changegate.yaml"), []string{"rules/*.yaml"}, 0, true)
+	if len(diagnostics) != 1 || diagnostics[0].Code != "CUSTOM_RULE_PATTERN_EMPTY" {
+		t.Fatalf("required empty pattern diagnostics = %#v", diagnostics)
 	}
 }

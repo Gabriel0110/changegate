@@ -91,6 +91,20 @@ func TestIdentitySnapshotAndPermissionValidation(t *testing.T) {
 	}
 }
 
+func TestReadOnlyPolicyTemplateMatchesExample(t *testing.T) {
+	t.Parallel()
+
+	example, err := os.ReadFile("../../examples/aws-context-readonly-policy.json")
+	if err != nil {
+		t.Fatalf("read example policy: %v", err)
+	}
+	got := strings.TrimSpace(ReadOnlyPolicyTemplate())
+	want := strings.TrimSpace(string(example))
+	if got != want {
+		t.Fatalf("read-only policy template drifted from example\nwant:\n%s\ngot:\n%s", want, got)
+	}
+}
+
 func TestLoadRejectsLegacyCloudContextVersion(t *testing.T) {
 	t.Parallel()
 

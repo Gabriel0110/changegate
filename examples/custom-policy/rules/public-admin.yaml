@@ -1,0 +1,19 @@
+id: ORG_PUBLIC_ADMIN_SERVICE
+title: Public admin services require security review
+description: Organization policy blocks internet-facing admin services unless an approved exception is present.
+category: public_exposure
+severity: critical
+confidence: high
+select:
+  type: aws_lb
+where:
+  all:
+    - field: scheme
+      equals: internet-facing
+    - graph.routes_to.tag:
+        key: service_type
+        value: admin
+    - graph.internet_exposed: true
+remediation: Make the load balancer internal, restrict ingress to approved operator networks, or use an authenticated access proxy.
+references:
+  - https://example.com/security/admin-access

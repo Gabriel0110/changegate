@@ -107,13 +107,15 @@ func Merge(native []model.Finding, imported []model.Finding, resourceGraph *grap
 		nativeKeys[dedupAgainstNativeKey(finding)] = true
 		nativeKeys[finding.Fingerprint] = true
 	}
+	importedFingerprints := make(map[string]bool, len(imported))
 	for _, finding := range imported {
 		source := sourceFromFinding(finding)
 		summary.BySource[source]++
-		if nativeKeys[finding.Fingerprint] || nativeKeys[dedupAgainstNativeKey(finding)] {
+		if importedFingerprints[finding.Fingerprint] || nativeKeys[finding.Fingerprint] || nativeKeys[dedupAgainstNativeKey(finding)] {
 			summary.Deduplicated++
 			continue
 		}
+		importedFingerprints[finding.Fingerprint] = true
 		enriched := correlateImported(finding, resourceGraph, &summary)
 		merged = append(merged, enriched)
 	}
