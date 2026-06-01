@@ -16,32 +16,8 @@ changegate scan --plan tfplan.json --changed-only
 
 Machine-readable outputs are not polluted with progress text. Human progress output is intentionally reserved for future long-running workflows where it can be emitted safely.
 
-## Benchmarks
+## Scale Expectations
 
-Run the benchmark suite:
+ChangeGate is designed for pull-request and merge-request pipelines where the scan must finish quickly and produce deterministic output. Large plans should use explicit bounds such as `--timeout`, `--max-findings`, and `--changed-only` so CI behavior remains predictable.
 
-```bash
-go test ./internal/performance -run '^$' -bench . -benchmem
-```
-
-Capture CPU and memory profiles:
-
-```bash
-scripts/perf-profile.sh profiles
-go tool pprof profiles/cpu.pprof
-go tool pprof profiles/mem.pprof
-```
-
-The benchmark suite covers:
-
-* full small and large scans
-* graph construction
-* bounded graph path extraction
-* Security Impact Statement generation
-* PR comment rendering
-* attack path detection
-* output rendering
-* cloud-context enrichment
-* cloud-context cache loading
-
-CI runs performance budget tests for small scans, large-plan allocation, scan-plus-impact latency, 10,000-node path extraction with cloud context, and PR comment rendering. It also runs one-iteration benchmarks for small scans, graph paths, impact generation, PR comment rendering, and attack path detection to catch large regressions without making normal checks noisy.
+For monorepos, prefer scanning only changed Terraform/OpenTofu roots or passing the relevant plan files explicitly. See [monorepos and multi-plan scans](monorepo.md) and [multi-plan guide](multi-plan.md).

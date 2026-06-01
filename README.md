@@ -265,9 +265,7 @@ See [policy config](docs/policy-config.md), [config schema](docs/config-schema.m
 
 ## Project Status
 
-ChangeGate is pre-`v1.0` and ready for early adopters who can run it in audit or warning mode against real Terraform/OpenTofu plans. The public contract already includes stable exit codes, stable JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, generated rule docs, and security reporting.
-
-The next phase is real-world calibration: sanitized fixtures, false-positive reports, and rule tuning from audit-mode usage.
+ChangeGate is pre-`v1.0` and ready for early adopters who can run it in audit or warning mode against real Terraform/OpenTofu plans. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
 
 See the [roadmap](docs/roadmap.md).
 
@@ -291,15 +289,9 @@ Operators:
 * [Cloud context](docs/cloud-context.md)
 * [Security model](docs/security-model.md)
 
-Contributors:
-
-* [Contributing](CONTRIBUTING.md)
-* [Architecture](docs/architecture.md)
-* [Rule authoring](docs/rule-authoring.md)
-* [Fixture contributions](docs/fixtures.md)
-
 Reference:
 
+* [Architecture](docs/architecture.md)
 * [Decision model](docs/decision-model.md)
 * [Security Impact Statement](docs/security-impact-statement.md)
 * [Review Intelligence](docs/review-intelligence.md)
@@ -310,7 +302,7 @@ Reference:
 
 ## Contributing
 
-Issues and pull requests are welcome. New rules need tests, redacted fixtures, remediation guidance, generated rule docs, and changelog entries when they affect default policy behavior.
+Issues and pull requests are welcome. For substantial behavior changes, open an issue first so the expected user impact can be discussed before implementation.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 

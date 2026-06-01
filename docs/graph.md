@@ -18,11 +18,11 @@ Graph v2 adds first-class security classification for nodes:
 
 Graph v2 also adds richer relationship edges, including routing, ingress, egress, attachment, role assumption, pass-role, permission grants, secret reads, KMS encryption, writes, replication, and protective controls. Every edge can carry `source` and `confidence` so path output can distinguish plan-derived relationships from optional live cloud-context relationships.
 
-Graph v2 is the only supported graph contract. Pre-release graph v1 JSON is not loaded or emitted; regenerate graph artifacts with the current CLI.
+Graph v2 is the only supported graph contract. Older graph JSON artifacts are not loaded or emitted; regenerate graph artifacts with the current CLI.
 
 ## Query Model
 
-The internal graph API supports:
+Graph commands support:
 
 * exposure checks for a resource
 * deterministic path extraction with depth and count limits

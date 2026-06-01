@@ -55,7 +55,7 @@ changegate graph visualize --plan tfplan.json --view exposure --resource aws_ecs
 
 Graph visualizations are available as DOT, Mermaid, self-contained interactive HTML, and optional Graphviz-rendered SVG/PNG/PDF artifacts. Use HTML for review links and CI artifacts when reviewers need to understand blast radius without opening JSON.
 
-The PR/MR comment renderer is implemented as a pure internal renderer over the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details.
+PR/MR review output is built from the Security Impact Statement model. It produces GitHub/GitLab-compatible Markdown with one stable hidden marker, compact deploy-decision summary, risk movement, top findings, graph paths, attack paths, waiver state, ownership hints, artifact links, size-limit compaction, and redaction-safe finding details.
 
 GitHub PR review publishing is available through `changegate review github`. It can consume a saved scan JSON report or build the report directly from plan input, update one sticky pull request comment, emit GitHub Actions workflow annotations, and write the same review summary to `GITHUB_STEP_SUMMARY`.
 

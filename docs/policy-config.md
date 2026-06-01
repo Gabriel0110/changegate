@@ -55,8 +55,8 @@ waivers:
 ```yaml
 docs:
   links:
-    AWS_PUBLIC_RDS_INSTANCE: https://internal.example.com/rds-public-access
-    default: https://internal.example.com/changegate
+    AWS_PUBLIC_RDS_INSTANCE: https://example.com/security/rds-public-access
+    default: https://example.com/security/changegate
 ```
 
 ## Compliance Metadata

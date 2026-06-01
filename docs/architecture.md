@@ -20,26 +20,21 @@ flowchart LR
   impact --> review["Review comment renderer"]
 ```
 
-## Packages
+## Major Components
 
-| Package | Role |
+| Component | Role |
 | --- | --- |
-| `internal/input/terraform` | Terraform/OpenTofu JSON ingestion and redaction. |
-| `internal/model` | Provider-neutral plan, finding, evidence, policy, and decision types. |
-| `internal/graph` | Resource relationship graph, Graph v2 classification, exposure, path, and blast-radius queries. |
-| `internal/rules` | Built-in rule registry, metadata, runner, and AWS rules. |
-| `internal/policy` | User-facing `.changegate.yaml` loading and validation. |
-| `internal/custompolicy` | YAML and OPA/Rego custom policy support. |
-| `internal/baseline` | Existing-risk baseline files and diffs. |
-| `internal/waiver` | Reviewed, expiring exception governance. |
-| `internal/output` | Console, JSON, SARIF, JUnit, Markdown, PR, GitLab, and audit-bundle rendering. |
-| `internal/impact` | Canonical Security Impact Statement model built from scan reports. |
-| `internal/review` | Deterministic GitHub/GitLab review comment rendering from impact statements. |
-| `internal/cli` | Cobra command surface and user-facing error handling. |
+| Plan ingestion | Reads Terraform/OpenTofu JSON plans and redacts sensitive values before analysis. |
+| Normalized model | Represents changed resources, actions, evidence, findings, and deploy decisions consistently across output formats. |
+| Graph analysis | Builds resource relationships used for exposure, blast-radius, and attack-path reasoning. |
+| Rule evaluation | Applies built-in AWS rules and optional custom YAML/Rego policies. |
+| Policy evaluation | Converts findings, baselines, waivers, and confidence thresholds into allow, warn, block, or manual-review outcomes. |
+| Review Intelligence | Produces Security Impact Statements, PR/MR comments, graph evidence, and attack-path summaries. |
+| Output rendering | Emits console, JSON, Markdown, SARIF, JUnit, GitHub, GitLab, visualization, and audit-bundle artifacts. |
 
 ## Determinism
 
-Reports must be stable for the same inputs. Sorting is required for findings, rules, graph edges, archive members, and generated documentation.
+Reports are stable for the same inputs. Findings, rules, graph edges, archive members, and generated artifacts are sorted before rendering.
 
 ## Security Boundaries
 

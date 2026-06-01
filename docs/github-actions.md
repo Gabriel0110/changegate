@@ -112,4 +112,4 @@ changegate review github --report changegate.json --comment --dry-run --repo own
 
 For untrusted fork pull requests, avoid running arbitrary Terraform or repository scripts with a write token. Prefer generating the plan in a read-only `pull_request` workflow, or use `pull_request_target` only with a reviewed checkout strategy and least-privilege permissions.
 
-Do not use `pull_request_target` with a direct checkout of the contributor branch and a write-capable `GITHUB_TOKEN`. If you need comments on fork PRs, split the workflow so untrusted code produces artifacts with read-only permissions and a trusted follow-up job posts the ChangeGate summary from those artifacts.
+Do not use `pull_request_target` with a direct checkout of an untrusted branch and a write-capable `GITHUB_TOKEN`. If you need comments on fork PRs, split the workflow so untrusted code produces artifacts with read-only permissions and a trusted follow-up job posts the ChangeGate summary from those artifacts.
