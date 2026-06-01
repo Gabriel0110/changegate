@@ -158,14 +158,6 @@ svg.panning { cursor: grabbing; }
   grid-template-columns: minmax(260px, 420px) minmax(280px, 1fr);
   gap: 18px 32px;
 }
-.detail-card {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px;
-  background: #f8fafc;
-}
-.detail-card h3 { margin: 0 0 8px; font-size: 14px; }
-.detail-card p { margin: 0; color: #334155; }
 @media (max-width: 980px) {
   .shell {
     grid-template-columns: 1fr;
@@ -539,9 +531,6 @@ func diagramData(diagram Diagram) map[string]any {
 			"decision": node.Decision,
 			"severity": node.Severity,
 			"details":  node.Details,
-			"summary":  nodeSummary(node),
-			"roleText": roleDescription(node.Role),
-			"kindText": kindDescription(node.Kind),
 		})
 	}
 	edges := make([]map[string]any, 0, len(diagram.Edges))
@@ -562,82 +551,6 @@ func diagramData(diagram Diagram) map[string]any {
 		"edges":       edges,
 		"nodeWidth":   htmlNodeWidth,
 		"nodeHeight":  htmlNodeHeight,
-	}
-}
-
-func nodeSummary(node Node) string {
-	role := roleDescription(node.Role)
-	kind := kindDescription(node.Kind)
-	switch {
-	case role != "" && kind != "":
-		return role + " " + kind
-	case role != "":
-		return role
-	case kind != "":
-		return kind
-	default:
-		return "Graph node included in the rendered infrastructure relationship view."
-	}
-}
-
-func roleDescription(role Role) string {
-	switch role {
-	case RolePublic:
-		return "Public entrypoint: this node can receive traffic from outside the private network."
-	case RoleInternet:
-		return "Internet source: synthetic node representing external public access."
-	case RoleWorkload:
-		return "Workload: compute or service that can process requests and connect downstream."
-	case RoleSensitive:
-		return "Sensitive asset: datastore, secret, or key that can increase blast radius."
-	case RolePrincipal:
-		return "Principal: IAM identity or role involved in an access path."
-	case RolePolicy:
-		return "Policy: IAM policy or permission grant involved in access."
-	case RoleNetwork:
-		return "Network boundary: security group, subnet, route, or similar connectivity control."
-	case RolePath:
-		return "Path node: intermediate resource on the highlighted relationship path."
-	case RoleBlock:
-		return "Blocking risk target: this node participates in a path that can block deployment."
-	case RoleWarn:
-		return "Warning risk node: this node participates in a path that should be reviewed."
-	case RoleAllow:
-		return "Allowed node: this node participates in a reviewed path that is not blocking."
-	case RoleChanged:
-		return "Changed resource: Terraform/OpenTofu plans to create, update, replace, or delete this node."
-	default:
-		return "Resource node: included for graph context."
-	}
-}
-
-func kindDescription(kind string) string {
-	switch kind {
-	case "public_entrypoint":
-		return "It is classified as an ingress point such as a load balancer, public endpoint, or internet-facing service."
-	case "workload":
-		return "It is classified as compute or application runtime, such as ECS, Lambda, EC2, or Kubernetes workload."
-	case "data_store":
-		return "It is classified as a datastore, so reachability can indicate data exposure."
-	case "secret":
-		return "It is classified as a secret or credential store."
-	case "kms_key":
-		return "It is classified as a KMS key or cryptographic control."
-	case "principal":
-		return "It is classified as an IAM principal."
-	case "policy":
-		return "It is classified as an IAM policy or permission relationship."
-	case "network_boundary":
-		return "It is classified as a network boundary or routing control."
-	case "unknown":
-		return "ChangeGate preserved this resource in the path even though it does not have a more specific security classification yet."
-	case "attack_path":
-		return "It is part of a detected attack path sequence."
-	default:
-		if kind == "" {
-			return "No graph kind was assigned."
-		}
-		return "Graph kind: " + strings.ReplaceAll(kind, "_", " ") + "."
 	}
 }
 
@@ -722,10 +635,8 @@ function selectNode(id) {
     '<div class="details-grid">' +
       '<div>' +
         '<dl>' + statusRows.join('') + '</dl>' +
-        '<div class="detail-card"><h3>What this means</h3><p>' + escapeHTML(node.summary || node.roleText || 'This node is part of the rendered graph evidence.') + '</p></div>' +
       '</div>' +
       '<div>' +
-        '<div class="detail-card"><h3>Why it appears here</h3><p>' + escapeHTML(whyIncluded(node)) + '</p></div>' +
         '<h3>Connected relationships</h3>' +
         '<ul>' + (connectedItems || '<li>No connected relationships were included in this view.</li>') + '</ul>' +
         '<h3>Evidence</h3>' +
@@ -748,15 +659,6 @@ function connectedEdges(id) {
 
 function formatConfidence(edge) {
   return edge.confidence ? ' (' + escapeHTML(edge.confidence) + ' confidence)' : '';
-}
-
-function whyIncluded(node) {
-  if (node.role === 'public' || node.role === 'internet') return 'This is the public side of the path. It helps reviewers see where exposure starts.';
-  if (node.role === 'workload') return 'This workload is on the route between the entrypoint and downstream assets.';
-  if (node.role === 'sensitive' || node.role === 'block') return 'This is the downstream asset or risk target that makes the path important.';
-  if (node.role === 'network') return 'This node represents connectivity control that allows or shapes reachability.';
-  if (node.role === 'path') return 'This intermediate node keeps the path explainable instead of hiding routing or attachment hops.';
-  return 'This node is connected to the highlighted graph evidence.';
 }
 
 function updateViewport() {
