@@ -1,6 +1,6 @@
 # ChangeGate Review Intelligence
 
-Review Intelligence is the next ChangeGate feature track. It turns the existing plan parser, graph engine, policy decisions, waivers, baselines, remediation, and audit bundles into a production-grade infrastructure change review experience.
+Review Intelligence turns the plan parser, graph engine, policy decisions, waivers, baselines, remediation, and audit bundles into a production-grade infrastructure change review experience.
 
 The feature set is implemented as local CLI functionality. Existing `changegate scan` behavior remains stable unless a later release explicitly documents a compatible extension or a new opt-in flag.
 
@@ -19,7 +19,7 @@ The HCP Terraform run task adapter is intentionally deferred. It remains planned
 
 ## User Experience
 
-The final workflow should let teams answer these questions from a pull request or CI run:
+The workflow helps teams answer these questions from a pull request or CI run:
 
 * What changed?
 * What became public or reachable?
@@ -30,7 +30,7 @@ The final workflow should let teams answer these questions from a pull request o
 
 ## Commands
 
-The active implementation cycle targets these commands:
+The primary commands are:
 
 ```bash
 changegate impact --plan tfplan.json --format markdown
@@ -126,7 +126,3 @@ attack_paths:
 ```
 
 These settings are output controls and deterministic enforcement thresholds. Attack path findings emitted during `changegate scan` use normal policy, baseline, waiver, and audit-bundle behavior.
-
-## Implementation Plan
-
-The full tranche plan is maintained in [Review Intelligence implementation plan](review-intelligence-plan.md).

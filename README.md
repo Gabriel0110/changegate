@@ -304,7 +304,7 @@ Contributors:
 
 Reference:
 
-* [Product spec](docs/product-spec.md)
+* [Product overview](docs/product-overview.md)
 * [CLI contract](docs/cli-contract.md)
 * [Decision model](docs/decision-model.md)
 * [Security Impact Statement](docs/security-impact-statement.md)

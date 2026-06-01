@@ -1,6 +1,6 @@
 # Review Intelligence Release Notes
 
-These notes summarize the Review Intelligence update for the first release candidate. They separate stable CLI behavior from experimental or deferred areas so adopters can choose the right rollout mode.
+These notes summarize the Review Intelligence update. They separate stable CLI behavior from experimental or deferred areas so adopters can choose the right rollout mode.
 
 ## Stable Features
 

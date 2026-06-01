@@ -48,3 +48,6 @@ changegate*.sarif
 
 # Local implementation planning
 changegate-implementation-plan.md
+docs/review-intelligence-plan.md
+.private/
+.local-docs/
