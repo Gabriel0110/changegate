@@ -59,3 +59,27 @@ func TestDefaultMappingsCoverStableAWSRules(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildReportWithCustomMappings(t *testing.T) {
+	t.Parallel()
+
+	finding := model.NormalizeFinding(model.Finding{
+		RuleID:          "ORG_QUEUE_REVIEW",
+		Title:           "Queue review",
+		ResourceAddress: "aws_sqs_queue.jobs",
+		Category:        model.RiskCategoryCompliance,
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceHigh,
+	})
+	report := BuildReportWithMappings([]model.Finding{finding}, map[string]map[string][]string{
+		"ORG_QUEUE_REVIEW": {
+			"soc2": {"CC8.1"},
+		},
+	})
+	if len(report.Findings) != 1 {
+		t.Fatalf("mapped findings = %d, want 1", len(report.Findings))
+	}
+	if got := report.Findings[0].Frameworks["soc2"]; len(got) != 1 || got[0] != "CC8.1" {
+		t.Fatalf("custom mapping not applied: %#v", report.Findings[0].Frameworks)
+	}
+}

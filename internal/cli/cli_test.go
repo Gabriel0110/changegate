@@ -1869,6 +1869,12 @@ rego:
     - queue.rego
   query: data.changegate.findings
   timeout: 1s
+compliance:
+  mappings:
+    ORG_REGO_QUEUE:
+      frameworks:
+        soc2:
+          - CC8.1
 `
 	if err := os.WriteFile(policyPath, []byte(policyBody), 0o644); err != nil {
 		t.Fatalf("write policy: %v", err)
@@ -1880,6 +1886,9 @@ rego:
 	}
 	if !strings.Contains(stdout, `"rule_id": "ORG_REGO_QUEUE"`) || !strings.Contains(stdout, `"policy_pack": "custom-rego"`) {
 		t.Fatalf("rego scan missing custom finding:\n%s", stdout)
+	}
+	if !strings.Contains(stdout, `"soc2"`) || !strings.Contains(stdout, `"CC8.1"`) {
+		t.Fatalf("rego scan missing custom compliance mapping:\n%s", stdout)
 	}
 }
 

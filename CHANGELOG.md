@@ -22,6 +22,7 @@ The format follows Keep a Changelog, and every release section must include a `B
 * Structured remediation metadata for effort, downtime risk, destructive-change signal, fix options, and Terraform/OpenTofu hints.
 * Example custom YAML and Rego policy workflows under `examples/custom-policy`.
 * SOC 2 and ISO 27001 compliance metadata across the stable AWS rule pack.
+* Organization-specific compliance mapping metadata in `.changegate.yaml`.
 
 ### Changed
 

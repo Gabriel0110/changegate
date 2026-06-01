@@ -14,10 +14,14 @@ These notes summarize the Review Intelligence update for the first release candi
 * Sticky GitLab MR review notes and GitLab Code Quality artifact links through `changegate review gitlab`.
 * Attack Path v1 evidence through `changegate attack-paths`.
 * Risk regression tests for Terraform/OpenTofu modules through `changegate test`.
+* Read-only AWS context collection with redacted snapshot schema, granular capability flags, and partial-permission diagnostics.
 * Audit bundle v2 with impact, graph, attack-path, waiver, baseline, cloud-context summary, review-comment, compliance, and redaction evidence.
 * Sanitized runnable risk-test fixture corpus under `examples/risk-tests`.
+* External scanner import normalization for SARIF, Checkov, Trivy, KICS, Grype, and generic JSON.
+* Custom YAML and Rego policy workflows with validation-time schema, sandbox, and compile checks.
+* Structured remediation metadata and compliance mappings, including organization-specific compliance mappings in `.changegate.yaml`.
 
-## Experimental AWS Context Collection
+## AWS Context Collection Scope
 
 AWS context collection is opt-in and read-only:
 
@@ -38,7 +42,7 @@ Limitations:
 * Unsupported APIs and partial permissions are diagnostics, not hard failures.
 * Snapshots are summary/redacted context; they are not full cloud inventory exports.
 * Default scans remain offline and do not call AWS.
-* Multi-cloud context collection is not part of this release.
+* Additional AWS API coverage beyond the current collector and multi-cloud context collection remain future work.
 
 ## Attack Path v1 Scope
 

@@ -72,6 +72,15 @@ docs:
     public_exposure: https://docs.example.com/security/public-exposure
     AWS_PUBLIC_ADMIN_SERVICE: https://docs.example.com/security/admin-services
 
+compliance:
+  mappings:
+    ORG_QUEUE_REVIEW:
+      frameworks:
+        soc2:
+          - CC8.1
+        iso_27001:
+          - A.5.8
+
 review:
   enabled: true
   max_comment_findings: 10
@@ -136,6 +145,7 @@ attack_paths:
 | `rego.timeout` | duration | no | Maximum Rego evaluation time. Defaults to `250ms`; maximum `5s`. |
 | `rego.max_input_bytes` | integer | no | Maximum serialized Rego input size. Defaults to 5 MiB. |
 | `docs.links` | map | no | Documentation links keyed by rule ID, risk category, provider, or `default`; added to remediation output. |
+| `compliance.mappings.<rule_id>.frameworks` | map | no | Organization compliance mappings for built-in or custom rule IDs. These add to or override bundled rule-to-control metadata in reports and audit bundles. |
 | `review.enabled` | boolean | no | Enables Review Intelligence PR/MR review features when those commands are used. Defaults to `true`. Existing `scan` behavior is unchanged. |
 | `review.max_comment_findings` | integer | no | Maximum findings to show in the sticky PR/MR summary comment. Defaults to `10`; must be non-negative. |
 | `review.max_graph_paths` | integer | no | Maximum graph or attack paths to include in review summaries. Defaults to `5`; must be non-negative. |

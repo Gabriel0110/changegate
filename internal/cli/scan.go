@@ -174,7 +174,7 @@ func buildScanReport(cmd *cobra.Command, state *appState, scanOpts *scanOptions)
 	if err := limitReportFindings(&report, scanOpts.maxFindings); err != nil {
 		return output.Report{}, err
 	}
-	if err := attachAuditEvidence(&report, scanOpts, state.opts, contextSnapshot); err != nil {
+	if err := attachAuditEvidence(&report, scanOpts, state.opts, policyConfig, contextSnapshot); err != nil {
 		return output.Report{}, err
 	}
 	return report, nil
@@ -1086,7 +1086,7 @@ func ruleSummaries(registry *rules.Registry) map[string]output.RuleSummary {
 	return out
 }
 
-func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *options, contextSnapshot *cloudcontext.Snapshot) error {
+func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *options, policyConfig model.PolicyConfig, contextSnapshot *cloudcontext.Snapshot) error {
 	info := buildinfo.Current()
 	policyBody, policyDigest, err := policyEvidence(opts.policy, opts.mode)
 	if err != nil {
@@ -1149,7 +1149,7 @@ func attachAuditEvidence(report *output.Report, scanOpts *scanOptions, opts *opt
 		report.Audit.Baseline = baselineReport
 		report.RiskMovement = &baselineReport.RiskMovement
 	}
-	complianceReport := compliance.BuildReport(report.Findings)
+	complianceReport := compliance.BuildReportWithMappings(report.Findings, policyConfig.ComplianceMappings)
 	report.Compliance = &complianceReport
 	if err := attachAuditV2Evidence(report, scanOpts, contextSnapshot); err != nil {
 		return err

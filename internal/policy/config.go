@@ -29,6 +29,7 @@ type Config struct {
 	Waivers            WaiverConfig                 `json:"waivers" yaml:"waivers"`
 	CustomRules        CustomRulesConfig            `json:"custom_rules" yaml:"custom_rules"`
 	Rego               RegoConfig                   `json:"rego" yaml:"rego"`
+	Compliance         ComplianceConfig             `json:"compliance" yaml:"compliance"`
 	Docs               DocsConfig                   `json:"docs" yaml:"docs"`
 	Review             ReviewConfig                 `json:"review" yaml:"review"`
 	Impact             ImpactConfig                 `json:"impact" yaml:"impact"`
@@ -108,6 +109,16 @@ type RegoConfig struct {
 	Query         string   `json:"query" yaml:"query"`
 	Timeout       string   `json:"timeout" yaml:"timeout"`
 	MaxInputBytes int64    `json:"max_input_bytes" yaml:"max_input_bytes"`
+}
+
+// ComplianceConfig controls organization-specific compliance metadata.
+type ComplianceConfig struct {
+	Mappings map[string]ComplianceMappingConfig `json:"mappings" yaml:"mappings"`
+}
+
+// ComplianceMappingConfig maps a rule to one or more framework control IDs.
+type ComplianceMappingConfig struct {
+	Frameworks map[string][]string `json:"frameworks" yaml:"frameworks"`
 }
 
 // DocsConfig controls developer-facing documentation links.
@@ -246,6 +257,7 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 	if config.Rego.Query == "" && len(config.Rego.Files) > 0 {
 		config.Rego.Query = "data.changegate.findings"
 	}
+	diagnostics = append(diagnostics, validateComplianceMappings(config.Compliance)...)
 	if config.Review.MaxCommentFindings != nil && *config.Review.MaxCommentFindings < 0 {
 		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_MAX_COMMENT_FINDINGS_INVALID", "review.max_comment_findings must be non-negative"))
 	}
@@ -262,6 +274,35 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 		Policy:      config,
 		Diagnostics: diagnostics,
 	}
+}
+
+func validateComplianceMappings(config ComplianceConfig) []model.Diagnostic {
+	diagnostics := make([]model.Diagnostic, 0)
+	for ruleID, mapping := range config.Mappings {
+		if ruleID == "" {
+			diagnostics = append(diagnostics, errorDiagnostic("COMPLIANCE_MAPPING_RULE_INVALID", "compliance.mappings rule ID must be non-empty"))
+			continue
+		}
+		if len(mapping.Frameworks) == 0 {
+			diagnostics = append(diagnostics, errorDiagnostic("COMPLIANCE_MAPPING_EMPTY", "compliance.mappings."+ruleID+" must include at least one framework"))
+			continue
+		}
+		for framework, controls := range mapping.Frameworks {
+			if framework == "" {
+				diagnostics = append(diagnostics, errorDiagnostic("COMPLIANCE_FRAMEWORK_INVALID", "compliance.mappings."+ruleID+" framework name must be non-empty"))
+			}
+			if len(controls) == 0 {
+				diagnostics = append(diagnostics, errorDiagnostic("COMPLIANCE_CONTROLS_EMPTY", "compliance.mappings."+ruleID+"."+framework+" must include at least one control"))
+				continue
+			}
+			for _, control := range controls {
+				if control == "" {
+					diagnostics = append(diagnostics, errorDiagnostic("COMPLIANCE_CONTROL_INVALID", "compliance.mappings."+ruleID+"."+framework+" contains an empty control"))
+				}
+			}
+		}
+	}
+	return diagnostics
 }
 
 func validateAttackPathThresholds(config AttackPathsConfig) []model.Diagnostic {
@@ -322,6 +363,7 @@ func ModelConfig(config Config, environment string) model.PolicyConfig {
 	out.ChangedResourcesOnly = config.Scope.ChangedResourcesOnly
 	out.NewRiskOnly = config.Baseline.Mode == "new-findings-only" || config.Baseline.Mode == "new-risk-only"
 	out.DocumentationLinks = copyStringMap(config.Docs.Links)
+	out.ComplianceMappings = complianceMappings(config.Compliance)
 	out.AttackPaths = attackPathPolicy(config.AttackPaths)
 	out.ExistingFingerprints = make(map[string]bool, len(config.Baseline.Fingerprints))
 	for _, fingerprint := range config.Baseline.Fingerprints {
@@ -339,6 +381,20 @@ func ModelConfig(config Config, environment string) model.PolicyConfig {
 			modelOverride.Confidence = &confidence
 		}
 		out.Overrides[ruleID] = modelOverride
+	}
+	return out
+}
+
+func complianceMappings(config ComplianceConfig) map[string]map[string][]string {
+	if len(config.Mappings) == 0 {
+		return nil
+	}
+	out := make(map[string]map[string][]string, len(config.Mappings))
+	for ruleID, mapping := range config.Mappings {
+		out[ruleID] = make(map[string][]string, len(mapping.Frameworks))
+		for framework, controls := range mapping.Frameworks {
+			out[ruleID][framework] = append([]string(nil), controls...)
+		}
 	}
 	return out
 }

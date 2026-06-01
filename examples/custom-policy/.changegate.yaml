@@ -11,3 +11,16 @@ rego:
   query: data.changegate.findings
   timeout: 500ms
   max_input_bytes: 5242880
+
+compliance:
+  mappings:
+    ORG_PUBLIC_ADMIN_SERVICE:
+      frameworks:
+        soc2:
+          - CC6.6
+        iso_27001:
+          - A.8.20
+    ORG_QUEUE_REVIEW:
+      frameworks:
+        soc2:
+          - CC8.1

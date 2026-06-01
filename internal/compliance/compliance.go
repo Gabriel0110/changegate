@@ -10,7 +10,15 @@ import (
 
 // BuildReport maps findings to compliance metadata without changing decisions.
 func BuildReport(findings []model.Finding) output.ComplianceReport {
+	return BuildReportWithMappings(findings, nil)
+}
+
+// BuildReportWithMappings maps findings to bundled and organization-provided compliance metadata.
+func BuildReportWithMappings(findings []model.Finding, customMappings map[string]map[string][]string) output.ComplianceReport {
 	mappings := defaultMappings()
+	for ruleID, frameworks := range customMappings {
+		mappings[ruleID] = mapping(frameworks)
+	}
 	report := output.ComplianceReport{
 		Mappings: mappings,
 		Findings: make([]output.ComplianceFinding, 0),

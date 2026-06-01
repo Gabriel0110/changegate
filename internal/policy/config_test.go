@@ -36,6 +36,12 @@ overrides:
     severity: medium
     confidence: medium
     reason: noisy in migration
+compliance:
+  mappings:
+    ORG_QUEUE_REVIEW:
+      frameworks:
+        soc2:
+          - CC8.1
 `
 	config, err := Load(strings.NewReader(body))
 	if err != nil {
@@ -59,6 +65,9 @@ overrides:
 	}
 	if modelConfig.Overrides["AWS_SG_WORLD_OPEN_ADMIN_PORT"].Severity == nil {
 		t.Fatalf("override severity missing")
+	}
+	if got := modelConfig.ComplianceMappings["ORG_QUEUE_REVIEW"]["soc2"]; len(got) != 1 || got[0] != "CC8.1" {
+		t.Fatalf("compliance mapping missing: %#v", modelConfig.ComplianceMappings)
 	}
 
 	selection := RuleSelection(config, rules.DefaultPolicyPacks())
@@ -100,6 +109,26 @@ func TestValidatePolicyRejectsUnknowns(t *testing.T) {
 	}
 	if len(result.Diagnostics) != 5 {
 		t.Fatalf("diagnostics = %d, want 5: %#v", len(result.Diagnostics), result.Diagnostics)
+	}
+}
+
+func TestValidatePolicyRejectsInvalidComplianceMappings(t *testing.T) {
+	t.Parallel()
+
+	registry, err := rules.DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	result := Validate(Config{
+		Compliance: ComplianceConfig{Mappings: map[string]ComplianceMappingConfig{
+			"AWS_PUBLIC_RDS_INSTANCE": {Frameworks: map[string][]string{"soc2": {}}},
+		}},
+	}, registry, rules.DefaultPolicyPacks())
+	if result.Valid {
+		t.Fatalf("policy unexpectedly valid")
+	}
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "COMPLIANCE_CONTROLS_EMPTY" {
+		t.Fatalf("diagnostics = %#v", result.Diagnostics)
 	}
 }
 

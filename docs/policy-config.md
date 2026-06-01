@@ -59,6 +59,21 @@ docs:
     default: https://internal.example.com/changegate
 ```
 
+## Compliance Metadata
+
+```yaml
+compliance:
+  mappings:
+    ORG_QUEUE_REVIEW:
+      frameworks:
+        soc2:
+          - CC8.1
+        iso_27001:
+          - A.5.8
+```
+
+Organization mappings can reference built-in or custom rule IDs. They are non-enforcing metadata used in JSON reports and audit bundles; they do not change allow, warn, or block decisions.
+
 ## Review Intelligence
 
 Review Intelligence settings control Security Impact Statements, PR/MR review output, and attack path enforcement. Attack paths are first-class scan findings by default, so they participate in policy thresholds, baselines, waivers, and audit bundles.

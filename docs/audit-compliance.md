@@ -67,3 +67,18 @@ AWS_PUBLIC_RDS_INSTANCE:
 This means compliance reports can help audit teams route evidence without turning checklist metadata into separate blocking risks.
 
 The bundled AWS rule pack has mapping coverage tests so newly added stable AWS rules cannot silently ship without compliance metadata. These mappings are evidence routing aids, not legal claims of compliance.
+
+Teams can add organization-specific mappings in `.changegate.yaml`:
+
+```yaml
+compliance:
+  mappings:
+    ORG_QUEUE_REVIEW:
+      frameworks:
+        soc2:
+          - CC8.1
+        iso_27001:
+          - A.5.8
+```
+
+Custom mappings can reference built-in or custom rule IDs. They appear in `compliance.json` only when a matching finding exists.

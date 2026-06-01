@@ -229,23 +229,24 @@ const (
 
 // PolicyConfig is the decision model input.
 type PolicyConfig struct {
-	Mode                  PolicyMode             `json:"mode"`
-	BlockOn               Threshold              `json:"block_on"`
-	WarnOn                Threshold              `json:"warn_on"`
-	AttackPaths           AttackPathPolicy       `json:"attack_paths,omitempty"`
-	Overrides             map[string]Override    `json:"overrides,omitempty"`
-	EnvironmentThresholds map[string]Thresholds  `json:"environment_thresholds,omitempty"`
-	BranchThresholds      map[string]Thresholds  `json:"branch_thresholds,omitempty"`
-	Branch                string                 `json:"branch,omitempty"`
-	ChangedResourcesOnly  bool                   `json:"changed_resources_only,omitempty"`
-	ChangedResources      map[string]bool        `json:"changed_resources,omitempty"`
-	NewRiskOnly           bool                   `json:"new_risk_only,omitempty"`
-	ExistingFingerprints  map[string]bool        `json:"existing_fingerprints,omitempty"`
-	ExistingRisks         map[string]RiskContext `json:"existing_risks,omitempty"`
-	BaselineWarnings      []string               `json:"baseline_warnings,omitempty"`
-	WaiverFile            string                 `json:"waiver_file,omitempty"`
-	FailExpiredWaivers    bool                   `json:"fail_expired_waivers,omitempty"`
-	DocumentationLinks    map[string]string      `json:"documentation_links,omitempty"`
+	Mode                  PolicyMode                     `json:"mode"`
+	BlockOn               Threshold                      `json:"block_on"`
+	WarnOn                Threshold                      `json:"warn_on"`
+	AttackPaths           AttackPathPolicy               `json:"attack_paths,omitempty"`
+	Overrides             map[string]Override            `json:"overrides,omitempty"`
+	EnvironmentThresholds map[string]Thresholds          `json:"environment_thresholds,omitempty"`
+	BranchThresholds      map[string]Thresholds          `json:"branch_thresholds,omitempty"`
+	Branch                string                         `json:"branch,omitempty"`
+	ChangedResourcesOnly  bool                           `json:"changed_resources_only,omitempty"`
+	ChangedResources      map[string]bool                `json:"changed_resources,omitempty"`
+	NewRiskOnly           bool                           `json:"new_risk_only,omitempty"`
+	ExistingFingerprints  map[string]bool                `json:"existing_fingerprints,omitempty"`
+	ExistingRisks         map[string]RiskContext         `json:"existing_risks,omitempty"`
+	BaselineWarnings      []string                       `json:"baseline_warnings,omitempty"`
+	WaiverFile            string                         `json:"waiver_file,omitempty"`
+	FailExpiredWaivers    bool                           `json:"fail_expired_waivers,omitempty"`
+	DocumentationLinks    map[string]string              `json:"documentation_links,omitempty"`
+	ComplianceMappings    map[string]map[string][]string `json:"compliance_mappings,omitempty"`
 }
 
 // AttackPathPolicy controls which attack path types can become findings.
