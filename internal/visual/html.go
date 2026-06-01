@@ -80,7 +80,7 @@ aside { grid-area: controls; }
   grid-area: details;
   border-right: 0;
   border-top: 1px solid var(--line);
-  max-height: 320px;
+  overflow: visible;
 }
 .canvas-wrap {
   grid-area: canvas;
@@ -92,6 +92,24 @@ aside { grid-area: controls; }
   background-size: 32px 32px;
 }
 .toolbar { display: grid; gap: 12px; }
+.graph-tools {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.tool-button {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 8px;
+  color: #334155;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 34px;
+}
+.tool-button:hover { border-color: #94a3b8; color: var(--ink); }
+.tool-note { color: var(--muted); font-size: 12px; margin: -2px 0 0; }
 .search {
   width: 100%;
   padding: 10px 12px;
@@ -106,7 +124,8 @@ aside { grid-area: controls; }
 .metric { border: 1px solid var(--line); border-radius: 8px; padding: 10px; background: #f8fafc; }
 .metric strong { display: block; font-size: 20px; line-height: 1.1; }
 .metric span { color: var(--muted); font-size: 12px; }
-svg { min-width: 100%; display: block; }
+svg { min-width: 100%; display: block; cursor: grab; touch-action: none; user-select: none; }
+svg.panning { cursor: grabbing; }
 .edge { fill: none; stroke: #64748b; stroke-width: 1.8; marker-end: url(#arrow-default); opacity: .9; }
 .edge.path { stroke: #4f46e5; stroke-width: 3; marker-end: url(#arrow-path); }
 .edge.block { stroke: #b91c1c; stroke-width: 3; marker-end: url(#arrow-block); }
@@ -120,7 +139,8 @@ svg { min-width: 100%; display: block; }
   stroke-width: 7px;
   text-anchor: middle;
 }
-.node { cursor: pointer; transition: opacity .15s ease, transform .15s ease; }
+.node { cursor: grab; transition: opacity .15s ease; }
+.node.dragging { cursor: grabbing; }
 .node rect { stroke-width: 2; filter: drop-shadow(0 10px 15px rgba(15, 23, 42, .08)); }
 .node text { pointer-events: none; }
 .node-title { font-weight: 700; fill: #0f172a; font-size: 12px; }
@@ -129,10 +149,23 @@ svg { min-width: 100%; display: block; }
 .hidden { opacity: .08; pointer-events: none; }
 .details h2 { margin: 0 0 8px; font-size: 18px; }
 .details .muted { color: var(--muted); }
-.details dl { display: grid; grid-template-columns: 90px 1fr; gap: 6px 12px; margin: 16px 0; }
+.details dl { display: grid; grid-template-columns: 130px 1fr; gap: 6px 14px; margin: 16px 0; max-width: 920px; }
 .details dt { color: var(--muted); }
 .details dd { margin: 0; word-break: break-word; }
 .details ul { padding-left: 18px; margin: 8px 0; }
+.details-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 420px) minmax(280px, 1fr);
+  gap: 18px 32px;
+}
+.detail-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  background: #f8fafc;
+}
+.detail-card h3 { margin: 0 0 8px; font-size: 14px; }
+.detail-card p { margin: 0; color: #334155; }
 @media (max-width: 980px) {
   .shell {
     grid-template-columns: 1fr;
@@ -154,8 +187,10 @@ svg { min-width: 100%; display: block; }
 	writeHTMLControls(&b, diagram)
 	fmt.Fprintf(&b, "<section class=\"canvas-wrap\"><svg id=\"graph\" viewBox=\"0 0 %.0f %.0f\" width=\"%.0f\" height=\"%.0f\" role=\"img\" aria-label=\"%s\">\n", width, height, width, height, html.EscapeString(pageTitle(diagram)))
 	writeSVGDefs(&b)
+	b.WriteString("<g id=\"viewport\">\n")
 	writeSVGRoutes(&b, layout, diagram.Edges)
 	writeSVGNodes(&b, layout)
+	b.WriteString("</g>\n")
 	b.WriteString("</svg></section>\n")
 	b.WriteString("<section class=\"details\" id=\"details\"><h2>Select a node</h2><p class=\"muted\">Click a graph node to inspect its resource identity, role, and evidence details.</p></section>\n")
 	b.WriteString("</main>\n")
@@ -175,6 +210,13 @@ func pageTitle(diagram Diagram) string {
 func writeHTMLControls(b *strings.Builder, diagram Diagram) {
 	roles := roleCounts(diagram.Nodes)
 	b.WriteString("<aside><div class=\"toolbar\">\n")
+	b.WriteString(`<div class="graph-tools" aria-label="Graph controls">
+<button class="tool-button" type="button" data-action="zoom-in">Zoom +</button>
+<button class="tool-button" type="button" data-action="zoom-out">Zoom -</button>
+<button class="tool-button" type="button" data-action="reset">Reset</button>
+</div>
+<p class="tool-note">Drag the canvas to pan. Drag nodes to rearrange. Hold Ctrl/Cmd and scroll to zoom.</p>
+`)
 	b.WriteString("<input id=\"search\" class=\"search\" type=\"search\" placeholder=\"Filter resources\" autocomplete=\"off\">\n")
 	b.WriteString("<div class=\"legend\" id=\"legend\">\n")
 	for _, role := range sortedRoles(roles) {
@@ -232,7 +274,7 @@ func writeSVGRoutes(b *strings.Builder, nodes []positionedNode, edges []Edge) {
 			className, html.EscapeString(edge.From), html.EscapeString(edge.To), x1, y1, mid, y1, mid, y2, x2, y2)
 		if edge.Label != "" {
 			labelX, labelY := edgeLabelPosition(x1, y1, x2, y2)
-			fmt.Fprintf(b, "<text class=\"edge-label\" x=\"%.1f\" y=\"%.1f\">%s</text>\n", labelX, labelY, html.EscapeString(edge.Label))
+			fmt.Fprintf(b, "<text class=\"edge-label\" data-from=\"%s\" data-to=\"%s\" x=\"%.1f\" y=\"%.1f\">%s</text>\n", html.EscapeString(edge.From), html.EscapeString(edge.To), labelX, labelY, html.EscapeString(edge.Label))
 		}
 	}
 }
@@ -497,23 +539,143 @@ func diagramData(diagram Diagram) map[string]any {
 			"decision": node.Decision,
 			"severity": node.Severity,
 			"details":  node.Details,
+			"summary":  nodeSummary(node),
+			"roleText": roleDescription(node.Role),
+			"kindText": kindDescription(node.Kind),
+		})
+	}
+	edges := make([]map[string]any, 0, len(diagram.Edges))
+	for _, edge := range diagram.Edges {
+		edges = append(edges, map[string]any{
+			"from":       edge.From,
+			"to":         edge.To,
+			"label":      edge.Label,
+			"role":       edge.Role,
+			"confidence": edge.Confidence,
+			"details":    edge.Details,
 		})
 	}
 	return map[string]any{
 		"title":       diagram.Title,
 		"description": diagram.Description,
 		"nodes":       nodes,
+		"edges":       edges,
+		"nodeWidth":   htmlNodeWidth,
+		"nodeHeight":  htmlNodeHeight,
+	}
+}
+
+func nodeSummary(node Node) string {
+	role := roleDescription(node.Role)
+	kind := kindDescription(node.Kind)
+	switch {
+	case role != "" && kind != "":
+		return role + " " + kind
+	case role != "":
+		return role
+	case kind != "":
+		return kind
+	default:
+		return "Graph node included in the rendered infrastructure relationship view."
+	}
+}
+
+func roleDescription(role Role) string {
+	switch role {
+	case RolePublic:
+		return "Public entrypoint: this node can receive traffic from outside the private network."
+	case RoleInternet:
+		return "Internet source: synthetic node representing external public access."
+	case RoleWorkload:
+		return "Workload: compute or service that can process requests and connect downstream."
+	case RoleSensitive:
+		return "Sensitive asset: datastore, secret, or key that can increase blast radius."
+	case RolePrincipal:
+		return "Principal: IAM identity or role involved in an access path."
+	case RolePolicy:
+		return "Policy: IAM policy or permission grant involved in access."
+	case RoleNetwork:
+		return "Network boundary: security group, subnet, route, or similar connectivity control."
+	case RolePath:
+		return "Path node: intermediate resource on the highlighted relationship path."
+	case RoleBlock:
+		return "Blocking risk target: this node participates in a path that can block deployment."
+	case RoleWarn:
+		return "Warning risk node: this node participates in a path that should be reviewed."
+	case RoleAllow:
+		return "Allowed node: this node participates in a reviewed path that is not blocking."
+	case RoleChanged:
+		return "Changed resource: Terraform/OpenTofu plans to create, update, replace, or delete this node."
+	default:
+		return "Resource node: included for graph context."
+	}
+}
+
+func kindDescription(kind string) string {
+	switch kind {
+	case "public_entrypoint":
+		return "It is classified as an ingress point such as a load balancer, public endpoint, or internet-facing service."
+	case "workload":
+		return "It is classified as compute or application runtime, such as ECS, Lambda, EC2, or Kubernetes workload."
+	case "data_store":
+		return "It is classified as a datastore, so reachability can indicate data exposure."
+	case "secret":
+		return "It is classified as a secret or credential store."
+	case "kms_key":
+		return "It is classified as a KMS key or cryptographic control."
+	case "principal":
+		return "It is classified as an IAM principal."
+	case "policy":
+		return "It is classified as an IAM policy or permission relationship."
+	case "network_boundary":
+		return "It is classified as a network boundary or routing control."
+	case "unknown":
+		return "ChangeGate preserved this resource in the path even though it does not have a more specific security classification yet."
+	case "attack_path":
+		return "It is part of a detected attack path sequence."
+	default:
+		if kind == "" {
+			return "No graph kind was assigned."
+		}
+		return "Graph kind: " + strings.ReplaceAll(kind, "_", " ") + "."
 	}
 }
 
 func htmlScript() string {
 	return `
+const NODE_WIDTH = CHANGEGATE_DIAGRAM.nodeWidth || 230;
+const NODE_HEIGHT = CHANGEGATE_DIAGRAM.nodeHeight || 72;
 const nodes = Array.from(document.querySelectorAll('.node'));
 const edges = Array.from(document.querySelectorAll('.edge'));
+const edgeLabels = Array.from(document.querySelectorAll('.edge-label'));
+const svg = document.getElementById('graph');
+const viewport = document.getElementById('viewport');
 const byId = new Map(CHANGEGATE_DIAGRAM.nodes.map((node) => [node.id, node]));
+const graphEdges = CHANGEGATE_DIAGRAM.edges || [];
 const search = document.getElementById('search');
 const checks = Array.from(document.querySelectorAll('[data-role][type="checkbox"]'));
 const details = document.getElementById('details');
+const positions = new Map(nodes.map((node) => {
+  const match = /translate\(([-0-9.]+)\s+([-0-9.]+)\)/.exec(node.getAttribute('transform') || '');
+  return [node.dataset.id, { x: Number(match && match[1] || 0), y: Number(match && match[2] || 0) }];
+}));
+let transform = { x: 0, y: 0, scale: 1 };
+let activeDrag = null;
+let activePan = null;
+
+function capturePointer(element, pointerId) {
+  if (!element || !element.setPointerCapture) return;
+  try {
+    element.setPointerCapture(pointerId);
+  } catch (_error) {
+    // Synthetic pointer events used by browser automation may not have an active pointer.
+  }
+}
+
+function releasePointer(element, pointerId) {
+  if (!element || !element.hasPointerCapture || !element.releasePointerCapture) return;
+  if (element.hasPointerCapture(pointerId)) element.releasePointerCapture(pointerId);
+}
 
 function activeRoles() {
   return new Set(checks.filter((input) => input.checked).map((input) => input.dataset.role));
@@ -534,25 +696,130 @@ function applyFilters() {
     const show = visible.has(edge.dataset.from) && visible.has(edge.dataset.to);
     edge.classList.toggle('hidden', !show);
   });
+  edgeLabels.forEach((label) => {
+    const show = visible.has(label.dataset.from) && visible.has(label.dataset.to);
+    label.classList.toggle('hidden', !show);
+  });
 }
 
 function selectNode(id) {
   nodes.forEach((node) => node.classList.toggle('selected', node.dataset.id === id));
   const node = byId.get(id);
+  const connected = connectedEdges(id);
   const detailItems = (node.details || []).map((item) => '<li>' + escapeHTML(item) + '</li>').join('');
+  const connectedItems = connected.map((edge) => '<li><strong>' + escapeHTML(edge.direction) + '</strong> ' + escapeHTML(edge.label || 'relationship') + ' ' + escapeHTML(edge.other) + formatConfidence(edge) + '</li>').join('');
+  const statusRows = [
+    rowHTML('Role', node.role || 'default'),
+    rowHTML('Kind', node.kind || 'unknown'),
+    rowHTML('Type', node.type || 'n/a'),
+    rowHTML('Changed', node.changed ? 'yes' : 'no')
+  ];
+  if (node.decision) statusRows.push(rowHTML('Decision', node.decision));
+  if (node.severity) statusRows.push(rowHTML('Severity', node.severity));
   details.innerHTML =
     '<h2>' + escapeHTML(node.label || node.id) + '</h2>' +
     '<p class="muted">' + escapeHTML(node.id) + '</p>' +
-    '<dl>' +
-      '<dt>Role</dt><dd>' + escapeHTML(node.role || 'default') + '</dd>' +
-      '<dt>Kind</dt><dd>' + escapeHTML(node.kind || 'unknown') + '</dd>' +
-      '<dt>Type</dt><dd>' + escapeHTML(node.type || 'n/a') + '</dd>' +
-      '<dt>Changed</dt><dd>' + (node.changed ? 'yes' : 'no') + '</dd>' +
-      '<dt>Decision</dt><dd>' + escapeHTML(node.decision || 'n/a') + '</dd>' +
-      '<dt>Severity</dt><dd>' + escapeHTML(node.severity || 'n/a') + '</dd>' +
-    '</dl>' +
-    '<h3>Evidence</h3>' +
-    '<ul>' + (detailItems || '<li>No additional details.</li>') + '</ul>';
+    '<div class="details-grid">' +
+      '<div>' +
+        '<dl>' + statusRows.join('') + '</dl>' +
+        '<div class="detail-card"><h3>What this means</h3><p>' + escapeHTML(node.summary || node.roleText || 'This node is part of the rendered graph evidence.') + '</p></div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="detail-card"><h3>Why it appears here</h3><p>' + escapeHTML(whyIncluded(node)) + '</p></div>' +
+        '<h3>Connected relationships</h3>' +
+        '<ul>' + (connectedItems || '<li>No connected relationships were included in this view.</li>') + '</ul>' +
+        '<h3>Evidence</h3>' +
+        '<ul>' + (detailItems || '<li>No additional evidence details.</li>') + '</ul>' +
+      '</div>' +
+    '</div>';
+}
+
+function rowHTML(label, value) {
+  return '<dt>' + escapeHTML(label) + '</dt><dd>' + escapeHTML(value) + '</dd>';
+}
+
+function connectedEdges(id) {
+  return graphEdges.flatMap((edge) => {
+    if (edge.from === id) return [{ direction: 'outbound to', other: edge.to, label: edge.label, confidence: edge.confidence }];
+    if (edge.to === id) return [{ direction: 'inbound from', other: edge.from, label: edge.label, confidence: edge.confidence }];
+    return [];
+  });
+}
+
+function formatConfidence(edge) {
+  return edge.confidence ? ' (' + escapeHTML(edge.confidence) + ' confidence)' : '';
+}
+
+function whyIncluded(node) {
+  if (node.role === 'public' || node.role === 'internet') return 'This is the public side of the path. It helps reviewers see where exposure starts.';
+  if (node.role === 'workload') return 'This workload is on the route between the entrypoint and downstream assets.';
+  if (node.role === 'sensitive' || node.role === 'block') return 'This is the downstream asset or risk target that makes the path important.';
+  if (node.role === 'network') return 'This node represents connectivity control that allows or shapes reachability.';
+  if (node.role === 'path') return 'This intermediate node keeps the path explainable instead of hiding routing or attachment hops.';
+  return 'This node is connected to the highlighted graph evidence.';
+}
+
+function updateViewport() {
+  viewport.setAttribute('transform', 'translate(' + transform.x + ' ' + transform.y + ') scale(' + transform.scale + ')');
+}
+
+function graphPoint(event) {
+  const point = svg.createSVGPoint();
+  point.x = event.clientX;
+  point.y = event.clientY;
+  const base = point.matrixTransform(svg.getScreenCTM().inverse());
+  return {
+    x: (base.x - transform.x) / transform.scale,
+    y: (base.y - transform.y) / transform.scale
+  };
+}
+
+function setNodePosition(id, x, y) {
+  positions.set(id, { x, y });
+  const element = nodes.find((node) => node.dataset.id === id);
+  if (element) element.setAttribute('transform', 'translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ')');
+  updateConnectedGeometry(id);
+}
+
+function updateConnectedGeometry(id) {
+  edges.forEach((edge, index) => {
+    if (edge.dataset.from !== id && edge.dataset.to !== id) return;
+    updateEdgeGeometry(edge, edgeLabels[index], index);
+  });
+}
+
+function updateEdgeGeometry(edge, label, index) {
+  const from = positions.get(edge.dataset.from);
+  const to = positions.get(edge.dataset.to);
+  if (!from || !to) return;
+  let x1 = from.x + NODE_WIDTH;
+  let y1 = from.y + NODE_HEIGHT / 2;
+  let x2 = to.x;
+  let y2 = to.y + NODE_HEIGHT / 2;
+  if (to.x < from.x) {
+    x1 = from.x;
+    x2 = to.x + NODE_WIDTH;
+  }
+  let mid = x1 + Math.max(72, Math.abs(x2 - x1) / 2);
+  if (x2 < x1) mid = x1 - Math.max(72, Math.abs(x2 - x1) / 2);
+  if (Math.abs(y2 - y1) > 75) mid += ((index % 3) - 1) * 22;
+  edge.setAttribute('d', 'M ' + x1.toFixed(1) + ' ' + y1.toFixed(1) + ' C ' + mid.toFixed(1) + ' ' + y1.toFixed(1) + ', ' + mid.toFixed(1) + ' ' + y2.toFixed(1) + ', ' + x2.toFixed(1) + ' ' + y2.toFixed(1));
+  if (label) {
+    const labelX = (x1 + x2) / 2 + (Math.abs(y2 - y1) > NODE_HEIGHT ? 18 : 0);
+    const labelY = Math.abs(y2 - y1) > NODE_HEIGHT ? (y1 + y2) / 2 - 10 : Math.min(y1, y2) - 18;
+    label.setAttribute('x', labelX.toFixed(1));
+    label.setAttribute('y', labelY.toFixed(1));
+  }
+}
+
+function zoomBy(factor) {
+  transform.scale = Math.min(2.5, Math.max(0.45, transform.scale * factor));
+  updateViewport();
+}
+
+function resetView() {
+  transform = { x: 0, y: 0, scale: 1 };
+  updateViewport();
 }
 
 function escapeHTML(value) {
@@ -565,9 +832,67 @@ function escapeHTML(value) {
   }[char]));
 }
 
+document.querySelector('[data-action="zoom-in"]').addEventListener('click', () => zoomBy(1.15));
+document.querySelector('[data-action="zoom-out"]').addEventListener('click', () => zoomBy(0.87));
+document.querySelector('[data-action="reset"]').addEventListener('click', resetView);
+svg.addEventListener('wheel', (event) => {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  zoomBy(event.deltaY < 0 ? 1.08 : 0.92);
+}, { passive: false });
+svg.addEventListener('pointerdown', (event) => {
+  const node = event.target.closest && event.target.closest('.node');
+  if (node) {
+    const start = graphPoint(event);
+    const current = positions.get(node.dataset.id);
+    activeDrag = { id: node.dataset.id, dx: start.x - current.x, dy: start.y - current.y, element: node };
+    node.classList.add('dragging');
+    capturePointer(node, event.pointerId);
+    selectNode(node.dataset.id);
+    event.stopPropagation();
+    return;
+  }
+  const point = { x: event.clientX, y: event.clientY };
+  activePan = { x: point.x, y: point.y, tx: transform.x, ty: transform.y, element: svg };
+  svg.classList.add('panning');
+  capturePointer(svg, event.pointerId);
+});
+svg.addEventListener('pointermove', (event) => {
+  if (activeDrag) {
+    const point = graphPoint(event);
+    setNodePosition(activeDrag.id, point.x - activeDrag.dx, point.y - activeDrag.dy);
+    return;
+  }
+  if (activePan) {
+    transform.x = activePan.tx + (event.clientX - activePan.x);
+    transform.y = activePan.ty + (event.clientY - activePan.y);
+    updateViewport();
+  }
+});
+svg.addEventListener('pointerup', (event) => {
+  if (activeDrag) {
+    const node = nodes.find((element) => element.dataset.id === activeDrag.id);
+    if (node) node.classList.remove('dragging');
+    releasePointer(activeDrag.element, event.pointerId);
+  }
+  if (activePan) {
+    releasePointer(activePan.element, event.pointerId);
+  }
+  activeDrag = null;
+  activePan = null;
+  svg.classList.remove('panning');
+});
+svg.addEventListener('pointercancel', () => {
+  activeDrag = null;
+  activePan = null;
+  svg.classList.remove('panning');
+  nodes.forEach((node) => node.classList.remove('dragging'));
+});
 search.addEventListener('input', applyFilters);
 checks.forEach((input) => input.addEventListener('change', applyFilters));
 nodes.forEach((node) => node.addEventListener('click', () => selectNode(node.dataset.id)));
+edges.forEach((edge, index) => updateEdgeGeometry(edge, edgeLabels[index], index));
+updateViewport();
 applyFilters();
 if (nodes[0]) selectNode(nodes[0].dataset.id);
 `
