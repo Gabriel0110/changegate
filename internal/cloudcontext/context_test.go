@@ -98,10 +98,23 @@ func TestReadOnlyPolicyTemplateMatchesExample(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read example policy: %v", err)
 	}
-	got := strings.TrimSpace(ReadOnlyPolicyTemplate())
-	want := strings.TrimSpace(string(example))
-	if got != want {
-		t.Fatalf("read-only policy template drifted from example\nwant:\n%s\ngot:\n%s", want, got)
+	var got, want map[string]any
+	if err := json.Unmarshal([]byte(ReadOnlyPolicyTemplate()), &got); err != nil {
+		t.Fatalf("decode generated policy template: %v", err)
+	}
+	if err := json.Unmarshal(example, &want); err != nil {
+		t.Fatalf("decode example policy template: %v", err)
+	}
+	gotJSON, err := json.MarshalIndent(got, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal generated policy template: %v", err)
+	}
+	wantJSON, err := json.MarshalIndent(want, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal example policy template: %v", err)
+	}
+	if !bytes.Equal(gotJSON, wantJSON) {
+		t.Fatalf("read-only policy template drifted from example\nwant:\n%s\ngot:\n%s", wantJSON, gotJSON)
 	}
 }
 
