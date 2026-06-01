@@ -15,6 +15,17 @@ type positionedNode struct {
 	Y float64
 }
 
+const (
+	htmlNodeWidth       = 230.0
+	htmlNodeHeight      = 72.0
+	htmlNodeGapX        = 150.0
+	htmlNodeGapY        = 150.0
+	htmlCanvasPaddingX  = 80.0
+	htmlCanvasPaddingY  = 86.0
+	htmlFocusColumns    = 3
+	htmlEdgeLabelOffset = 18.0
+)
+
 // RenderHTML renders a self-contained interactive HTML visualization.
 func RenderHTML(diagram Diagram) []byte {
 	layout := layoutDiagram(diagram)
@@ -100,7 +111,15 @@ svg { min-width: 100%; display: block; }
 .edge.path { stroke: #4f46e5; stroke-width: 3; marker-end: url(#arrow-path); }
 .edge.block { stroke: #b91c1c; stroke-width: 3; marker-end: url(#arrow-block); }
 .edge.warn { stroke: #d97706; stroke-width: 2.6; marker-end: url(#arrow-warn); }
-.edge-label { fill: #475569; font-size: 11px; paint-order: stroke; stroke: #fff; stroke-width: 4px; }
+.edge-label {
+  fill: #475569;
+  font-size: 11px;
+  font-weight: 650;
+  paint-order: stroke;
+  stroke: #fff;
+  stroke-width: 7px;
+  text-anchor: middle;
+}
 .node { cursor: pointer; transition: opacity .15s ease, transform .15s ease; }
 .node rect { stroke-width: 2; filter: drop-shadow(0 10px 15px rgba(15, 23, 42, .08)); }
 .node text { pointer-events: none; }
@@ -192,11 +211,18 @@ func writeSVGRoutes(b *strings.Builder, nodes []positionedNode, edges []Edge) {
 		if !okFrom || !okTo {
 			continue
 		}
-		x1, y1 := from.X+190, from.Y+32
-		x2, y2 := to.X, to.Y+32
-		mid := x1 + math.Max(60, (x2-x1)/2)
-		if x2 <= x1 {
-			mid = x1 + 70 + float64((index%4)*24)
+		x1, y1 := from.X+htmlNodeWidth, from.Y+htmlNodeHeight/2
+		x2, y2 := to.X, to.Y+htmlNodeHeight/2
+		if to.X < from.X {
+			x1 = from.X
+			x2 = to.X + htmlNodeWidth
+		}
+		mid := x1 + math.Max(72, math.Abs(x2-x1)/2)
+		if x2 < x1 {
+			mid = x1 - math.Max(72, math.Abs(x2-x1)/2)
+		}
+		if math.Abs(y2-y1) > htmlNodeGapY/2 {
+			mid += float64((index%3)-1) * 22
 		}
 		className := "edge"
 		if edge.Role != RoleDefault {
@@ -205,22 +231,30 @@ func writeSVGRoutes(b *strings.Builder, nodes []positionedNode, edges []Edge) {
 		fmt.Fprintf(b, "<path class=\"%s\" data-from=\"%s\" data-to=\"%s\" d=\"M %.1f %.1f C %.1f %.1f, %.1f %.1f, %.1f %.1f\"/>\n",
 			className, html.EscapeString(edge.From), html.EscapeString(edge.To), x1, y1, mid, y1, mid, y2, x2, y2)
 		if edge.Label != "" {
-			fmt.Fprintf(b, "<text class=\"edge-label\" x=\"%.1f\" y=\"%.1f\">%s</text>\n", (x1+x2)/2, (y1+y2)/2-8, html.EscapeString(edge.Label))
+			labelX, labelY := edgeLabelPosition(x1, y1, x2, y2)
+			fmt.Fprintf(b, "<text class=\"edge-label\" x=\"%.1f\" y=\"%.1f\">%s</text>\n", labelX, labelY, html.EscapeString(edge.Label))
 		}
 	}
+}
+
+func edgeLabelPosition(x1 float64, y1 float64, x2 float64, y2 float64) (float64, float64) {
+	if math.Abs(y2-y1) > htmlNodeHeight {
+		return (x1+x2)/2 + 18, (y1+y2)/2 - 10
+	}
+	return (x1 + x2) / 2, math.Min(y1, y2) - htmlEdgeLabelOffset
 }
 
 func writeSVGNodes(b *strings.Builder, nodes []positionedNode) {
 	for _, node := range nodes {
 		style := styleForRole(node.Role)
 		fmt.Fprintf(b, "<g class=\"node\" data-id=\"%s\" data-role=\"%s\" transform=\"translate(%.1f %.1f)\">\n", html.EscapeString(node.ID), html.EscapeString(string(node.Role)), node.X, node.Y)
-		fmt.Fprintf(b, "<rect width=\"190\" height=\"64\" rx=\"8\" fill=\"%s\" stroke=\"%s\"></rect>\n", style.Fill, style.Stroke)
-		writeWrappedText(b, node.Label, "node-title", 12, 22, 23)
+		fmt.Fprintf(b, "<rect width=\"%.0f\" height=\"%.0f\" rx=\"8\" fill=\"%s\" stroke=\"%s\"></rect>\n", htmlNodeWidth, htmlNodeHeight, style.Fill, style.Stroke)
+		writeWrappedText(b, node.Label, "node-title", 14, 24, 26)
 		kind := node.Kind
 		if kind == "" {
 			kind = string(node.Role)
 		}
-		fmt.Fprintf(b, "<text class=\"node-kind\" x=\"12\" y=\"52\">%s</text>\n", html.EscapeString(kind))
+		fmt.Fprintf(b, "<text class=\"node-kind\" x=\"14\" y=\"58\">%s</text>\n", html.EscapeString(kind))
 		b.WriteString("</g>\n")
 	}
 }
@@ -233,6 +267,9 @@ func writeWrappedText(b *strings.Builder, value string, className string, x floa
 }
 
 func layoutDiagram(diagram Diagram) []positionedNode {
+	if len(diagram.FocusPaths) > 0 {
+		return layoutFocusDiagram(diagram)
+	}
 	nodes := append([]Node{}, diagram.Nodes...)
 	sort.SliceStable(nodes, func(i int, j int) bool {
 		return nodes[i].ID < nodes[j].ID
@@ -256,12 +293,84 @@ func layoutDiagram(diagram Diagram) []positionedNode {
 		for row, node := range group {
 			out = append(out, positionedNode{
 				Node: node,
-				X:    70 + float64(layer)*270,
-				Y:    70 + float64(row)*118,
+				X:    htmlCanvasPaddingX + float64(layer)*(htmlNodeWidth+htmlNodeGapX),
+				Y:    htmlCanvasPaddingY + float64(row)*(htmlNodeHeight+46),
 			})
 		}
 	}
 	return out
+}
+
+func layoutFocusDiagram(diagram Diagram) []positionedNode {
+	ordered := orderedFocusNodes(diagram)
+	indexByID := make(map[string]int, len(ordered))
+	for index, node := range ordered {
+		indexByID[node.ID] = index
+	}
+	out := make([]positionedNode, 0, len(ordered))
+	for index, node := range ordered {
+		col, row := focusGridPosition(index)
+		out = append(out, positionedNode{
+			Node: node,
+			X:    htmlCanvasPaddingX + float64(col)*(htmlNodeWidth+htmlNodeGapX),
+			Y:    htmlCanvasPaddingY + float64(row)*(htmlNodeHeight+htmlNodeGapY),
+		})
+	}
+	for _, node := range sortedUnplacedNodes(diagram.Nodes, indexByID) {
+		index := len(out)
+		col, row := focusGridPosition(index)
+		out = append(out, positionedNode{
+			Node: node,
+			X:    htmlCanvasPaddingX + float64(col)*(htmlNodeWidth+htmlNodeGapX),
+			Y:    htmlCanvasPaddingY + float64(row)*(htmlNodeHeight+htmlNodeGapY),
+		})
+	}
+	return out
+}
+
+func orderedFocusNodes(diagram Diagram) []Node {
+	byID := make(map[string]Node, len(diagram.Nodes))
+	for _, node := range diagram.Nodes {
+		byID[node.ID] = node
+	}
+	seen := make(map[string]bool, len(diagram.Nodes))
+	out := make([]Node, 0, len(diagram.Nodes))
+	for _, path := range diagram.FocusPaths {
+		for _, id := range path {
+			if seen[id] {
+				continue
+			}
+			node, ok := byID[id]
+			if !ok {
+				continue
+			}
+			seen[id] = true
+			out = append(out, node)
+		}
+	}
+	return out
+}
+
+func sortedUnplacedNodes(nodes []Node, placed map[string]int) []Node {
+	out := make([]Node, 0)
+	for _, node := range nodes {
+		if _, ok := placed[node.ID]; !ok {
+			out = append(out, node)
+		}
+	}
+	sort.SliceStable(out, func(i int, j int) bool {
+		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+func focusGridPosition(index int) (int, int) {
+	row := index / htmlFocusColumns
+	offset := index % htmlFocusColumns
+	if row%2 == 1 {
+		return htmlFocusColumns - 1 - offset, row
+	}
+	return offset, row
 }
 
 func assignLayers(nodes []Node, focusPaths [][]string) map[string]int {
@@ -300,8 +409,8 @@ func canvasSize(nodes []positionedNode) (float64, float64) {
 	width := 960.0
 	height := 640.0
 	for _, node := range nodes {
-		width = math.Max(width, node.X+260)
-		height = math.Max(height, node.Y+140)
+		width = math.Max(width, node.X+htmlNodeWidth+htmlCanvasPaddingX)
+		height = math.Max(height, node.Y+htmlNodeHeight+htmlCanvasPaddingY)
 	}
 	return width, height
 }
