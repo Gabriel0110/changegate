@@ -1,6 +1,6 @@
 # Rule Authoring
 
-ChangeGate rules should be narrow, explainable, deterministic, and high confidence. A rule should block only when the plan evidence is strong enough that a maintainer would defend the decision in CI.
+ChangeGate rules should be narrow, explainable, deterministic, and high confidence. A rule should block only when the plan evidence is strong enough that the decision can be defended in CI.
 
 ## Rule Contract
 

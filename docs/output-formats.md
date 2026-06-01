@@ -77,7 +77,7 @@ Graph and attack-path commands support renderable diagram source for review arti
 * `graph visualize` and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, highlighted paths, and an evidence inspector.
 * `graph render` optionally shells out to Graphviz `dot` to render SVG, PNG, or PDF when Graphviz is installed.
 
-The HTML visualizations do not fetch network assets or external JavaScript. They are suitable for CI artifacts, audit bundles produced outside ChangeGate, internal docs, and pull-request links.
+The HTML visualizations do not fetch network assets or external JavaScript. They are suitable for CI artifacts, audit bundles produced outside ChangeGate, organization documentation, and pull-request links.
 
 ## SARIF
 

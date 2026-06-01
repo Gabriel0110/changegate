@@ -77,7 +77,7 @@ export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
-The installer verifies `checksums.txt` and refuses checksum mismatches. See [release verification](docs/release-verification.md) for Cosign, checksum, attestation, and SBOM verification.
+The installer verifies `checksums.txt` and refuses checksum mismatches. Release artifacts include checksums, signed checksums, SBOMs, attestations, and signed Docker images.
 
 Development build:
 
@@ -290,7 +290,6 @@ Operators:
 * [Waivers](docs/waivers.md)
 * [Cloud context](docs/cloud-context.md)
 * [Security model](docs/security-model.md)
-* [Release verification](docs/release-verification.md)
 
 Contributors:
 
@@ -298,14 +297,9 @@ Contributors:
 * [Architecture](docs/architecture.md)
 * [Rule authoring](docs/rule-authoring.md)
 * [Fixture contributions](docs/fixtures.md)
-* [Governance](docs/governance.md)
-* [Maintainer guide](docs/maintainer-guide.md)
-* [RFC process](docs/rfcs.md)
 
 Reference:
 
-* [Product overview](docs/product-overview.md)
-* [CLI contract](docs/cli-contract.md)
 * [Decision model](docs/decision-model.md)
 * [Security Impact Statement](docs/security-impact-statement.md)
 * [Review Intelligence](docs/review-intelligence.md)

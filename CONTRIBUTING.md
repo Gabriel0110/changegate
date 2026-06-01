@@ -4,7 +4,7 @@ ChangeGate welcomes focused contributions that preserve the core product promise
 
 ## Before You Start
 
-For bug fixes, open an issue or link to an existing issue. For new rules, policy behavior, output schemas, or large architecture changes, use the RFC process in [docs/rfcs.md](docs/rfcs.md).
+For bug fixes, open an issue or link to an existing issue. For new rules, policy behavior, output schemas, or large architecture changes, open a design discussion before implementation so the behavior can be reviewed early.
 
 ## Development Setup
 

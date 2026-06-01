@@ -35,7 +35,7 @@ Experimental capabilities may change before v1:
 * broad attack-path enforcement beyond the current deterministic v1 path types
 * visual graph layout and UX iteration
 
-Experimental features must be documented as experimental in release notes when their behavior can affect CI outcomes.
+Experimental behavior is called out in documentation when it can affect CI outcomes.
 
 ## Planned
 

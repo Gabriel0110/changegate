@@ -30,4 +30,4 @@ Official releases include:
 * GitHub artifact attestations
 * signed Docker images
 
-See [release verification](docs/release-verification.md) for verification commands.
+Verification commands are published with each release artifact set.

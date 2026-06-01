@@ -53,4 +53,4 @@ For untrusted pull requests, do not run arbitrary repository code or Terraform m
 
 ## Release Integrity
 
-Official releases include checksums, signed checksums, SBOMs, attestations, and signed Docker images. See [release verification](release-verification.md).
+Official releases include checksums, signed checksums, SBOMs, attestations, and signed Docker images.

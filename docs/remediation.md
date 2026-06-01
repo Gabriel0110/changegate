@@ -79,9 +79,9 @@ Patch suggestions use a structured format:
 
 `safe_to_apply` is currently `false` for all built-in remediation. This is intentional. The CLI distinguishes helpful snippets from automatic patches so it never silently changes risky infrastructure semantics.
 
-## Internal docs links
+## Organization Documentation Links
 
-Teams can attach internal documentation to remediation output through `.changegate.yaml`:
+Teams can attach organization-specific documentation to remediation output through `.changegate.yaml`:
 
 ```yaml
 docs:

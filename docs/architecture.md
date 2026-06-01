@@ -4,20 +4,20 @@ ChangeGate is organized around one path: read plan JSON, normalize it, build gra
 
 ```mermaid
 flowchart LR
-  "Terraform/OpenTofu plan JSON" --> "Plan loader"
-  "Plan loader" --> "Normalized model"
-  "Normalized model" --> "Graph builder"
-  "Normalized model" --> "Rule runner"
-  "Graph builder" --> "Rule runner"
-  "Rule runner" --> "Findings"
-  "External scanner imports" --> "Findings"
-  "Cloud context snapshot" --> "Findings"
-  "Findings" --> "Policy evaluator"
-  "Baseline and waivers" --> "Policy evaluator"
-  "Policy evaluator" --> "Scan report"
-  "Scan report" --> "Report renderers"
-  "Scan report" --> "Impact statement"
-  "Impact statement" --> "Review comment renderer"
+  plan["Terraform/OpenTofu plan JSON"] --> loader["Plan loader"]
+  loader --> model["Normalized model"]
+  model --> graphBuilder["Graph builder"]
+  model --> rules["Rule runner"]
+  graphBuilder --> rules
+  rules --> findings["Findings"]
+  imports["External scanner imports"] --> findings
+  context["Cloud context snapshot"] --> findings
+  findings --> policy["Policy evaluator"]
+  exceptions["Baseline and waivers"] --> policy
+  policy --> report["Scan report"]
+  report --> renderers["Report renderers"]
+  report --> impact["Impact statement"]
+  impact --> review["Review comment renderer"]
 ```
 
 ## Packages
