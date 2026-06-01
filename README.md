@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/changegate-banner.png" alt="ChangeGate" width="900">
+</p>
+
 # ChangeGate
 
 [![CI](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml)
