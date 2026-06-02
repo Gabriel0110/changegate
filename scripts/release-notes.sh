@@ -30,10 +30,10 @@ Verify checksums before installing:
 
 \`\`\`bash
 shasum -a 256 -c checksums.txt
-cosign verify-blob --certificate checksums.txt.pem --signature checksums.txt.sig checksums.txt
+cosign verify-blob --bundle checksums.txt.sigstore.json checksums.txt
 \`\`\`
 
 ### Supply chain evidence
 
-This release includes SHA-256 checksums, signed checksums, CycloneDX SBOMs, GitHub artifact attestations, and a signed Docker image.
+This release includes SHA-256 checksums, signed checksums, CycloneDX SBOMs, GitHub artifact attestations, a signed Docker image, and Linux `.deb`, `.rpm`, and `.apk` packages.
 NOTES

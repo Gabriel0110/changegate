@@ -62,9 +62,9 @@ func TestRenderHTML(t *testing.T) {
 	}
 }
 
-func TestRenderAttackPathsFromReleaseValidationJSON(t *testing.T) {
+func TestRenderAttackPathsFromGoldenJSON(t *testing.T) {
 	var result attackpath.Result
-	readJSON(t, filepath.Join("..", "..", "test-results", "release-validation-2026-05-31", "attack-paths.json"), &result)
+	readJSON(t, filepath.Join("..", "attackpath", "testdata", "golden", "attack-paths.json"), &result)
 	diagram := NewAttackPathDiagram(result.Paths)
 	if len(diagram.Nodes) == 0 || len(diagram.Edges) == 0 {
 		t.Fatalf("expected attack path diagram nodes and edges, got %d nodes %d edges", len(diagram.Nodes), len(diagram.Edges))
@@ -81,11 +81,18 @@ func TestRenderAttackPathsFromReleaseValidationJSON(t *testing.T) {
 	}
 }
 
-func TestRenderGraphPathFromReleaseValidationJSON(t *testing.T) {
-	var result struct {
+func TestRenderGraphPathFromInlinePath(t *testing.T) {
+	result := struct {
 		Paths []graphpkg.Path `json:"paths"`
+	}{
+		Paths: []graphpkg.Path{{
+			Nodes: []graphpkg.ResourceID{"aws_lb.admin", "aws_ecs_service.admin", "aws_db_instance.customer"},
+			Edges: []graphpkg.Edge{
+				{From: "aws_lb.admin", To: "aws_ecs_service.admin", Type: graphpkg.EdgeRoutesTo, Source: graphpkg.SourcePlan, Confidence: graphpkg.ConfidenceHigh},
+				{From: "aws_ecs_service.admin", To: "aws_db_instance.customer", Type: graphpkg.EdgeCanReadData, Source: graphpkg.SourcePlan, Confidence: graphpkg.ConfidenceHigh},
+			},
+		}},
 	}
-	readJSON(t, filepath.Join("..", "..", "test-results", "release-validation-2026-05-31", "graph-path.json"), &result)
 	g := graphFromPaths(result.Paths)
 	diagram := NewGraphPathDiagram(g, "aws_lb.admin", "aws_db_instance.customer", result.Paths)
 	if len(diagram.Nodes) == 0 || len(diagram.Edges) == 0 {

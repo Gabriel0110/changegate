@@ -77,7 +77,7 @@ export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
-The installer verifies `checksums.txt` and refuses checksum mismatches. Release artifacts include checksums, signed checksums, SBOMs, attestations, and signed Docker images.
+The installer verifies `checksums.txt` and refuses checksum mismatches. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
 
 Development build:
 

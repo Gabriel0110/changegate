@@ -1,0 +1,155 @@
+version: 2
+
+project_name: changegate
+
+metadata:
+  mod_timestamp: "{{ .CommitTimestamp }}"
+
+before:
+  hooks:
+    - go mod download
+
+builds:
+  - id: changegate
+    main: ./cmd/changegate
+    binary: changegate
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X github.com/Gabriel0110/changegate/internal/buildinfo.Version={{ .Version }}
+      - -X github.com/Gabriel0110/changegate/internal/buildinfo.Commit={{ .Commit }}
+      - -X github.com/Gabriel0110/changegate/internal/buildinfo.Date={{ .Date }}
+
+archives:
+  - id: release_archives
+    ids:
+      - changegate
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    wrap_in_directory: true
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+
+sboms:
+  - id: release_archive_sboms
+    artifacts: archive
+    documents:
+      - "${artifact}.sbom.cdx.json"
+    cmd: syft
+    args:
+      - "$artifact"
+      - "--output"
+      - "cyclonedx-json=$document"
+
+signs:
+  - id: checksum_sigstore
+    artifacts: checksum
+    cmd: cosign
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - "--bundle=${signature}"
+      - "${artifact}"
+      - "--yes"
+
+nfpms:
+  - id: linux_packages
+    ids:
+      - changegate
+    package_name: changegate
+    vendor: ChangeGate
+    homepage: https://github.com/Gabriel0110/changegate
+    maintainer: Gabriel0110 <Gabriel0110@users.noreply.github.com>
+    description: Graph-aware Terraform/OpenTofu deployment risk gate.
+    license: Apache-2.0
+    formats:
+      - deb
+      - rpm
+      - apk
+    bindir: /usr/bin
+    contents:
+      - src: ./README.md
+        dst: /usr/share/doc/changegate/README.md
+      - src: ./LICENSE
+        dst: /usr/share/doc/changegate/LICENSE
+
+dockers_v2:
+  - id: ghcr
+    ids:
+      - changegate
+    images:
+      - "{{ .Env.REGISTRY_IMAGE }}"
+    dockerfile: Dockerfile.goreleaser
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    tags:
+      - "{{ .Tag }}"
+      - "{{ .Major }}.{{ .Minor }}"
+      - "{{ .Major }}"
+      - latest
+    labels:
+      org.opencontainers.image.title: ChangeGate
+      org.opencontainers.image.description: Graph-aware Terraform/OpenTofu deployment risk gate
+      org.opencontainers.image.url: https://github.com/Gabriel0110/changegate
+      org.opencontainers.image.source: https://github.com/Gabriel0110/changegate
+      org.opencontainers.image.version: "{{ .Version }}"
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.created: "{{ .Date }}"
+
+docker_signs:
+  - id: ghcr_sigstore
+    artifacts: all
+    cmd: cosign
+    args:
+      - sign
+      - "${artifact}@${digest}"
+      - "--yes"
+
+release:
+  github:
+    owner: Gabriel0110
+    name: changegate
+  name_template: "ChangeGate {{ .Tag }}"
+  footer: |
+    ## Verification
+
+    Verify release checksums:
+
+    ```bash
+    shasum -a 256 -c checksums.txt
+    cosign verify-blob --bundle checksums.txt.sigstore.json checksums.txt
+    ```

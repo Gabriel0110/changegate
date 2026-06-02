@@ -17,6 +17,8 @@ export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
+Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for teams that install CLI tools through package mirrors or runner images.
+
 ## 2. Create A Plan JSON
 
 Terraform:

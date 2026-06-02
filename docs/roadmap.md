@@ -23,7 +23,7 @@ Stable capabilities are intended for normal CI use:
 * compliance metadata for bundled stable AWS rules
 * structured remediation metadata in JSON, SARIF, PR/MR comments, and audit bundles
 * GitHub Actions, GitLab CI, Atlantis, and Terraform Cloud guidance
-* signed release archives, checksums, SBOMs, and Docker images
+* signed release archives, checksums, SBOMs, Docker images, and Linux packages
 
 ## Experimental
 
@@ -47,7 +47,7 @@ Planned work after the initial public release includes:
 * reusable sanitized fixture library
 * richer monorepo reporting
 * expanded examples for platform teams
-* package manager distribution beyond release archives and Homebrew
+* package manager distribution beyond release archives, Homebrew, and Linux packages
 
 ## Not Planned For MVP
 
