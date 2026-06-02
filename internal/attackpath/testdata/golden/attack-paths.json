@@ -1,15 +1,41 @@
 {
-  "version": 1,
+  "version": 2,
   "paths": [
     {
       "id": "attack-path-public-admin",
       "type": "public_to_sensitive_data",
+      "kind": "network",
       "title": "Public admin service reaches customer database",
       "severity": "critical",
       "confidence": "high",
+      "confidence_reason": "path confidence is based on available graph evidence",
       "decision": "block",
       "entrypoint": "aws_lb.admin",
       "target": "aws_db_instance.customer",
+      "affected_resources": [
+        {
+          "resource": "aws_db_instance.customer",
+          "role": "sensitive_asset",
+          "type": "aws_db_instance"
+        },
+        {
+          "resource": "aws_ecs_service.admin",
+          "role": "intermediate",
+          "type": "aws_ecs_service"
+        },
+        {
+          "resource": "aws_lb.admin",
+          "role": "entrypoint",
+          "type": "aws_lb"
+        },
+        {
+          "resource": "internet",
+          "role": "intermediate"
+        }
+      ],
+      "finding_rule_ids": [
+        "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH"
+      ],
       "steps": [
         {
           "from": "internet",
@@ -52,18 +78,40 @@
         "Separate the admin workload from customer data network paths."
       ],
       "references": [
-        "https://changegate.dev/docs/attack-paths"
+        "docs/attack-paths.md"
       ]
     },
     {
       "id": "attack-path-passrole-lambda",
       "type": "iam_privilege_escalation",
+      "kind": "identity",
       "title": "Deploy principal can update Lambda with privileged role",
       "severity": "high",
       "confidence": "high",
+      "confidence_reason": "path confidence is based on available graph evidence",
       "decision": "block",
       "principal": "aws_iam_role.github_actions",
       "target": "aws_iam_role.admin_execution",
+      "affected_resources": [
+        {
+          "resource": "aws_iam_role.admin_execution",
+          "role": "target",
+          "type": "aws_iam_role"
+        },
+        {
+          "resource": "aws_iam_role.github_actions",
+          "role": "principal",
+          "type": "aws_iam_role"
+        },
+        {
+          "resource": "aws_lambda_function.worker",
+          "role": "intermediate",
+          "type": "aws_lambda_function"
+        }
+      ],
+      "finding_rule_ids": [
+        "AWS_IAM_PASSROLE_FUNCTION_ESCALATION"
+      ],
       "steps": [
         {
           "from": "aws_iam_role.github_actions",

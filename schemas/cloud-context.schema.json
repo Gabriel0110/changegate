@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://changegate.dev/schemas/cloud-context.schema.json",
+  "$id": "https://github.com/Gabriel0110/changegate/schemas/cloud-context.schema.json",
   "title": "ChangeGate AWS Cloud Context Snapshot",
   "type": "object",
   "additionalProperties": false,

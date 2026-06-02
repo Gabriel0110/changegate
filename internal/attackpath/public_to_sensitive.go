@@ -61,7 +61,7 @@ func detectSensitivePaths(g *graph.Graph, entrypoint graph.ResourceID, radius gr
 				pathEvidence(target, fullPath, "public entrypoint reaches sensitive asset"),
 			},
 			Mitigations: publicSensitiveMitigations(targetNode),
-			References:  []string{"https://changegate.dev/docs/attack-paths"},
+			References:  []string{"docs/attack-paths.md"},
 			Metadata:    map[string]string{"graph_path_id": graphPathID(fullPath)},
 		})
 	}
@@ -94,7 +94,7 @@ func detectPublicWorkloadWarnings(g *graph.Graph, entrypoint graph.ResourceID, r
 				"Confirm this workload is intended to be public.",
 				"Attach cloud context or tags for downstream sensitive data when available.",
 			},
-			References: []string{"https://changegate.dev/docs/attack-paths"},
+			References: []string{"docs/attack-paths.md"},
 			Metadata:   map[string]string{"graph_path_id": graphPathID(fullPath)},
 		})
 	}
@@ -215,10 +215,25 @@ func stepsFromGraphPath(path graph.Path) []Step {
 			To:          string(edge.To),
 			Action:      string(edge.Type),
 			EdgeType:    edge.Type,
+			Source:      edge.Source,
+			Confidence:  edge.Confidence,
 			Explanation: edgeExplanation(edge),
+			Evidence:    append([]model.Evidence(nil), edge.Evidence...),
+			Metadata:    copyStepMetadata(edge.Metadata),
 		})
 	}
 	return steps
+}
+
+func copyStepMetadata(metadata map[string]string) map[string]string {
+	if len(metadata) == 0 {
+		return nil
+	}
+	out := make(map[string]string, len(metadata))
+	for key, value := range metadata {
+		out[key] = value
+	}
+	return out
 }
 
 func edgeExplanation(edge graph.Edge) string {

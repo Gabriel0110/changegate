@@ -35,4 +35,4 @@ Review the planned infrastructure change before apply.
 
 ## References
 
-- https://changegate.dev/docs/attack-paths
+- ../attack-paths.md

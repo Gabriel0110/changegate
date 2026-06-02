@@ -204,3 +204,15 @@ func writeCommandOutput(state *appState, command string, result any, table func(
 	table(state.renderer)
 	return nil
 }
+
+func writeRawCommandOutput(state *appState, body []byte, table func(renderer)) error {
+	if state.opts.outPath != "" {
+		if err := os.WriteFile(state.opts.outPath, body, 0o644); err != nil {
+			return fmt.Errorf("write output file %q: %w", state.opts.outPath, err)
+		}
+		return nil
+	}
+
+	table(state.renderer)
+	return nil
+}

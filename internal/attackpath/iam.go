@@ -72,7 +72,7 @@ func detectPassRoleComputeMutation(g *graph.Graph, grants []iamGrant, opts IAMDe
 		if !grantAllows(grant, "iam:PassRole") {
 			continue
 		}
-		mutation := firstAllowedAction(grant, "lambda:UpdateFunctionCode", "ecs:RunTask")
+		mutation := firstAllowedAction(grant, "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:CreateFunction", "ecs:RunTask", "ecs:UpdateService", "ecs:RegisterTaskDefinition")
 		if mutation == "" {
 			continue
 		}
@@ -95,7 +95,7 @@ func detectPassRoleComputeMutation(g *graph.Graph, grants []iamGrant, opts IAMDe
 				},
 				Evidence:    iamEvidence(grant, role, mutation),
 				Mitigations: []string{"Scope iam:PassRole to non-privileged execution roles and exact services.", "Separate compute mutation permissions from pass-role permissions."},
-				References:  []string{"https://changegate.dev/docs/attack-paths"},
+				References:  []string{"docs/attack-paths.md"},
 			})
 		}
 	}
@@ -133,7 +133,7 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 				Message:  "principal can assume a privileged or sensitive role",
 			}},
 			Mitigations: []string{"Remove broad trust or require tightly scoped conditions and approval for privileged role assumption."},
-			References:  []string{"https://changegate.dev/docs/attack-paths"},
+			References:  []string{"docs/attack-paths.md"},
 		})
 	}
 	for _, grant := range grants {
@@ -160,7 +160,7 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 				Steps:       []Step{iamStep(grant.Principal, role, "sts:AssumeRole", graph.EdgeCanAssume, "policy allows role assumption")},
 				Evidence:    iamEvidence(grant, role, "sts:AssumeRole"),
 				Mitigations: []string{"Scope sts:AssumeRole to exact non-admin roles and require restrictive trust conditions."},
-				References:  []string{"https://changegate.dev/docs/attack-paths"},
+				References:  []string{"docs/attack-paths.md"},
 			})
 		}
 	}
@@ -199,7 +199,7 @@ func detectFunctionUpdateRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMD
 					},
 					Evidence:    iamEvidence(grant, role, "lambda:UpdateFunctionCode"),
 					Mitigations: []string{"Remove function update access or move the function to a least-privilege execution role."},
-					References:  []string{"https://changegate.dev/docs/attack-paths"},
+					References:  []string{"docs/attack-paths.md"},
 				})
 			}
 		}
@@ -239,7 +239,7 @@ func detectECSUpdateServiceRoleAccess(g *graph.Graph, grants []iamGrant, opts IA
 					},
 					Evidence:    iamEvidence(grant, role, "ecs:UpdateService"),
 					Mitigations: []string{"Remove service update access or use a task role without sensitive data access."},
-					References:  []string{"https://changegate.dev/docs/attack-paths"},
+					References:  []string{"docs/attack-paths.md"},
 				})
 			}
 		}
@@ -340,7 +340,7 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 		}
 		if effect == "deny" {
 			for _, action := range statement.Actions {
-				if ActionMatches(action, "iam:PassRole") || ActionMatches(action, "sts:AssumeRole") || ActionMatches(action, "lambda:UpdateFunctionCode") || ActionMatches(action, "ecs:RunTask") || ActionMatches(action, "ecs:UpdateService") {
+				if ActionMatches(action, "iam:PassRole") || ActionMatches(action, "sts:AssumeRole") || ActionMatches(action, "lambda:UpdateFunctionCode") || ActionMatches(action, "lambda:UpdateFunctionConfiguration") || ActionMatches(action, "lambda:CreateFunction") || ActionMatches(action, "ecs:RunTask") || ActionMatches(action, "ecs:UpdateService") || ActionMatches(action, "ecs:RegisterTaskDefinition") {
 					grant.HasDeny = true
 				}
 			}
@@ -647,6 +647,8 @@ func iamStep(from graph.ResourceID, to graph.ResourceID, action string, edgeType
 		To:          string(to),
 		Action:      action,
 		EdgeType:    edgeType,
+		Source:      graph.SourcePlan,
+		Confidence:  graph.ConfidenceHigh,
 		Explanation: explanation,
 	}
 }
@@ -674,7 +676,15 @@ func mutationTarget(action string) graph.ResourceID {
 	switch strings.ToLower(action) {
 	case "lambda:updatefunctioncode":
 		return "aws_lambda_function.*"
+	case "lambda:updatefunctionconfiguration":
+		return "aws_lambda_function.*"
+	case "lambda:createfunction":
+		return "aws_lambda_function.*"
 	case "ecs:runtask":
+		return "aws_ecs_task_definition.*"
+	case "ecs:updateservice":
+		return "aws_ecs_service.*"
+	case "ecs:registertaskdefinition":
 		return "aws_ecs_task_definition.*"
 	default:
 		return graph.ResourceID(action)

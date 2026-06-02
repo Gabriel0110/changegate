@@ -233,6 +233,7 @@ type PolicyConfig struct {
 	BlockOn               Threshold                      `json:"block_on"`
 	WarnOn                Threshold                      `json:"warn_on"`
 	AttackPaths           AttackPathPolicy               `json:"attack_paths,omitempty"`
+	SensitiveAssets       SensitiveAssetPolicy           `json:"sensitive_assets,omitempty"`
 	Overrides             map[string]Override            `json:"overrides,omitempty"`
 	EnvironmentThresholds map[string]Thresholds          `json:"environment_thresholds,omitempty"`
 	BranchThresholds      map[string]Thresholds          `json:"branch_thresholds,omitempty"`
@@ -247,6 +248,14 @@ type PolicyConfig struct {
 	FailExpiredWaivers    bool                           `json:"fail_expired_waivers,omitempty"`
 	DocumentationLinks    map[string]string              `json:"documentation_links,omitempty"`
 	ComplianceMappings    map[string]map[string][]string `json:"compliance_mappings,omitempty"`
+}
+
+// SensitiveAssetPolicy controls additional graph sensitivity classification.
+type SensitiveAssetPolicy struct {
+	ResourceAddresses []string          `json:"resource_addresses,omitempty"`
+	ResourceTypes     []string          `json:"resource_types,omitempty"`
+	NameContains      []string          `json:"name_contains,omitempty"`
+	Tags              map[string]string `json:"tags,omitempty"`
 }
 
 // AttackPathPolicy controls which attack path types can become findings.

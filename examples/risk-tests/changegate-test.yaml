@@ -38,7 +38,6 @@ tests:
 
   - name: lambda_function_url_to_secret_blocked
     plan: fixtures/lambda-url-secret.json
-    context_file: contexts/lambda-url-secret.json
     expect:
       decision: block
       findings:
@@ -55,6 +54,17 @@ tests:
 
   - name: passrole_plus_lambda_update_blocked
     plan: fixtures/passrole-lambda-update.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_IAM_PASSROLE_FUNCTION_ESCALATION
+      attack_paths:
+        include:
+          - iam_privilege_escalation
+
+  - name: passrole_plus_lambda_create_blocked
+    plan: fixtures/passrole-lambda-create.json
     expect:
       decision: block
       findings:

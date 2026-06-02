@@ -1,7 +1,6 @@
 package cli
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -76,8 +75,9 @@ func newCIGitHubCommand() *cobra.Command {
 				return err
 			}
 			snippet := ci.GitHubWorkflow(toSnippetOptions(opts))
-			_, err = fmt.Fprint(state.renderer.out, snippet)
-			return err
+			return writeRawCommandOutput(state, []byte(snippet), func(r renderer) {
+				r.printf("%s", snippet)
+			})
 		},
 	}
 	addSnippetFlags(cmd, opts)
@@ -95,8 +95,9 @@ func newCIGitLabCommand() *cobra.Command {
 				return err
 			}
 			snippet := ci.GitLabCI(toSnippetOptions(opts))
-			_, err = fmt.Fprint(state.renderer.out, snippet)
-			return err
+			return writeRawCommandOutput(state, []byte(snippet), func(r renderer) {
+				r.printf("%s", snippet)
+			})
 		},
 	}
 	addSnippetFlags(cmd, opts)

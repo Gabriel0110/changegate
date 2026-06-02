@@ -120,7 +120,7 @@ func TestMergeContextRecordsBothSourcesOnDuplicateEdge(t *testing.T) {
 		"aws_lb.admin":          {ID: "aws_lb.admin", Address: "aws_lb.admin", Type: "aws_lb", Kind: NodePublicEntrypoint, Name: "admin"},
 		"aws_ecs_service.admin": {ID: "aws_ecs_service.admin", Address: "aws_ecs_service.admin", Type: "aws_ecs_service", Kind: NodeWorkload, Name: "admin"},
 	}}
-	planGraph.addEdge("aws_lb.admin", "aws_ecs_service.admin", EdgeRoutesTo, nil, nil)
+	planGraph.addEdgeWithProvenance("aws_lb.admin", "aws_ecs_service.admin", EdgeRoutesTo, SourcePlan, ConfidenceMedium, nil, nil)
 
 	merged, diagnostics := MergeContext(planGraph, cloudcontext.Snapshot{
 		Version:  cloudcontext.Version,
@@ -138,8 +138,11 @@ func TestMergeContextRecordsBothSourcesOnDuplicateEdge(t *testing.T) {
 	}
 	for _, edge := range merged.Edges {
 		if edge.From == "aws_lb.admin" && edge.To == "aws_ecs_service.admin" && edge.Type == EdgeRoutesTo {
-			if edge.Source != SourcePlan {
-				t.Fatalf("source = %q, want %q", edge.Source, SourcePlan)
+			if edge.Source != SourceMixed {
+				t.Fatalf("source = %q, want %q", edge.Source, SourceMixed)
+			}
+			if edge.Confidence != ConfidenceHigh {
+				t.Fatalf("confidence = %q, want high", edge.Confidence)
 			}
 			if edge.Metadata["sources"] != "cloud_context,plan" {
 				t.Fatalf("sources metadata = %q, want cloud_context,plan", edge.Metadata["sources"])
@@ -191,6 +194,47 @@ func TestMergeContextConflictDiagnostics(t *testing.T) {
 	}
 	if !hasEdgeWithSource(merged, "eni-123", "aws_ecs_service.admin", EdgeAttachedTo, SourceCloudContext) {
 		t.Fatalf("expected attachment edge, got %#v", merged.Edges)
+	}
+}
+
+func TestMergeContextDoesNotWarnForUnrelatedLiveOnlyInventory(t *testing.T) {
+	t.Parallel()
+	public := true
+	planGraph := Build(&model.Plan{Resources: []model.Resource{{
+		Address: "aws_lb.admin",
+		Type:    "aws_lb",
+		Name:    "admin",
+	}}})
+
+	merged, diagnostics := MergeContext(planGraph, cloudcontext.Snapshot{
+		Version:  cloudcontext.Version,
+		Provider: cloudcontext.ProviderAWS,
+		Network: cloudcontext.ResourceSet{Resources: map[string]cloudcontext.Resource{
+			"vpc-live": {
+				ID:   "vpc-live",
+				Type: "aws_vpc",
+			},
+			"sg-live": {
+				ID:     "sg-live",
+				Type:   "aws_security_group",
+				Public: &public,
+			},
+		}},
+		Relationships: []cloudcontext.Relationship{{
+			From: "vpc-live",
+			To:   "sg-live",
+			Type: "contains",
+		}},
+	})
+
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics for unrelated live-only inventory, got %#v", diagnostics)
+	}
+	if !hasEdgeWithSource(merged, "vpc-live", "sg-live", EdgeContainedIn, SourceCloudContext) {
+		t.Fatalf("expected live-only relationship to remain in graph, got %#v", merged.Edges)
+	}
+	if !hasEdgeWithSource(merged, InternetNodeID, "sg-live", EdgeHasPublicAccess, SourceCloudContext) {
+		t.Fatalf("expected live-only public edge to remain in graph, got %#v", merged.Edges)
 	}
 }
 

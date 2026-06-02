@@ -3,6 +3,7 @@
     "aws_apigatewayv2_api.public",
     "aws_cloudfront_distribution.cdn",
     "aws_db_instance.customer",
+    "aws_lambda_function_url.worker",
     "aws_lb.admin",
     "aws_s3_bucket.logs"
   ],

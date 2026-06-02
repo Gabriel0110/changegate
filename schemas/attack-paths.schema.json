@@ -1,12 +1,12 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://changegate.dev/schemas/attack-paths.schema.json",
+  "$id": "https://github.com/Gabriel0110/changegate/schemas/attack-paths.schema.json",
   "title": "ChangeGate Attack Paths",
   "type": "object",
   "additionalProperties": false,
   "required": ["version", "paths"],
   "properties": {
-    "version": { "const": 1 },
+    "version": { "const": 2 },
     "paths": {
       "type": "array",
       "items": { "$ref": "#/$defs/attack_path" }
@@ -23,6 +23,10 @@
           "type": "string",
           "enum": ["public_to_sensitive_data", "iam_privilege_escalation"]
         },
+        "kind": {
+          "type": "string",
+          "enum": ["network", "identity"]
+        },
         "title": { "type": "string" },
         "severity": {
           "type": "string",
@@ -32,13 +36,26 @@
           "type": "string",
           "enum": ["high", "medium", "low", "unknown"]
         },
+        "confidence_reason": { "type": "string" },
         "decision": {
           "type": "string",
           "enum": ["allow", "warn", "block", "error"]
         },
+        "source": {
+          "type": "string",
+          "enum": ["plan", "cloud_context", "inferred", "mixed"]
+        },
         "principal": { "type": "string" },
         "entrypoint": { "type": "string" },
         "target": { "type": "string" },
+        "affected_resources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/affected_resource" }
+        },
+        "finding_rule_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "steps": {
           "type": "array",
           "items": { "$ref": "#/$defs/step" }
@@ -67,7 +84,30 @@
         "to": { "type": "string" },
         "action": { "type": "string" },
         "edge_type": { "type": "string" },
-        "explanation": { "type": "string" }
+        "source": {
+          "type": "string",
+          "enum": ["plan", "cloud_context", "inferred", "mixed"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["high", "medium", "low"]
+        },
+        "explanation": { "type": "string" },
+        "evidence": { "type": "array" },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "affected_resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["resource", "role"],
+      "properties": {
+        "resource": { "type": "string" },
+        "role": { "type": "string" },
+        "type": { "type": "string" }
       }
     }
   }

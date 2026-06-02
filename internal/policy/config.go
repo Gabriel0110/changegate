@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/Gabriel0110/changegate/internal/model"
 	"github.com/Gabriel0110/changegate/internal/rules"
@@ -34,6 +35,7 @@ type Config struct {
 	Review             ReviewConfig                 `json:"review" yaml:"review"`
 	Impact             ImpactConfig                 `json:"impact" yaml:"impact"`
 	AttackPaths        AttackPathsConfig            `json:"attack_paths" yaml:"attack_paths"`
+	SensitiveAssets    SensitiveAssetsConfig        `json:"sensitive_assets" yaml:"sensitive_assets"`
 }
 
 // DecisionConfig contains global policy thresholds.
@@ -154,6 +156,14 @@ type AttackPathThresholdConfig struct {
 	MinConfidence model.Confidence `json:"min_confidence" yaml:"min_confidence"`
 }
 
+// SensitiveAssetsConfig controls additional graph sensitivity classification.
+type SensitiveAssetsConfig struct {
+	ResourceAddresses []string          `json:"resource_addresses" yaml:"resource_addresses"`
+	ResourceTypes     []string          `json:"resource_types" yaml:"resource_types"`
+	NameContains      []string          `json:"name_contains" yaml:"name_contains"`
+	Tags              map[string]string `json:"tags" yaml:"tags"`
+}
+
 // ValidationResult is returned by policy validation commands.
 type ValidationResult struct {
 	Valid       bool               `json:"valid"`
@@ -258,6 +268,7 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 		config.Rego.Query = "data.changegate.findings"
 	}
 	diagnostics = append(diagnostics, validateComplianceMappings(config.Compliance)...)
+	diagnostics = append(diagnostics, validateSensitiveAssets(config.SensitiveAssets)...)
 	if config.Review.MaxCommentFindings != nil && *config.Review.MaxCommentFindings < 0 {
 		diagnostics = append(diagnostics, errorDiagnostic("REVIEW_MAX_COMMENT_FINDINGS_INVALID", "review.max_comment_findings must be non-negative"))
 	}
@@ -274,6 +285,31 @@ func Validate(config Config, registry *rules.Registry, packs []rules.PolicyPack)
 		Policy:      config,
 		Diagnostics: diagnostics,
 	}
+}
+
+func validateSensitiveAssets(config SensitiveAssetsConfig) []model.Diagnostic {
+	diagnostics := make([]model.Diagnostic, 0)
+	for _, item := range config.ResourceAddresses {
+		if strings.TrimSpace(item) == "" {
+			diagnostics = append(diagnostics, errorDiagnostic("SENSITIVE_ASSET_ADDRESS_INVALID", "sensitive_assets.resource_addresses must not contain empty values"))
+		}
+	}
+	for _, item := range config.ResourceTypes {
+		if strings.TrimSpace(item) == "" {
+			diagnostics = append(diagnostics, errorDiagnostic("SENSITIVE_ASSET_TYPE_INVALID", "sensitive_assets.resource_types must not contain empty values"))
+		}
+	}
+	for _, item := range config.NameContains {
+		if strings.TrimSpace(item) == "" {
+			diagnostics = append(diagnostics, errorDiagnostic("SENSITIVE_ASSET_NAME_INVALID", "sensitive_assets.name_contains must not contain empty values"))
+		}
+	}
+	for key := range config.Tags {
+		if strings.TrimSpace(key) == "" {
+			diagnostics = append(diagnostics, errorDiagnostic("SENSITIVE_ASSET_TAG_INVALID", "sensitive_assets.tags must not contain empty keys"))
+		}
+	}
+	return diagnostics
 }
 
 func validateComplianceMappings(config ComplianceConfig) []model.Diagnostic {
@@ -365,6 +401,7 @@ func ModelConfig(config Config, environment string) model.PolicyConfig {
 	out.DocumentationLinks = copyStringMap(config.Docs.Links)
 	out.ComplianceMappings = complianceMappings(config.Compliance)
 	out.AttackPaths = attackPathPolicy(config.AttackPaths)
+	out.SensitiveAssets = sensitiveAssetPolicy(config.SensitiveAssets)
 	out.ExistingFingerprints = make(map[string]bool, len(config.Baseline.Fingerprints))
 	for _, fingerprint := range config.Baseline.Fingerprints {
 		out.ExistingFingerprints[fingerprint] = true
@@ -383,6 +420,15 @@ func ModelConfig(config Config, environment string) model.PolicyConfig {
 		out.Overrides[ruleID] = modelOverride
 	}
 	return out
+}
+
+func sensitiveAssetPolicy(config SensitiveAssetsConfig) model.SensitiveAssetPolicy {
+	return model.SensitiveAssetPolicy{
+		ResourceAddresses: copyStringSlice(config.ResourceAddresses),
+		ResourceTypes:     copyStringSlice(config.ResourceTypes),
+		NameContains:      copyStringSlice(config.NameContains),
+		Tags:              copyStringMap(config.Tags),
+	}
 }
 
 func complianceMappings(config ComplianceConfig) map[string]map[string][]string {
@@ -552,6 +598,13 @@ func copyStringMap(values map[string]string) map[string]string {
 		out[key] = value
 	}
 	return out
+}
+
+func copyStringSlice(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	return append([]string(nil), values...)
 }
 
 func errorDiagnostic(code string, message string) model.Diagnostic {

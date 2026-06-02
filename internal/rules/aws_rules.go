@@ -347,12 +347,17 @@ func evalPublicToSensitiveDatastore(_ context.Context, input RuleInput, meta Met
 			continue
 		}
 		for targetID, target := range sortedNodes(input.Graph) {
-			if isSensitiveNode(target) && input.Graph.CanReach(id, targetID) {
-				out = append(out, finding(meta, node.Address, node.Provider, node.Environment, []model.Evidence{
-					ev(node.Address, "graph", id, "resource is internet exposed"),
-					ev(target.Address, "graph", targetID, "resource can reach sensitive datastore"),
-				}, "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation."))
+			if !isSensitiveNode(target) {
+				continue
 			}
+			if id == targetID {
+				continue
+			}
+			path, ok := firstHighConfidencePath(input.Graph, id, targetID)
+			if !ok || !pathHasWorkload(input.Graph, path) {
+				continue
+			}
+			out = append(out, finding(meta, node.Address, node.Provider, node.Environment, graphPathEvidence(node.Address, target.Address, path), "Break the public-to-sensitive path with private networking, scoped security groups, or service isolation."))
 		}
 	}
 	return out, nil

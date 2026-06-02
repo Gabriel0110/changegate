@@ -240,7 +240,13 @@ func writeAttackPaths(b *strings.Builder, statement impact.Statement, opts Comme
 	b.WriteString("### Attack Paths\n\n")
 	limit := boundedLimit(len(statement.AttackPaths), opts.MaxAttackPaths)
 	for _, path := range statement.AttackPaths[:limit] {
-		fmt.Fprintf(b, "- `%s` `%s/%s` %s\n", path.RuleID, path.Severity, path.Confidence, safeInline(path.Title))
+		fmt.Fprintf(b, "- `%s` `%s/%s` `%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Decision, safeInline(path.Title))
+		if path.Type != "" || path.Kind != "" || path.Source != "" {
+			fmt.Fprintf(b, "  - Context: type `%s`, kind `%s`, source `%s`\n", safeInline(nonEmpty(path.Type, "unknown")), safeInline(nonEmpty(path.Kind, "unknown")), safeInline(nonEmpty(path.Source, "unknown")))
+		}
+		if path.ConfidenceReason != "" {
+			fmt.Fprintf(b, "  - Confidence reason: %s\n", safeInline(path.ConfidenceReason))
+		}
 		if len(path.Steps) > 0 {
 			fmt.Fprintf(b, "  - Path: `%s`\n", safeInline(strings.Join(path.Steps, " -> ")))
 		}
@@ -371,6 +377,13 @@ func yesNo(value bool) string {
 		return "yes"
 	}
 	return "no"
+}
+
+func nonEmpty(value string, fallback string) string {
+	if value != "" {
+		return value
+	}
+	return fallback
 }
 
 func plural(count int) string {

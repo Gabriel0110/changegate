@@ -49,5 +49,11 @@ changegate*.sarif
 # Local implementation planning
 changegate-implementation-plan.md
 docs/review-intelligence-plan.md
+docs/goals/
 .private/
 .local-docs/
+
+# Generated validation runs
+test-results/*-validation/
+test-results/full-cli-validation-*/
+test-results/visual-review-*/

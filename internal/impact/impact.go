@@ -97,7 +97,13 @@ func RenderMarkdown(statement Statement) string {
 	if len(statement.AttackPaths) > 0 {
 		fmt.Fprintf(&b, "## Attack Paths\n\n")
 		for _, path := range statement.AttackPaths {
-			fmt.Fprintf(&b, "- `%s` `%s/%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Title)
+			fmt.Fprintf(&b, "- `%s` `%s/%s` `%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Decision, path.Title)
+			if path.Type != "" || path.Kind != "" || path.Source != "" {
+				fmt.Fprintf(&b, "  - Context: type `%s`, kind `%s`, source `%s`\n", nonEmpty(path.Type, "unknown"), nonEmpty(path.Kind, "unknown"), nonEmpty(path.Source, "unknown"))
+			}
+			if path.ConfidenceReason != "" {
+				fmt.Fprintf(&b, "  - Confidence reason: %s\n", path.ConfidenceReason)
+			}
 			for _, step := range path.Steps {
 				fmt.Fprintf(&b, "  - %s\n", step)
 			}
@@ -128,6 +134,13 @@ func plural(count int) string {
 		return ""
 	}
 	return "s"
+}
+
+func nonEmpty(value string, fallback string) string {
+	if value != "" {
+		return value
+	}
+	return fallback
 }
 
 // RenderAuditBundle renders a deterministic ZIP containing impact evidence.
@@ -242,17 +255,20 @@ type GraphPathSummary struct {
 
 // AttackPathSummary captures an attack path promoted into review output.
 type AttackPathSummary struct {
-	ID          string                     `json:"id"`
-	FindingID   string                     `json:"finding_id,omitempty"`
-	RuleID      string                     `json:"rule_id,omitempty"`
-	Resource    string                     `json:"resource,omitempty"`
-	Type        string                     `json:"type,omitempty"`
-	Title       string                     `json:"title,omitempty"`
-	Severity    model.Severity             `json:"severity,omitempty"`
-	Confidence  model.Confidence           `json:"confidence,omitempty"`
-	Steps       []string                   `json:"steps,omitempty"`
-	Decision    model.Decision             `json:"decision,omitempty"`
-	ReasonCodes []model.DecisionReasonCode `json:"reason_codes,omitempty"`
+	ID               string                     `json:"id"`
+	FindingID        string                     `json:"finding_id,omitempty"`
+	RuleID           string                     `json:"rule_id,omitempty"`
+	Resource         string                     `json:"resource,omitempty"`
+	Type             string                     `json:"type,omitempty"`
+	Kind             string                     `json:"kind,omitempty"`
+	Title            string                     `json:"title,omitempty"`
+	Severity         model.Severity             `json:"severity,omitempty"`
+	Confidence       model.Confidence           `json:"confidence,omitempty"`
+	Source           string                     `json:"source,omitempty"`
+	ConfidenceReason string                     `json:"confidence_reason,omitempty"`
+	Steps            []string                   `json:"steps,omitempty"`
+	Decision         model.Decision             `json:"decision,omitempty"`
+	ReasonCodes      []model.DecisionReasonCode `json:"reason_codes,omitempty"`
 }
 
 // WaiverSummary summarizes waiver state visible in the report.
@@ -503,6 +519,9 @@ func buildAttackPaths(findings []model.Finding, decision model.Decision) []Attac
 		}
 		steps := make([]string, 0, len(finding.Evidence))
 		for _, evidence := range finding.Evidence {
+			if isAttackPathMetadataEvidence(evidence) {
+				continue
+			}
 			if isGraphEvidence(evidence) {
 				steps = append(steps, graphPathFromEvidence(evidence)...)
 				continue
@@ -512,23 +531,30 @@ func buildAttackPaths(findings []model.Finding, decision model.Decision) []Attac
 			}
 		}
 		out = append(out, AttackPathSummary{
-			ID:          stableItemID("attack-path", finding, 0),
-			FindingID:   finding.ID,
-			RuleID:      finding.RuleID,
-			Resource:    finding.ResourceAddress,
-			Type:        attackPathType(finding),
-			Title:       finding.Title,
-			Severity:    finding.Severity,
-			Confidence:  finding.Confidence,
-			Steps:       dedupeSorted(steps),
-			Decision:    decisionForFinding(decision, finding),
-			ReasonCodes: sortedReasonCodes(finding.DecisionReasonCodes),
+			ID:               stableItemID("attack-path", finding, 0),
+			FindingID:        finding.ID,
+			RuleID:           finding.RuleID,
+			Resource:         finding.ResourceAddress,
+			Type:             attackPathType(finding),
+			Kind:             attackPathEvidenceValue(finding, "attack_path.kind"),
+			Title:            finding.Title,
+			Severity:         finding.Severity,
+			Confidence:       finding.Confidence,
+			Source:           attackPathEvidenceValue(finding, "attack_path.source"),
+			ConfidenceReason: attackPathEvidenceValue(finding, "attack_path.confidence_reason"),
+			Steps:            dedupeSorted(steps),
+			Decision:         decisionForFinding(decision, finding),
+			ReasonCodes:      sortedReasonCodes(finding.DecisionReasonCodes),
 		})
 	}
 	sort.SliceStable(out, func(i int, j int) bool {
 		return compareAttackPaths(out[i], out[j]) < 0
 	})
 	return out
+}
+
+func isAttackPathMetadataEvidence(evidence model.Evidence) bool {
+	return evidence.Type == "attack_path" && strings.HasPrefix(evidence.Path, "attack_path.")
 }
 
 func isAttackPathFinding(finding model.Finding) bool {
@@ -814,12 +840,8 @@ func stableItemID(prefix string, finding model.Finding, index int) string {
 }
 
 func attackPathType(finding model.Finding) string {
-	for _, evidence := range finding.Evidence {
-		if evidence.Path == "attack_path.type" {
-			if value, ok := evidence.Value.(string); ok && value != "" {
-				return value
-			}
-		}
+	if value := attackPathEvidenceValue(finding, "attack_path.type"); value != "" {
+		return value
 	}
 	switch {
 	case containsFold(finding.RuleID, "PASSROLE"):
@@ -831,6 +853,20 @@ func attackPathType(finding model.Finding) string {
 	default:
 		return "unknown"
 	}
+}
+
+func attackPathEvidenceValue(finding model.Finding, evidencePath string) string {
+	for _, evidence := range finding.Evidence {
+		if evidence.Path == evidencePath {
+			if value, ok := evidence.Value.(string); ok && value != "" {
+				return value
+			}
+			if evidence.Message != "" {
+				return evidence.Message
+			}
+		}
+	}
+	return ""
 }
 
 func compareGraphPaths(left GraphPathSummary, right GraphPathSummary) int {

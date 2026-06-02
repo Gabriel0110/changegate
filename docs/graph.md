@@ -90,10 +90,10 @@ Cloud context can add live-only attachments, public exposure edges, sensitive-da
 
 Graph v2 classifies and connects common AWS resources where plan data is sufficient:
 
-* ALB/NLB/ELB, listeners, target groups, CloudFront, and API Gateway
+* ALB/NLB/ELB, listeners, target groups, CloudFront, API Gateway, API Gateway integrations, and Lambda Function URLs
 * ECS services, task definitions, Lambda functions, EC2 instances, EKS clusters, and node groups
 * security groups, subnets, route tables, routes, internet gateways, NAT gateways, VPC peering, and transit gateway routes
 * RDS/Aurora, S3, DynamoDB, EFS, OpenSearch, ElastiCache, Secrets Manager, and KMS
-* IAM roles, users, groups, policies, inline policies, attachments, trust policies, and instance profiles
+* IAM roles, users, groups, policies, inline policies, attachments, trust policies, instance profiles, Lambda secret references, and KMS relationships
 
 Unknown resources are still represented as graph nodes so the graph remains tolerant of new provider resources and partial plan data.

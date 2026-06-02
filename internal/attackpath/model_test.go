@@ -33,6 +33,15 @@ func TestRenderJSONGolden(t *testing.T) {
 	if result.Version != ResultVersion {
 		t.Fatalf("version = %d, want %d", result.Version, ResultVersion)
 	}
+	if len(result.Paths) != 2 {
+		t.Fatalf("paths = %d, want 2", len(result.Paths))
+	}
+	if result.Paths[0].Kind != PathKindNetwork || result.Paths[0].ConfidenceReason == "" || len(result.Paths[0].AffectedResources) == 0 || len(result.Paths[0].FindingRuleIDs) == 0 {
+		t.Fatalf("public path missing v2 contract fields: %#v", result.Paths[0])
+	}
+	if result.Paths[1].Kind != PathKindIdentity || result.Paths[1].FindingRuleIDs[0] != RuleIAMPassRoleFunctionEscalation {
+		t.Fatalf("IAM path missing v2 contract fields: %#v", result.Paths[1])
+	}
 }
 
 func TestNormalizeRedactsEvidence(t *testing.T) {
@@ -142,7 +151,7 @@ func fixturePublicPath() AttackPath {
 			"Make the load balancer internal or restrict ingress to approved CIDRs.",
 			"Separate the admin workload from customer data network paths.",
 		},
-		References: []string{"https://changegate.dev/docs/attack-paths"},
+		References: []string{"docs/attack-paths.md"},
 	}
 }
 

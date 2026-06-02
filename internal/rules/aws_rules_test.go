@@ -118,6 +118,20 @@ func TestAWSRulesFailingFixture(t *testing.T) {
 			t.Errorf("expected fixture to trigger %s", ruleID)
 		}
 	}
+	if finding, ok := seen["AWS_PUBLIC_TO_SENSITIVE_DATASTORE"]; !ok {
+		t.Fatalf("missing AWS_PUBLIC_TO_SENSITIVE_DATASTORE")
+	} else if !findingEvidencePath(finding, "graph.path") {
+		t.Fatalf("public-to-sensitive datastore rule missing concrete graph path evidence: %#v", finding.Evidence)
+	}
+}
+
+func findingEvidencePath(finding model.Finding, path string) bool {
+	for _, evidence := range finding.Evidence {
+		if evidence.Path == path {
+			return true
+		}
+	}
+	return false
 }
 
 func awsFailingPlan() *model.Plan {
