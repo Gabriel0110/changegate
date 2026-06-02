@@ -1,1 +1,0 @@
-{"queries":[{"query_id":"abc","query_name":"security group allows public ingress","severity":"HIGH","category":"network","files":[{"file_name":"main.tf","resource_id":"aws_security_group.web","line":9}]}]}

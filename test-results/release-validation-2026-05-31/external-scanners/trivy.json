@@ -1,1 +1,0 @@
-{"Results":[{"Target":"main.tf","Misconfigurations":[{"ID":"AVD-AWS-0086","Title":"bucket is public","Severity":"HIGH","CauseMetadata":{"Resource":"aws_s3_bucket.logs","StartLine":4}}]}]}

@@ -1,1 +1,0 @@
-{"matches":[{"vulnerability":{"id":"CVE-2026-0001","severity":"High","description":"test"},"artifact":{"name":"openssl","type":"deb","version":"1.0","locations":[{"path":"/image"}]}}]}

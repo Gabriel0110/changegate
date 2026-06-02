@@ -1,1 +1,0 @@
-{"findings":[{"rule_id":"CUSTOM_PUBLIC","title":"public thing","resource_address":"aws_lb.admin","category":"public","severity":"high","confidence":"high"}]}
