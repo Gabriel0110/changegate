@@ -135,6 +135,10 @@ func sampleReport() output.Report {
 		Severity:        model.SeverityHigh,
 		Confidence:      model.ConfidenceHigh,
 		Evidence: []model.Evidence{
+			{Type: "attack_path", Resource: "aws_iam_role.deploy", Path: "attack_path.type", Value: "iam_privilege_escalation", Message: "attack path type is iam_privilege_escalation"},
+			{Type: "attack_path", Resource: "aws_iam_role.deploy", Path: "attack_path.kind", Value: "identity", Message: "attack path kind is identity"},
+			{Type: "attack_path", Resource: "aws_iam_role.deploy", Path: "attack_path.source", Value: "mixed", Message: "attack path source is mixed"},
+			{Type: "attack_path", Resource: "aws_iam_role.deploy", Path: "attack_path.confidence_reason", Value: "path confidence is based on mixed graph evidence", Message: "path confidence is based on mixed graph evidence"},
 			{Type: "iam", Resource: "aws_iam_role.deploy", Path: "policy.Statement[0].Action", Value: []any{"iam:PassRole", "lambda:UpdateFunctionCode"}, Message: "Policy allows PassRole and function code mutation."},
 		},
 	})

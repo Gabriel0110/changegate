@@ -79,6 +79,28 @@ func TestDetectIAMPassRoleAndLambdaUpdateBlocks(t *testing.T) {
 	}
 }
 
+func TestDetectIAMPassRoleAndLambdaCreateFunctionBlocks(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "lambda:CreateFunction"],
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	path := findIAMPath(paths, "lambda:CreateFunction")
+	if path == nil {
+		t.Fatalf("missing lambda create function path: %#v", paths)
+	}
+	if path.Decision != model.DecisionBlock || path.Target != "aws_iam_role.admin_execution" {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+}
+
 func TestDetectIAMAssumeAdminRoleBlocks(t *testing.T) {
 	t.Parallel()
 	g := iamBaseGraph()

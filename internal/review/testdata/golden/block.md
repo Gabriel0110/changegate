@@ -61,7 +61,9 @@ This change introduces 2 blocking infrastructure risks and requires remediation 
 
 ### Attack Paths
 
-- `AWS_PASSROLE_WITH_COMPUTE_MUTATION` `high/high` Deploy role can pass privileged role and mutate compute
+- `AWS_PASSROLE_WITH_COMPUTE_MUTATION` `high/high` `block` Deploy role can pass privileged role and mutate compute
+  - Context: type `iam_escalation`, kind `identity`, source `mixed`
+  - Confidence reason: path confidence is based on mixed graph evidence
   - Path: `DeveloperRole -> lambda:UpdateFunctionCode -> iam:PassRole -> AdminExecutionRole`
 
 ### Waivers and Baseline

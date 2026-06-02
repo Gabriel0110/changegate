@@ -48,7 +48,7 @@ func staticAttackPathRule(id string, title string, desc string, category model.R
 				"Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
 				"Scope IAM and network access to the minimum required resources.",
 			},
-			References: []string{"https://changegate.dev/docs/attack-paths"},
+			References: []string{"docs/attack-paths.md"},
 		},
 	}}
 }

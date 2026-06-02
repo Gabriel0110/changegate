@@ -208,15 +208,18 @@ func attackPaths(decision model.Decision) []impact.AttackPathSummary {
 		return nil
 	}
 	return []impact.AttackPathSummary{{
-		ID:         "attack-path-1",
-		RuleID:     "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
-		Resource:   "aws_iam_role.deploy",
-		Type:       "iam_escalation",
-		Title:      "Deploy role can pass privileged role and mutate compute",
-		Severity:   model.SeverityHigh,
-		Confidence: model.ConfidenceHigh,
-		Steps:      []string{"DeveloperRole", "lambda:UpdateFunctionCode", "iam:PassRole", "AdminExecutionRole"},
-		Decision:   model.DecisionBlock,
+		ID:               "attack-path-1",
+		RuleID:           "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
+		Resource:         "aws_iam_role.deploy",
+		Type:             "iam_escalation",
+		Kind:             "identity",
+		Title:            "Deploy role can pass privileged role and mutate compute",
+		Severity:         model.SeverityHigh,
+		Confidence:       model.ConfidenceHigh,
+		Source:           "mixed",
+		ConfidenceReason: "path confidence is based on mixed graph evidence",
+		Steps:            []string{"DeveloperRole", "lambda:UpdateFunctionCode", "iam:PassRole", "AdminExecutionRole"},
+		Decision:         model.DecisionBlock,
 	}}
 }
 

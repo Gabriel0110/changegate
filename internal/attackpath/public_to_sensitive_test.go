@@ -63,6 +63,65 @@ func TestDetectPublicToSensitiveBlocksPublicWorkloadToSecret(t *testing.T) {
 	}
 }
 
+func TestDetectPublicToSensitiveBlocksLambdaURLToSecret(t *testing.T) {
+	t.Parallel()
+	g := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			graph.InternetNodeID: {
+				ID:        graph.InternetNodeID,
+				Address:   string(graph.InternetNodeID),
+				Type:      "internet",
+				Kind:      graph.NodePublicEntrypoint,
+				Name:      "internet",
+				Synthetic: true,
+			},
+			"aws_lambda_function_url.public_handler": {
+				ID:      "aws_lambda_function_url.public_handler",
+				Address: "aws_lambda_function_url.public_handler",
+				Type:    "aws_lambda_function_url",
+				Kind:    graph.NodePublicEntrypoint,
+				Name:    "public_handler",
+				Changed: true,
+			},
+			"aws_lambda_function.public_handler": {
+				ID:      "aws_lambda_function.public_handler",
+				Address: "aws_lambda_function.public_handler",
+				Type:    "aws_lambda_function",
+				Kind:    graph.NodeWorkload,
+				Name:    "public_handler",
+			},
+			"aws_secretsmanager_secret.customer": {
+				ID:          "aws_secretsmanager_secret.customer",
+				Address:     "aws_secretsmanager_secret.customer",
+				Type:        "aws_secretsmanager_secret",
+				Kind:        graph.NodeSecret,
+				Name:        "customer",
+				Environment: "production",
+			},
+		},
+		Edges: []graph.Edge{
+			edge(graph.InternetNodeID, "aws_lambda_function_url.public_handler", graph.EdgeRoutesTo),
+			edge("aws_lambda_function_url.public_handler", "aws_lambda_function.public_handler", graph.EdgeInvokes),
+			edge("aws_lambda_function.public_handler", "aws_secretsmanager_secret.customer", graph.EdgeReadsSecret),
+		},
+	}
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	if len(paths) != 1 {
+		t.Fatalf("paths len = %d, want 1: %#v", len(paths), paths)
+	}
+	path := paths[0]
+	if path.Decision != model.DecisionBlock {
+		t.Fatalf("decision = %q, want block", path.Decision)
+	}
+	if path.Entrypoint != "aws_lambda_function_url.public_handler" || path.Target != "aws_secretsmanager_secret.customer" {
+		t.Fatalf("unexpected endpoints: %#v", path)
+	}
+	if len(path.Steps) != 3 || path.Steps[1].EdgeType != graph.EdgeInvokes || path.Steps[2].EdgeType != graph.EdgeReadsSecret {
+		t.Fatalf("unexpected path steps: %#v", path.Steps)
+	}
+}
+
 func TestDetectPublicToSensitiveWarnsWhenSensitivePathConfidenceIsMedium(t *testing.T) {
 	t.Parallel()
 	g := graphForPublicAdminToSensitive("aws_db_instance.customer", graph.NodeDataStore)
@@ -77,6 +136,29 @@ func TestDetectPublicToSensitiveWarnsWhenSensitivePathConfidenceIsMedium(t *test
 	}
 	if paths[0].Confidence != model.ConfidenceMedium {
 		t.Fatalf("confidence = %q, want medium", paths[0].Confidence)
+	}
+}
+
+func TestDetectPublicToSensitiveSurfacesMixedCloudContextSource(t *testing.T) {
+	t.Parallel()
+	g := graphForPublicAdminToSensitive("aws_db_instance.customer", graph.NodeDataStore)
+	g.Nodes["aws_db_instance.customer"].Environment = "production"
+	g.Edges[2].Source = graph.SourceMixed
+	g.Edges[2].Confidence = graph.ConfidenceHigh
+	g.Edges[2].Metadata = map[string]string{"sources": "cloud_context,plan"}
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	if len(paths) != 1 {
+		t.Fatalf("paths len = %d, want 1: %#v", len(paths), paths)
+	}
+	if paths[0].Source != graph.SourceMixed {
+		t.Fatalf("source = %q, want mixed", paths[0].Source)
+	}
+	if paths[0].Confidence != model.ConfidenceHigh || paths[0].Decision != model.DecisionBlock {
+		t.Fatalf("unexpected decision context: confidence=%s decision=%s", paths[0].Confidence, paths[0].Decision)
+	}
+	if paths[0].Steps[2].Metadata["sources"] != "cloud_context,plan" {
+		t.Fatalf("step metadata missing merged sources: %#v", paths[0].Steps[2].Metadata)
 	}
 }
 

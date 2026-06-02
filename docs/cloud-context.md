@@ -27,6 +27,8 @@ When `--cloud-context aws` is used without a context file or cached snapshot, Ch
 
 When a snapshot is provided, ChangeGate merges it into the review graph before rule evaluation. Plan evidence remains authoritative for planned changes, while cloud context adds live-only nodes, relationships, public exposure edges, and sensitive-asset context with explicit edge provenance. This lets findings and impact statements explain paths such as `public entrypoint -> workload -> datastore` using plan edges, live AWS edges, or both.
 
+If cloud context confirms an existing plan edge, ChangeGate records the edge as `source=mixed`, keeps the exact merged source list in edge metadata, and uses the strongest confidence from the available evidence. This can raise an otherwise medium-confidence inferred path when live AWS context directly confirms the relationship. If context adds lower-confidence or partial evidence, attack paths remain warning-oriented rather than becoming high-confidence blocking decisions.
+
 The merge can emit non-fatal diagnostics when live state changes the risk picture:
 
 * `CLOUD_CONTEXT_PUBLIC_CONFLICT`: live AWS reports a resource as public, but the plan graph has no public inbound path.

@@ -48,7 +48,7 @@ func TestGraphALBToECSPathAndExposure(t *testing.T) {
 	if len(exposure.Entrypoints) == 0 || exposure.Entrypoints[0].ID != "aws_lb.admin" {
 		t.Fatalf("entrypoints = %#v, want aws_lb.admin first", exposure.Entrypoints)
 	}
-	if got := g.PublicEntrypoints(); !containsResourceID(got, "aws_lb.admin") || !containsResourceID(got, "aws_cloudfront_distribution.cdn") || !containsResourceID(got, "aws_apigatewayv2_api.public") {
+	if got := g.PublicEntrypoints(); !containsResourceID(got, "aws_lb.admin") || !containsResourceID(got, "aws_cloudfront_distribution.cdn") || !containsResourceID(got, "aws_apigatewayv2_api.public") || !containsResourceID(got, "aws_lambda_function_url.worker") {
 		t.Fatalf("public entrypoints = %#v, missing expected public entrypoint", got)
 	}
 }
@@ -135,10 +135,61 @@ func TestGraphV2ClassifiesNodesAndEdgeFamilies(t *testing.T) {
 		{from: "aws_s3_bucket_public_access_block.logs", to: "aws_s3_bucket.logs", typ: EdgeProtects},
 		{from: InternetNodeID, to: "aws_cloudfront_distribution.cdn", typ: EdgeRoutesTo},
 		{from: InternetNodeID, to: "aws_apigatewayv2_api.public", typ: EdgeRoutesTo},
+		{from: InternetNodeID, to: "aws_lambda_function_url.worker", typ: EdgeRoutesTo},
+		{from: "aws_lambda_function_url.worker", to: "aws_lambda_function.worker", typ: EdgeInvokes},
+		{from: "aws_apigatewayv2_api.public", to: "aws_apigatewayv2_integration.worker", typ: EdgeRoutesTo},
+		{from: "aws_apigatewayv2_integration.worker", to: "aws_lambda_function.worker", typ: EdgeInvokes},
+		{from: "aws_lambda_function.worker", to: "aws_secretsmanager_secret.customer", typ: EdgeReadsSecret},
+		{from: "aws_lambda_function.worker", to: "aws_kms_key.data", typ: EdgeEncryptsWith},
 	} {
 		if !g.hasEdge(edge.from, edge.to, edge.typ) {
 			t.Fatalf("missing edge %s --%s--> %s", edge.from, edge.typ, edge.to)
 		}
+	}
+}
+
+func TestBuildWithOptionsClassifiesSensitiveAssetsConservatively(t *testing.T) {
+	t.Parallel()
+
+	plan := &model.Plan{
+		Resources: []model.Resource{
+			resource("custom_service.cardholder_ledger", "custom_service", "cardholder_ledger", map[string]any{
+				"tags": map[string]any{"env": "prod"},
+			}),
+			resource("custom_bucket.restricted", "custom_bucket", "restricted", map[string]any{
+				"tags": map[string]any{"classification": "restricted"},
+			}),
+			resource("custom_vault.payments", "custom_vault", "payments", map[string]any{
+				"tags": map[string]any{"env": "prod"},
+			}),
+			resource("custom_report.regulated", "custom_report", "regulated", map[string]any{
+				"tags": map[string]any{"data_domain": "regulated"},
+			}),
+			resource("aws_backup_vault.customer", "aws_backup_vault", "customer", map[string]any{
+				"tags": map[string]any{"env": "prod"},
+			}),
+		},
+	}
+	g := BuildWithOptions(plan, BuildOptions{SensitiveAssets: model.SensitiveAssetPolicy{
+		ResourceTypes: []string{"aws_backup_vault"},
+		NameContains:  []string{"cardholder"},
+		Tags:          map[string]string{"data_domain": "regulated"},
+	}})
+
+	if kind := g.Nodes["custom_service.cardholder_ledger"].Kind; kind != NodeDataStore {
+		t.Fatalf("name selector kind = %s, want data_store", kind)
+	}
+	if kind := g.Nodes["custom_bucket.restricted"].Kind; kind != NodeDataStore {
+		t.Fatalf("default sensitive tag kind = %s, want data_store", kind)
+	}
+	if kind := g.Nodes["aws_backup_vault.customer"].Kind; kind != NodeDataStore {
+		t.Fatalf("type selector kind = %s, want data_store", kind)
+	}
+	if kind := g.Nodes["custom_report.regulated"].Kind; kind != NodeDataStore {
+		t.Fatalf("tag selector kind = %s, want data_store", kind)
+	}
+	if kind := g.Nodes["custom_vault.payments"].Kind; kind != NodeUnknown {
+		t.Fatalf("env=prod alone kind = %s, want unknown", kind)
 	}
 }
 
@@ -400,7 +451,16 @@ func testPlan() *model.Plan {
 				"kms_key_id": "arn:aws:kms:us-east-1:123:key/data",
 			}),
 			resource("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{
-				"role": "arn:aws:iam::123:role/worker",
+				"arn":         "arn:aws:lambda:us-east-1:123:function:worker",
+				"role":        "arn:aws:iam::123:role/worker",
+				"kms_key_arn": "arn:aws:kms:us-east-1:123:key/data",
+				"environment": []any{map[string]any{"variables": map[string]any{
+					"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123:secret:customer",
+				}}},
+			}),
+			resource("aws_lambda_function_url.worker", "aws_lambda_function_url", "worker", map[string]any{
+				"authorization_type": "NONE",
+				"function_name":      "worker",
 			}),
 			resource("aws_iam_role.worker", "aws_iam_role", "worker", map[string]any{
 				"arn":  "arn:aws:iam::123:role/worker",
@@ -434,7 +494,13 @@ func testPlan() *model.Plan {
 				"origin":  []any{map[string]any{"domain_name": "logs"}},
 			}),
 			resource("aws_apigatewayv2_api.public", "aws_apigatewayv2_api", "public", map[string]any{
+				"id":            "api-public",
 				"protocol_type": "HTTP",
+			}),
+			resource("aws_apigatewayv2_integration.worker", "aws_apigatewayv2_integration", "worker", map[string]any{
+				"api_id":           "api-public",
+				"integration_type": "AWS_PROXY",
+				"integration_uri":  "arn:aws:lambda:us-east-1:123:function:worker",
 			}),
 		},
 		Changes: []model.Change{

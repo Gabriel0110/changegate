@@ -360,7 +360,22 @@ func loadGraphPlan(cmd *cobra.Command, state *appState, planPath string) (*model
 	if err != nil {
 		return nil, nil, mapPlanLoadError(err)
 	}
-	return plan, graphpkg.Build(plan), nil
+	buildOpts, err := graphBuildOptions(state)
+	if err != nil {
+		return nil, nil, err
+	}
+	return plan, graphpkg.BuildWithOptions(plan, buildOpts), nil
+}
+
+func graphBuildOptions(state *appState) (graphpkg.BuildOptions, error) {
+	if state == nil || state.opts == nil || state.opts.policy == "" {
+		return graphpkg.BuildOptions{}, nil
+	}
+	policyConfig, _, _, err := loadPolicyForScan(state.opts)
+	if err != nil {
+		return graphpkg.BuildOptions{}, err
+	}
+	return graphpkg.BuildOptions{SensitiveAssets: policyConfig.SensitiveAssets}, nil
 }
 
 func buildGraphSummary(planPath string, plan *model.Plan, resourceGraph *graphpkg.Graph) graphSummaryResult {

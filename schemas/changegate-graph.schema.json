@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://changegate.dev/schemas/changegate-graph.schema.json",
+  "$id": "https://github.com/Gabriel0110/changegate/schemas/changegate-graph.schema.json",
   "title": "ChangeGate Blast-Radius Graph v2",
   "type": "object",
   "additionalProperties": false,
@@ -57,10 +57,32 @@
       "properties": {
         "from": { "type": "string" },
         "to": { "type": "string" },
-        "type": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "depends_on",
+            "routes_to",
+            "allows_ingress",
+            "allows_egress",
+            "can_assume",
+            "can_pass_role",
+            "can_read_data",
+            "can_write_data",
+            "attached_to",
+            "contained_in",
+            "has_public_access",
+            "grants_permission",
+            "reads_secret",
+            "encrypts_with",
+            "writes_to",
+            "replicates_to",
+            "protects",
+            "invokes"
+          ]
+        },
         "source": {
           "type": "string",
-          "enum": ["plan", "cloud_context", "inferred"]
+          "enum": ["plan", "cloud_context", "inferred", "mixed"]
         },
         "confidence": {
           "type": "string",

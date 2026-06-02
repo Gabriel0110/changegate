@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects public resources that can reach sensitive data stores through the graph.
+Detects public resources that can reach sensitive data stores through a high-confidence graph path.
 
 ## Resources
 
@@ -27,10 +27,9 @@ Review the planned infrastructure change before apply.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+- Review the graph path evidence to identify the smallest edge to remove or constrain.
 
 ## References
 
 - No external references.
-

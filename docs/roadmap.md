@@ -32,7 +32,7 @@ Experimental capabilities may change before v1:
 * additional AWS cloud-context API coverage beyond the current read-only collector
 * multi-cloud context collection
 * multi-plan external scanner correlation
-* broad attack-path enforcement beyond the current deterministic v1 path types
+* broad attack-path enforcement beyond the current deterministic v2 path types
 * visual graph layout and UX iteration
 
 Experimental behavior is called out in documentation when it can affect CI outcomes.

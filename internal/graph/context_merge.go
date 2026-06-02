@@ -48,7 +48,7 @@ func MergeContext(planGraph *Graph, snapshot cloudcontext.Snapshot) (*Graph, []m
 		id, matched := mergeContextResource(merged, index, key, resource)
 		resourceIDs[key] = id
 		index.addResourceAliases(id, key, resource)
-		if resourcePublic(resource) && !merged.hasPublicInboundEdge(id) {
+		if matched && resourcePublic(resource) && !merged.hasPublicInboundEdge(id) {
 			diagnostics = append(diagnostics, model.Diagnostic{
 				Severity: model.DiagnosticWarning,
 				Code:     DiagnosticCloudPublicConflict,
@@ -71,7 +71,7 @@ func MergeContext(planGraph *Graph, snapshot cloudcontext.Snapshot) (*Graph, []m
 			continue
 		}
 		edgeType := contextEdgeType(relationship.Type)
-		if !graphHasEdge(merged, from, to, edgeType) && attachmentRelationship(relationship.Type) {
+		if (fromManaged || toManaged) && !graphHasEdge(merged, from, to, edgeType) && attachmentRelationship(relationship.Type) {
 			diagnostics = append(diagnostics, model.Diagnostic{
 				Severity: model.DiagnosticWarning,
 				Code:     DiagnosticCloudAttachmentConflict,

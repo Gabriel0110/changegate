@@ -416,19 +416,29 @@ func TestAttackPathsJSONOutputIsStableAndRoundTrips(t *testing.T) {
 	var result struct {
 		Version int `json:"version"`
 		Paths   []struct {
-			ID       string            `json:"id"`
-			Type     string            `json:"type"`
+			ID                string   `json:"id"`
+			Type              string   `json:"type"`
+			Kind              string   `json:"kind"`
+			ConfidenceReason  string   `json:"confidence_reason"`
+			FindingRuleIDs    []string `json:"finding_rule_ids"`
+			AffectedResources []struct {
+				Resource string `json:"resource"`
+				Role     string `json:"role"`
+			} `json:"affected_resources"`
 			Metadata map[string]string `json:"metadata"`
 		} `json:"paths"`
 	}
 	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
 		t.Fatalf("invalid attack paths JSON: %v\n%s", err, stdout)
 	}
-	if result.Version != 1 || len(result.Paths) != 1 {
+	if result.Version != 2 || len(result.Paths) != 1 {
 		t.Fatalf("unexpected attack paths result: %#v", result)
 	}
 	if result.Paths[0].Type != "public_to_sensitive_data" || result.Paths[0].Metadata["graph_path_id"] == "" {
 		t.Fatalf("attack path missing type or graph path id: %#v", result.Paths[0])
+	}
+	if result.Paths[0].Kind != "network" || result.Paths[0].ConfidenceReason == "" || len(result.Paths[0].FindingRuleIDs) == 0 || len(result.Paths[0].AffectedResources) == 0 {
+		t.Fatalf("attack path missing v2 contract fields: %#v", result.Paths[0])
 	}
 }
 
@@ -520,7 +530,7 @@ func TestAttackPathsEmptyResult(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
 		t.Fatalf("invalid attack paths JSON: %v\n%s", err, stdout)
 	}
-	if result.Version != 1 || len(result.Paths) != 0 {
+	if result.Version != 2 || len(result.Paths) != 0 {
 		t.Fatalf("unexpected empty result: %#v", result)
 	}
 }

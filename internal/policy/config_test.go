@@ -42,6 +42,15 @@ compliance:
       frameworks:
         soc2:
           - CC8.1
+sensitive_assets:
+  resource_addresses:
+    - custom_db.customer
+  resource_types:
+    - aws_backup_vault
+  name_contains:
+    - cardholder
+  tags:
+    classification: restricted
 `
 	config, err := Load(strings.NewReader(body))
 	if err != nil {
@@ -69,6 +78,12 @@ compliance:
 	if got := modelConfig.ComplianceMappings["ORG_QUEUE_REVIEW"]["soc2"]; len(got) != 1 || got[0] != "CC8.1" {
 		t.Fatalf("compliance mapping missing: %#v", modelConfig.ComplianceMappings)
 	}
+	if len(modelConfig.SensitiveAssets.ResourceAddresses) != 1 || modelConfig.SensitiveAssets.ResourceAddresses[0] != "custom_db.customer" {
+		t.Fatalf("sensitive resource addresses missing: %#v", modelConfig.SensitiveAssets)
+	}
+	if modelConfig.SensitiveAssets.Tags["classification"] != "restricted" {
+		t.Fatalf("sensitive tags missing: %#v", modelConfig.SensitiveAssets.Tags)
+	}
 
 	selection := RuleSelection(config, rules.DefaultPolicyPacks())
 	if !selection.EnabledRules["AWS_PUBLIC_ADMIN_SERVICE"] {
@@ -82,6 +97,27 @@ compliance:
 	}
 	if selection.Overrides["AWS_SG_WORLD_OPEN_ADMIN_PORT"].Confidence == nil {
 		t.Fatalf("selection override confidence missing")
+	}
+}
+
+func TestValidateSensitiveAssetClassificationRejectsEmptySelectors(t *testing.T) {
+	t.Parallel()
+
+	registry, err := rules.DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	result := Validate(Config{SensitiveAssets: SensitiveAssetsConfig{
+		ResourceAddresses: []string{""},
+		ResourceTypes:     []string{" "},
+		NameContains:      []string{""},
+		Tags:              map[string]string{"": "restricted"},
+	}}, registry, rules.DefaultPolicyPacks())
+	if result.Valid {
+		t.Fatalf("policy unexpectedly valid")
+	}
+	if len(result.Diagnostics) != 4 {
+		t.Fatalf("diagnostics = %d, want 4: %#v", len(result.Diagnostics), result.Diagnostics)
 	}
 }
 

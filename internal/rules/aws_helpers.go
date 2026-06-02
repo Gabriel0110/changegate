@@ -54,6 +54,76 @@ func exposureEvidence(g *graph.Graph, from graph.ResourceID, to graph.ResourceID
 	return out
 }
 
+func firstHighConfidencePath(g *graph.Graph, from graph.ResourceID, to graph.ResourceID) (graph.Path, bool) {
+	if g == nil {
+		return graph.Path{}, false
+	}
+	if from == to {
+		return graph.Path{Nodes: []graph.ResourceID{from}}, true
+	}
+	paths := g.Paths(from, to, graph.PathOptions{
+		MaxDepth: 12,
+		MaxPaths: 1,
+		AllowedEdges: []graph.EdgeType{
+			graph.EdgeRoutesTo,
+			graph.EdgeInvokes,
+			graph.EdgeAllowsIngress,
+			graph.EdgeAllowsEgress,
+			graph.EdgeAttachedTo,
+			graph.EdgeContainedIn,
+			graph.EdgeCanReadData,
+			graph.EdgeCanWriteData,
+			graph.EdgeReadsSecret,
+			graph.EdgeWritesTo,
+		},
+	})
+	if len(paths) == 0 || !highConfidencePath(paths[0]) {
+		return graph.Path{}, false
+	}
+	return paths[0], true
+}
+
+func highConfidencePath(path graph.Path) bool {
+	for _, edge := range path.Edges {
+		if edge.Confidence != "" && edge.Confidence != graph.ConfidenceHigh {
+			return false
+		}
+	}
+	return true
+}
+
+func pathHasWorkload(g *graph.Graph, path graph.Path) bool {
+	if g == nil {
+		return false
+	}
+	for _, id := range path.Nodes {
+		if node := g.Nodes[id]; node != nil && node.Kind == graph.NodeWorkload {
+			return true
+		}
+	}
+	return false
+}
+
+func graphPathEvidence(resource string, target string, path graph.Path) []model.Evidence {
+	nodes := make([]string, 0, len(path.Nodes))
+	for _, node := range path.Nodes {
+		nodes = append(nodes, string(node))
+	}
+	out := []model.Evidence{
+		ev(resource, "graph.path", nodes, "public resource has a high-confidence graph path to sensitive datastore"),
+		ev(target, "graph.target", target, "sensitive datastore is reachable from public resource"),
+	}
+	for _, edge := range path.Edges {
+		for _, evidence := range edge.Evidence {
+			if evidence.Message != "" {
+				out = append(out, ev(resource, "graph.edge", []string{string(edge.From), string(edge.To), string(edge.Type)}, evidence.Message))
+				break
+			}
+		}
+	}
+	return out
+}
+
 func looksAdmin(node *graph.Node) bool {
 	if node == nil {
 		return false

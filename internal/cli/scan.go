@@ -503,7 +503,7 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 		return output.Report{}, mapPlanLoadError(err)
 	}
 
-	resourceGraph := graphpkg.Build(plan)
+	resourceGraph := graphpkg.BuildWithOptions(plan, graphpkg.BuildOptions{SensitiveAssets: basePolicy.SensitiveAssets})
 	var graphDiagnostics []model.Diagnostic
 	if contextSnapshot != nil {
 		mergedGraph, diagnostics := graphpkg.MergeContext(resourceGraph, *contextSnapshot)

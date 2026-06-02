@@ -11,7 +11,7 @@ Review Intelligence focuses on six capabilities:
 1. Security Impact Statement and PR/MR review bot.
 2. Blast-Radius Graph v2.
 3. AWS Cloud Context Snapshot Collector.
-4. Attack Path v1.
+4. Attack Paths v2.
 5. Risk Tests for Terraform modules.
 6. Audit-ready evidence that ties findings, graph paths, waivers, baselines, and remediation together.
 
@@ -74,7 +74,7 @@ changegate review gitlab --plan tfplan.json --comment
 changegate review gitlab --report changegate.json --comment --dry-run --project 123 --merge-request 456
 ```
 
-Attack path inspection is available through `changegate attack-paths`. It detects v1 public-to-sensitive-data and IAM privilege-escalation paths without running deployment enforcement.
+Attack path inspection is available through `changegate attack-paths`. It detects deterministic v2 public-to-sensitive-data and IAM privilege-escalation paths without running deployment enforcement.
 
 ```bash
 changegate attack-paths --plan tfplan.json

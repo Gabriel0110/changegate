@@ -72,6 +72,49 @@ func TestFindingsRespectDisabledPolicy(t *testing.T) {
 	}
 }
 
+func TestPublicToSensitiveFindingCarriesStableBaselineContext(t *testing.T) {
+	t.Parallel()
+
+	left := AttackPath{
+		Type:             TypePublicToSensitiveData,
+		Kind:             PathKindNetwork,
+		Title:            "public path",
+		Severity:         model.SeverityCritical,
+		Confidence:       model.ConfidenceHigh,
+		ConfidenceReason: "path confidence is based on plan graph evidence",
+		Decision:         model.DecisionBlock,
+		Entrypoint:       "aws_lb.admin",
+		Target:           "aws_db_instance.customer",
+		Evidence: []model.Evidence{{
+			Type:     "attack_path.graph_path",
+			Resource: "aws_db_instance.customer",
+			Path:     "graph.path",
+			Value:    []string{"internet", "aws_lb.admin", "aws_ecs_service.admin", "aws_db_instance.customer"},
+			Message:  "public entrypoint reaches sensitive asset",
+		}},
+		Steps: []Step{{
+			From:        "aws_lb.admin",
+			To:          "aws_ecs_service.admin",
+			Action:      "routes to",
+			Explanation: "load balancer routes to workload",
+		}},
+	}
+	right := left
+	right.ConfidenceReason = "path confidence is based on mixed graph evidence"
+	right.Evidence[0].Message = "cloud context confirmed path to sensitive asset"
+
+	findings := Findings([]AttackPath{left, right}, model.DefaultAttackPathPolicy())
+	if len(findings) != 2 {
+		t.Fatalf("findings = %d, want 2", len(findings))
+	}
+	if findings[0].Fingerprint != findings[1].Fingerprint {
+		t.Fatalf("fingerprints differ for equivalent path lineage: %s != %s", findings[0].Fingerprint, findings[1].Fingerprint)
+	}
+	if !model.RiskContextFromFinding(findings[0]).GraphSensitiveData {
+		t.Fatalf("public-to-sensitive attack path finding did not expose graph-sensitive movement context: %#v", findings[0].Evidence)
+	}
+}
+
 func hasRule(findings []model.Finding, ruleID string) bool {
 	for _, finding := range findings {
 		if finding.RuleID == ruleID {

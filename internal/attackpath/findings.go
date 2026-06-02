@@ -72,7 +72,39 @@ func findingFromPath(path AttackPath) model.Finding {
 			Value:    string(path.Type),
 			Message:  "attack path type is " + string(path.Type),
 		},
+		{
+			Type:     "attack_path",
+			Resource: resource,
+			Path:     "attack_path.kind",
+			Value:    string(path.Kind),
+			Message:  "attack path kind is " + string(path.Kind),
+		},
+		{
+			Type:     "attack_path",
+			Resource: resource,
+			Path:     "attack_path.confidence_reason",
+			Value:    path.ConfidenceReason,
+			Message:  path.ConfidenceReason,
+		},
 	}, path.Evidence...)
+	if path.Source != "" {
+		evidence = append(evidence, model.Evidence{
+			Type:     "attack_path",
+			Resource: resource,
+			Path:     "attack_path.source",
+			Value:    string(path.Source),
+			Message:  "attack path source is " + string(path.Source),
+		})
+	}
+	if len(path.AffectedResources) > 0 {
+		evidence = append(evidence, model.Evidence{
+			Type:     "attack_path",
+			Resource: resource,
+			Path:     "attack_path.affected_resources",
+			Value:    affectedResourceValues(path.AffectedResources),
+			Message:  "attack path affected resources are linked to this finding",
+		})
+	}
 	for _, step := range path.Steps {
 		evidence = append(evidence, model.Evidence{
 			Type:     "attack_path.step",
@@ -107,6 +139,21 @@ func findingFromPath(path AttackPath) model.Finding {
 			Reason:   reason,
 		}},
 	}
+}
+
+func affectedResourceValues(resources []AffectedResource) []string {
+	out := make([]string, 0, len(resources))
+	for _, resource := range resources {
+		if resource.Resource == "" {
+			continue
+		}
+		value := resource.Resource
+		if resource.Role != "" {
+			value += ":" + resource.Role
+		}
+		out = append(out, value)
+	}
+	return out
 }
 
 func ruleForPath(path AttackPath) (string, string, model.RiskCategory) {

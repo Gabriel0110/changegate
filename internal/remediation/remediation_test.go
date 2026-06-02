@@ -1,6 +1,7 @@
 package remediation
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Gabriel0110/changegate/internal/model"
@@ -68,5 +69,48 @@ func TestExplainRuleUsesTemplate(t *testing.T) {
 	}
 	if len(explanation.Recommended.Patches) == 0 || explanation.Recommended.Patches[0].Format != "advisory" {
 		t.Fatalf("expected advisory patch: %#v", explanation.Recommended.Patches)
+	}
+}
+
+func TestAttackPathRemediationIsAdvisoryAndNonAutofix(t *testing.T) {
+	t.Parallel()
+
+	for _, ruleID := range []string{
+		"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+		"AWS_PUBLIC_ADMIN_SERVICE_PATH",
+		"AWS_IAM_PASSROLE_FUNCTION_ESCALATION",
+		"AWS_IAM_ASSUME_ADMIN_PATH",
+	} {
+		ruleID := ruleID
+		t.Run(ruleID, func(t *testing.T) {
+			t.Parallel()
+
+			finding := model.NormalizeFinding(model.Finding{
+				RuleID:          ruleID,
+				Title:           ruleID,
+				ResourceAddress: "aws_resource.example",
+				Category:        model.RiskCategorySensitiveData,
+				Severity:        model.SeverityHigh,
+				Confidence:      model.ConfidenceHigh,
+			})
+			if strings.Contains(ruleID, "IAM") {
+				finding.Category = model.RiskCategoryPrivilegeEscalation
+			}
+			enriched := EnrichFinding(finding, nil, Options{})
+			if enriched.Remediation.Summary == "" || enriched.Remediation.WhyThisWorks == "" {
+				t.Fatalf("%s missing summary or rationale: %#v", ruleID, enriched.Remediation)
+			}
+			if enriched.Remediation.AutoFixAvailable {
+				t.Fatalf("%s unexpectedly enabled autofix", ruleID)
+			}
+			if len(enriched.Remediation.FixOptions) == 0 || len(enriched.Remediation.TerraformHints) == 0 {
+				t.Fatalf("%s missing tradeoffs or Terraform hints: %#v", ruleID, enriched.Remediation)
+			}
+			for _, patch := range enriched.Remediation.Patches {
+				if patch.SafeToApply || !patch.ReviewNeeded {
+					t.Fatalf("%s has unsafe patch metadata: %#v", ruleID, patch)
+				}
+			}
+		})
 	}
 }

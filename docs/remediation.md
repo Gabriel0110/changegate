@@ -79,6 +79,8 @@ Patch suggestions use a structured format:
 
 `safe_to_apply` is currently `false` for all built-in remediation. This is intentional. The CLI distinguishes helpful snippets from automatic patches so it never silently changes risky infrastructure semantics.
 
+Attack-path remediation is always advisory. Public-to-sensitive, public-admin, PassRole, and AssumeRole paths usually require topology, access-model, or deployment-workflow review. ChangeGate reports the smallest path evidence it can prove, then suggests safe review directions such as restricting ingress, segmenting sensitive assets, narrowing `iam:PassRole`, or constraining role trust. It does not automatically rewrite multi-resource graph paths or IAM trust policies.
+
 ## Organization Documentation Links
 
 Teams can attach organization-specific documentation to remediation output through `.changegate.yaml`:

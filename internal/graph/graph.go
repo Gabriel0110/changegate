@@ -54,6 +54,8 @@ const (
 	EdgeReplicatesTo EdgeType = "replicates_to"
 	// EdgeProtects represents a guardrail or protection applied to a resource.
 	EdgeProtects EdgeType = "protects"
+	// EdgeInvokes represents an edge service invoking a compute workload.
+	EdgeInvokes EdgeType = "invokes"
 )
 
 // EdgeSource describes where a graph edge came from.
@@ -66,6 +68,8 @@ const (
 	SourceCloudContext EdgeSource = "cloud_context"
 	// SourceInferred means the edge came from ChangeGate inference.
 	SourceInferred EdgeSource = "inferred"
+	// SourceMixed means multiple evidence sources support the edge.
+	SourceMixed EdgeSource = "mixed"
 )
 
 // EdgeConfidence describes how directly an edge is supported.
@@ -175,8 +179,18 @@ type BlastRadius struct {
 	Paths              []Path         `json:"paths,omitempty"`
 }
 
+// BuildOptions controls graph construction.
+type BuildOptions struct {
+	SensitiveAssets model.SensitiveAssetPolicy
+}
+
 // Build constructs a graph from a normalized plan.
 func Build(plan *model.Plan) *Graph {
+	return BuildWithOptions(plan, BuildOptions{})
+}
+
+// BuildWithOptions constructs a graph from a normalized plan with optional policy context.
+func BuildWithOptions(plan *model.Plan, opts BuildOptions) *Graph {
 	g := &Graph{Nodes: make(map[ResourceID]*Node)}
 	if plan == nil {
 		return g
@@ -192,6 +206,7 @@ func Build(plan *model.Plan) *Graph {
 		g.addChange(change)
 	}
 
+	g.applySensitivity(opts.SensitiveAssets)
 	inferExplicitDependencies(g, plan)
 	inferGenericReferences(g)
 	inferAWSNetwork(g)
@@ -527,6 +542,7 @@ func (g *Graph) IsInternetExposed(resource ResourceID) bool {
 	}
 	if _, ok := g.pathWithTypes(InternetNodeID, resource, map[EdgeType]bool{
 		EdgeRoutesTo:        true,
+		EdgeInvokes:         true,
 		EdgeAllowsIngress:   true,
 		EdgeHasPublicAccess: true,
 		EdgeAttachedTo:      true,
@@ -548,6 +564,7 @@ func (g *Graph) IsInternetExposed(resource ResourceID) bool {
 func (g *Graph) CanReach(source ResourceID, target ResourceID) bool {
 	_, ok := g.pathWithTypes(source, target, map[EdgeType]bool{
 		EdgeRoutesTo:      true,
+		EdgeInvokes:       true,
 		EdgeAllowsIngress: true,
 		EdgeAllowsEgress:  true,
 		EdgeAttachedTo:    true,
@@ -711,6 +728,21 @@ func (g *Graph) ensureSynthetic(id ResourceID, typ string, name string) {
 	}
 }
 
+func (g *Graph) applySensitivity(config model.SensitiveAssetPolicy) {
+	for _, node := range g.Nodes {
+		if node == nil || isSensitiveKind(node.Kind) || node.Kind == NodePublicEntrypoint || node.Kind == NodePrincipal || node.Kind == NodePolicy {
+			continue
+		}
+		if matchesSensitiveDefaults(node) || matchesSensitiveConfig(node, config) {
+			node.Kind = NodeDataStore
+			if node.Values == nil {
+				node.Values = make(map[string]any)
+			}
+			node.Values["sensitive_data"] = true
+		}
+	}
+}
+
 func (g *Graph) addEdge(from ResourceID, to ResourceID, edgeType EdgeType, evidence []model.Evidence, metadata map[string]string) {
 	g.addEdgeWithProvenance(from, to, edgeType, SourcePlan, ConfidenceHigh, evidence, metadata)
 }
@@ -773,6 +805,7 @@ func mergeEdgeProvenance(existing Edge, incoming Edge) Edge {
 			existing.Metadata = make(map[string]string)
 		}
 		existing.Metadata["sources"] = mergeSourceList(existing.Metadata["sources"], existing.Source, incoming.Source)
+		existing.Source = SourceMixed
 	}
 	if len(incoming.Evidence) > 0 {
 		existing.Evidence = append(existing.Evidence, incoming.Evidence...)
@@ -1003,7 +1036,7 @@ func classifyNodeKind(resourceType string, values map[string]any) NodeKind {
 	switch resourceType {
 	case "internet":
 		return NodePublicEntrypoint
-	case "aws_lb", "aws_elb", "aws_cloudfront_distribution", "aws_api_gateway_rest_api", "aws_apigatewayv2_api", "aws_api_gateway_stage", "aws_apigatewayv2_stage":
+	case "aws_lb", "aws_elb", "aws_cloudfront_distribution", "aws_api_gateway_rest_api", "aws_apigatewayv2_api", "aws_api_gateway_stage", "aws_apigatewayv2_stage", "aws_lambda_function_url":
 		return NodePublicEntrypoint
 	case "aws_instance", "aws_launch_template", "aws_autoscaling_group", "aws_ecs_service", "aws_ecs_task_definition", "aws_lambda_function", "aws_eks_cluster", "aws_eks_node_group":
 		return NodeWorkload
@@ -1025,6 +1058,73 @@ func classifyNodeKind(resourceType string, values map[string]any) NodeKind {
 		}
 		return NodeUnknown
 	}
+}
+
+func matchesSensitiveDefaults(node *Node) bool {
+	if node == nil {
+		return false
+	}
+	for key, value := range node.Tags {
+		if sensitiveTag(key, value) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesSensitiveConfig(node *Node, config model.SensitiveAssetPolicy) bool {
+	if node == nil {
+		return false
+	}
+	for _, address := range config.ResourceAddresses {
+		if strings.EqualFold(strings.TrimSpace(address), node.Address) {
+			return true
+		}
+	}
+	for _, resourceType := range config.ResourceTypes {
+		if strings.EqualFold(strings.TrimSpace(resourceType), node.Type) {
+			return true
+		}
+	}
+	identity := strings.ToLower(node.Address + " " + node.Name + " " + node.Type)
+	for _, needle := range config.NameContains {
+		needle = strings.ToLower(strings.TrimSpace(needle))
+		if needle != "" && strings.Contains(identity, needle) {
+			return true
+		}
+	}
+	for key, want := range config.Tags {
+		got, ok := tagValue(node.Tags, key)
+		if !ok {
+			continue
+		}
+		if strings.TrimSpace(want) == "" || strings.EqualFold(got, want) {
+			return true
+		}
+	}
+	return false
+}
+
+func tagValue(tags map[string]string, key string) (string, bool) {
+	for gotKey, value := range tags {
+		if strings.EqualFold(strings.TrimSpace(gotKey), strings.TrimSpace(key)) {
+			return value, true
+		}
+	}
+	return "", false
+}
+
+func sensitiveTag(key string, value string) bool {
+	key = strings.ToLower(strings.TrimSpace(key))
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch key {
+	case "data", "sensitivity", "classification", "confidentiality":
+		switch value {
+		case "sensitive", "confidential", "restricted", "pii", "phi", "pci", "customer":
+			return true
+		}
+	}
+	return false
 }
 
 func isSensitiveKind(kind NodeKind) bool {
@@ -1080,6 +1180,7 @@ func allowedEdgeSet(edges []EdgeType) map[EdgeType]bool {
 func reachabilityEdges() []EdgeType {
 	return []EdgeType{
 		EdgeRoutesTo,
+		EdgeInvokes,
 		EdgeAllowsIngress,
 		EdgeAllowsEgress,
 		EdgeAttachedTo,
@@ -1095,6 +1196,7 @@ func reachabilityEdges() []EdgeType {
 func exposureEdges() []EdgeType {
 	return []EdgeType{
 		EdgeRoutesTo,
+		EdgeInvokes,
 		EdgeAllowsIngress,
 		EdgeAttachedTo,
 		EdgeContainedIn,
@@ -1104,7 +1206,7 @@ func exposureEdges() []EdgeType {
 
 func publicEdge(edgeType EdgeType) bool {
 	switch edgeType {
-	case EdgeRoutesTo, EdgeAllowsIngress, EdgeHasPublicAccess, EdgeCanReadData:
+	case EdgeRoutesTo, EdgeInvokes, EdgeAllowsIngress, EdgeHasPublicAccess, EdgeCanReadData:
 		return true
 	default:
 		return false

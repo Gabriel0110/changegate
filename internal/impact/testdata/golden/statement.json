@@ -47,7 +47,7 @@
   },
   "top_findings": [
     {
-      "id": "CHG-F6FC07CFE58FE184",
+      "id": "CHG-56C54BDF81A5F874",
       "rule_id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
       "title": "Deploy role can pass privileged role and mutate compute",
       "resource_address": "aws_iam_role.deploy",
@@ -56,6 +56,34 @@
       "severity": "high",
       "confidence": "high",
       "evidence": [
+        {
+          "type": "attack_path",
+          "resource": "aws_iam_role.deploy",
+          "path": "attack_path.type",
+          "value": "iam_privilege_escalation",
+          "message": "attack path type is iam_privilege_escalation"
+        },
+        {
+          "type": "attack_path",
+          "resource": "aws_iam_role.deploy",
+          "path": "attack_path.kind",
+          "value": "identity",
+          "message": "attack path kind is identity"
+        },
+        {
+          "type": "attack_path",
+          "resource": "aws_iam_role.deploy",
+          "path": "attack_path.source",
+          "value": "mixed",
+          "message": "attack path source is mixed"
+        },
+        {
+          "type": "attack_path",
+          "resource": "aws_iam_role.deploy",
+          "path": "attack_path.confidence_reason",
+          "value": "path confidence is based on mixed graph evidence",
+          "message": "path confidence is based on mixed graph evidence"
+        },
         {
           "type": "iam",
           "resource": "aws_iam_role.deploy",
@@ -70,7 +98,7 @@
       "remediation": {
         "summary": ""
       },
-      "fingerprint": "f6fc07cfe58fe184b104808ee2e3ea28322e15218f974065dcac9866ff60cecb",
+      "fingerprint": "56c54bdf81a5f874da9b4a7d875050e612376c022b5a14c89f5e840d650bb5b1",
       "deduplication_key": "AWS_PASSROLE_WITH_COMPUTE_MUTATION|aws_iam_role.deploy|aws|privilege_escalation|",
       "decision_reason_codes": [
         "MEETS_BLOCK_THRESHOLD"
@@ -221,14 +249,17 @@
   ],
   "attack_paths": [
     {
-      "id": "attack-path-f6fc07cfe58fe184-1",
-      "finding_id": "CHG-F6FC07CFE58FE184",
+      "id": "attack-path-56c54bdf81a5f874-1",
+      "finding_id": "CHG-56C54BDF81A5F874",
       "rule_id": "AWS_PASSROLE_WITH_COMPUTE_MUTATION",
       "resource": "aws_iam_role.deploy",
-      "type": "iam_passrole_escalation",
+      "type": "iam_privilege_escalation",
+      "kind": "identity",
       "title": "Deploy role can pass privileged role and mutate compute",
       "severity": "high",
       "confidence": "high",
+      "source": "mixed",
+      "confidence_reason": "path confidence is based on mixed graph evidence",
       "steps": [
         "Policy allows PassRole and function code mutation."
       ],

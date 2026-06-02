@@ -156,6 +156,29 @@ func inferAWSLoadBalancing(g *Graph) {
 		case "aws_api_gateway_rest_api", "aws_apigatewayv2_api":
 			g.ensureSynthetic(InternetNodeID, "internet", "internet")
 			g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "api", "public", "API Gateway endpoint is publicly reachable"), nil)
+		case "aws_apigatewayv2_integration":
+			if api := findByIDLike(g, asString(values["api_id"]), "aws_apigatewayv2_api"); api != "" {
+				g.addEdge(api, id, EdgeRoutesTo, evidence(node.Address, "api_id", api, "API Gateway routes to integration"), map[string]string{"integration_type": asString(values["integration_type"])})
+			}
+			if target := findByARNOrAddress(g, asString(values["integration_uri"]), "aws_lambda_function"); target != "" {
+				g.addEdge(id, target, EdgeInvokes, evidence(node.Address, "integration_uri", target, "API Gateway integration invokes Lambda function"), map[string]string{"integration_type": asString(values["integration_type"])})
+			}
+		case "aws_api_gateway_integration":
+			if api := findByIDLike(g, asString(values["rest_api_id"]), "aws_api_gateway_rest_api"); api != "" {
+				g.addEdge(api, id, EdgeRoutesTo, evidence(node.Address, "rest_api_id", api, "API Gateway REST API routes to integration"), map[string]string{"integration_type": asString(values["type"])})
+			}
+			if target := findByARNOrAddress(g, asString(values["uri"]), "aws_lambda_function"); target != "" {
+				g.addEdge(id, target, EdgeInvokes, evidence(node.Address, "uri", target, "API Gateway integration invokes Lambda function"), map[string]string{"integration_type": asString(values["type"])})
+			}
+		case "aws_lambda_function_url":
+			if publicLambdaURL(values) {
+				g.ensureSynthetic(InternetNodeID, "internet", "internet")
+				g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "authorization_type", asString(values["authorization_type"]), "Lambda function URL is publicly reachable"), nil)
+				g.addEdge(InternetNodeID, id, EdgeHasPublicAccess, evidence(node.Address, "authorization_type", asString(values["authorization_type"]), "Lambda function URL is internet exposed"), nil)
+			}
+			if target := findByIDLike(g, asString(values["function_name"]), "aws_lambda_function"); target != "" {
+				g.addEdge(id, target, EdgeInvokes, evidence(node.Address, "function_name", target, "Lambda function URL invokes Lambda function"), nil)
+			}
 		}
 	}
 }
@@ -193,6 +216,12 @@ func inferAWSLambda(g *Graph) {
 		values := resourceValues(g, id)
 		if role := findByARNOrAddress(g, asString(values["role"]), "aws_iam_role"); role != "" {
 			g.addEdge(id, role, EdgeCanAssume, evidence(node.Address, "role", role, "Lambda function assumes execution role"), nil)
+		}
+		if key := findByARNOrAddress(g, asString(values["kms_key_arn"]), "aws_kms_key"); key != "" {
+			g.addEdge(id, key, EdgeEncryptsWith, evidence(node.Address, "kms_key_arn", key, "Lambda function environment is encrypted with KMS key"), nil)
+		}
+		for _, secret := range referencedSecrets(g, values) {
+			g.addEdge(id, secret, EdgeReadsSecret, evidence(node.Address, "environment.variables", secret, "Lambda environment references secret value"), nil)
 		}
 	}
 }
@@ -313,7 +342,7 @@ func propagateEnvironment(g *Graph) {
 
 func propagatesEnvironment(edgeType EdgeType) bool {
 	switch edgeType {
-	case EdgeRoutesTo, EdgeAttachedTo, EdgeContainedIn, EdgeDependsOn, EdgeAllowsIngress, EdgeAllowsEgress:
+	case EdgeRoutesTo, EdgeInvokes, EdgeAttachedTo, EdgeContainedIn, EdgeDependsOn, EdgeAllowsIngress, EdgeAllowsEgress:
 		return true
 	default:
 		return false
@@ -398,6 +427,52 @@ func publicBool(value any) bool {
 	}
 }
 
+func publicLambdaURL(values map[string]any) bool {
+	return strings.EqualFold(asString(values["authorization_type"]), "NONE")
+}
+
+func referencedSecrets(g *Graph, values map[string]any) []ResourceID {
+	if g == nil || len(values) == 0 {
+		return nil
+	}
+	blobBytes, err := json.Marshal(values)
+	if err != nil {
+		return nil
+	}
+	blob := string(blobBytes)
+	out := make([]ResourceID, 0)
+	for _, id := range sortedNodeIDs(g) {
+		node := g.Nodes[id]
+		if node == nil || node.Kind != NodeSecret {
+			continue
+		}
+		if nodeIdentifierInBlob(node, blob) {
+			out = append(out, id)
+		}
+	}
+	sortResourceIDs(out)
+	return out
+}
+
+func nodeIdentifierInBlob(node *Node, blob string) bool {
+	if node == nil || blob == "" {
+		return false
+	}
+	for _, candidate := range []string{
+		string(node.ID),
+		node.Address,
+		node.Name,
+		asString(node.Values["arn"]),
+		asString(node.Values["id"]),
+		asString(node.Values["name"]),
+	} {
+		if candidate != "" && strings.Contains(blob, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
 func securityGroupTarget(g *Graph, values map[string]any) ResourceID {
 	for _, key := range []string{"security_group_id", "referenced_security_group_id"} {
 		if target := findByIDLike(g, asString(values[key]), "aws_security_group"); target != "" {
@@ -450,7 +525,7 @@ func findByIDLike(g *Graph, value string, resourceType string) ResourceID {
 			return id
 		}
 		values := resourceValues(g, id)
-		for _, key := range []string{"id", "arn", "name", "bucket", "identifier"} {
+		for _, key := range []string{"id", "arn", "name", "bucket", "identifier", "function_name"} {
 			if asString(values[key]) == value {
 				return id
 			}
