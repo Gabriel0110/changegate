@@ -154,6 +154,22 @@ changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip
 
 See [output formats](docs/output-formats.md) and [audit evidence](docs/audit-compliance.md).
 
+## External Scanner Imports
+
+ChangeGate can ingest findings from other scanners and normalize them into the same decision, waiver, baseline, graph-correlation, and output model as native findings. This lets teams keep tools like Checkov, Trivy, KICS, Grype, and SARIF-producing scanners while using ChangeGate as the deployment risk gate.
+
+```bash
+changegate scan --plan tfplan.json --import-sarif checkov.sarif
+changegate scan --plan tfplan.json --import-checkov checkov.json
+changegate scan --plan tfplan.json --import-trivy trivy.json
+changegate scan --plan tfplan.json --import-kics kics.json
+changegate scan --plan tfplan.json --import-grype grype.json
+```
+
+ChangeGate does not install or run external scanners. It reads existing JSON or SARIF artifacts, deduplicates repeated findings, correlates imported findings to changed graph resources where possible, and keeps native ChangeGate findings authoritative when richer graph evidence exists.
+
+See [external scanner adapters](docs/adapters.md).
+
 ## GitHub Actions
 
 ```yaml
