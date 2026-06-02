@@ -1,9 +1,9 @@
-# Production RDS deletion protection disabled
+# Production CloudTrail log validation disabled
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_CLOUDTRAIL_LOG_FILE_VALIDATION_DISABLED_PROD` |
+| Category | `compliance` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
@@ -12,12 +12,11 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects production or security CloudTrail trails without log file validation.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_cloudtrail`
 
 ## Why It Matters
 

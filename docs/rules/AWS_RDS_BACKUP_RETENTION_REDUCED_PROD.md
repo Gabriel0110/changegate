@@ -1,8 +1,8 @@
-# Production RDS deletion protection disabled
+# Production RDS backup retention reduced
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
+| Rule ID | `AWS_RDS_BACKUP_RETENTION_REDUCED_PROD` |
 | Category | `availability` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects production databases whose backup retention period is reduced.
 
 ## Resources
 

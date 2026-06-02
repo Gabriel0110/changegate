@@ -1,8 +1,8 @@
-# Production RDS deletion protection disabled
+# Production DynamoDB point-in-time recovery disabled
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
+| Rule ID | `AWS_DYNAMODB_PITR_DISABLED_PROD` |
 | Category | `availability` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,12 +12,11 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects production DynamoDB tables with point-in-time recovery disabled.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_dynamodb_table`
 
 ## Why It Matters
 

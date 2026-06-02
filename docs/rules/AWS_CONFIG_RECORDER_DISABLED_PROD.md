@@ -1,9 +1,9 @@
-# Production RDS deletion protection disabled
+# Production AWS Config recorder disabled
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_CONFIG_RECORDER_DISABLED_PROD` |
+| Category | `compliance` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
@@ -12,12 +12,12 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects production or security AWS Config recorders disabled by planned changes.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_config_configuration_recorder`
+- `aws_config_configuration_recorder_status`
 
 ## Why It Matters
 

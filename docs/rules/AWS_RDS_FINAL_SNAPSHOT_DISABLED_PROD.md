@@ -1,8 +1,8 @@
-# Production RDS deletion protection disabled
+# Production RDS deletion skips final snapshot
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
+| Rule ID | `AWS_RDS_FINAL_SNAPSHOT_DISABLED_PROD` |
 | Category | `availability` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects production database deletion or replacement configured to skip final snapshots.
 
 ## Resources
 

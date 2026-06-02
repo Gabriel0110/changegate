@@ -1,23 +1,24 @@
-# Production RDS deletion protection disabled
+# ElastiCache allows broad network ingress
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_ELASTICACHE_OPEN_SECURITY_GROUP` |
+| Category | `public_exposure` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects ElastiCache clusters or replication groups attached to security groups with public ingress.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_elasticache_cluster`
+- `aws_elasticache_replication_group`
+- `aws_security_group`
 
 ## Why It Matters
 

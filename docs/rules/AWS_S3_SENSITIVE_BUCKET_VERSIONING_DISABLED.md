@@ -1,9 +1,9 @@
-# Production RDS deletion protection disabled
+# Sensitive S3 bucket versioning disabled
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED` |
+| Category | `sensitive_data` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
@@ -12,12 +12,12 @@
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects sensitive buckets whose versioning is disabled or suspended.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_s3_bucket`
+- `aws_s3_bucket_versioning`
 
 ## Why It Matters
 

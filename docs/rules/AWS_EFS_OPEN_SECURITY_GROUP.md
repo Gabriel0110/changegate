@@ -1,23 +1,24 @@
-# Production RDS deletion protection disabled
+# EFS allows broad network ingress
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_EFS_OPEN_SECURITY_GROUP` |
+| Category | `public_exposure` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects EFS mount targets attached to security groups with public ingress.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_efs_mount_target`
+- `aws_efs_file_system`
+- `aws_security_group`
 
 ## Why It Matters
 

@@ -55,16 +55,17 @@ These commands reuse the same deterministic scan engine. The default path remain
 
 ## What It Catches
 
-The built-in AWS rule pack currently includes 29 stable high-confidence rules, including:
+The built-in AWS rule pack currently includes 53 stable high-confidence rules, including:
 
 * public administrative services and database exposure
-* world-open security group ingress on admin and database ports
-* production RDS replacement, disabled backups, and disabled deletion protection
-* broad IAM admin, PassRole, assume-role, KMS decrypt, and Secrets Manager read paths
+* world-open security group ingress on admin, database, and all-port ranges
+* production RDS replacement, backup reduction, disabled final snapshots, disabled backups, and disabled deletion protection
+* DynamoDB PITR, S3 versioning/logging, CloudTrail, AWS Config, and ECR production guardrails
+* public S3 policies and ACLs, public Lambda function URLs, public admin API Gateway routes, and weak public load balancer listeners
+* broad IAM admin, NotAction, sensitive wildcard access, PassRole, assume-role, KMS decrypt, and Secrets Manager read paths
 * public-to-sensitive datastore graph paths
-* sensitive storage without encryption or logging
-* private subnet routes to internet gateways
-* transit/peering route expansion into sensitive networks
+* sensitive storage without encryption, logging, or versioning
+* public subnet, EFS, ElastiCache, private subnet, and transit/peering blast-radius expansion
 
 See the generated [rule reference](docs/rules/README.md) for the full list.
 

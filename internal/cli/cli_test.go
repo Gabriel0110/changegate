@@ -1279,7 +1279,7 @@ func TestBaselineCreateDiffAndNewOnlyScan(t *testing.T) {
 	if code != exitAllowed {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Findings: 2") {
+	if !strings.Contains(stdout, "Findings: 3") {
 		t.Fatalf("baseline create output missing finding count:\n%s", stdout)
 	}
 	body, err := os.ReadFile(path)
@@ -1297,7 +1297,7 @@ func TestBaselineCreateDiffAndNewOnlyScan(t *testing.T) {
 	if code != exitAllowed {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Suppressed or downgraded: 2") {
+	if !strings.Contains(stdout, "Suppressed or downgraded: 3") {
 		t.Fatalf("new-only scan did not suppress baseline findings:\n%s", stdout)
 	}
 
@@ -1306,7 +1306,7 @@ func TestBaselineCreateDiffAndNewOnlyScan(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 	assertValidJSON(t, stdout)
-	for _, want := range []string{`"new": 0`, `"unchanged": 2`, `"stale": 0`} {
+	for _, want := range []string{`"new": 0`, `"unchanged": 3`, `"stale": 0`} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("baseline diff missing %q:\n%s", want, stdout)
 		}
@@ -1778,7 +1778,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 	assertValidJSON(t, stdout)
-	if !strings.Contains(stdout, `"enabled_rules": 18`) {
+	if !strings.Contains(stdout, `"enabled_rules": 27`) {
 		t.Fatalf("policy test output missing enabled count:\n%s", stdout)
 	}
 }

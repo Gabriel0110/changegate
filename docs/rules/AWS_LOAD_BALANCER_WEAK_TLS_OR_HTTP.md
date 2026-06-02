@@ -1,23 +1,23 @@
-# Production RDS deletion protection disabled
+# Public load balancer uses weak TLS or plaintext HTTP
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP` |
+| Category | `public_exposure` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects internet-facing load balancer listeners that use plaintext HTTP or legacy TLS policies.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_lb`
+- `aws_lb_listener`
 
 ## Why It Matters
 
