@@ -312,4 +312,4 @@ Please do not open public issues for suspected vulnerabilities. Use the private 
 
 ## License
 
-ChangeGate is released under the [MIT License](LICENSE).
+ChangeGate is released under the [Apache License 2.0](LICENSE).
