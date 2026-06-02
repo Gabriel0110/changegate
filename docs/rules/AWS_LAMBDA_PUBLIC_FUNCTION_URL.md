@@ -1,23 +1,22 @@
-# Production RDS deletion protection disabled
+# Lambda function URL is public
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_LAMBDA_PUBLIC_FUNCTION_URL` |
+| Category | `public_exposure` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects Lambda function URLs that allow unauthenticated public access.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_lambda_function_url`
 
 ## Why It Matters
 

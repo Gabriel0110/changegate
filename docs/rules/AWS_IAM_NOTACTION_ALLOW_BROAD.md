@@ -1,23 +1,25 @@
-# Production RDS deletion protection disabled
+# IAM Allow uses broad NotAction
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_IAM_NOTACTION_ALLOW_BROAD` |
+| Category | `privilege_escalation` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects Allow statements using NotAction with broad resource scope.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_iam_policy`
+- `aws_iam_role_policy`
+- `aws_iam_user_policy`
+- `aws_iam_group_policy`
 
 ## Why It Matters
 

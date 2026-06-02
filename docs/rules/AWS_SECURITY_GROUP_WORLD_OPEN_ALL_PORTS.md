@@ -1,23 +1,23 @@
-# Production RDS deletion protection disabled
+# Security group opens all ports to the world
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS` |
+| Category | `public_exposure` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects public ingress that allows every port or protocol.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_security_group`
+- `aws_vpc_security_group_ingress_rule`
 
 ## Why It Matters
 

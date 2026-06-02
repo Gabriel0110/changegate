@@ -35,4 +35,4 @@ Review the planned infrastructure change before apply.
 
 ## References
 
-- ../attack-paths.md
+- docs/attack-paths.md

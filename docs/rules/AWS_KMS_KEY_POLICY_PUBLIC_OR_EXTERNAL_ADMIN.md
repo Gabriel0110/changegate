@@ -1,23 +1,22 @@
-# Production RDS deletion protection disabled
+# KMS key policy grants public or external administration
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD` |
-| Category | `availability` |
+| Rule ID | `AWS_KMS_KEY_POLICY_PUBLIC_OR_EXTERNAL_ADMIN` |
+| Category | `privilege_escalation` |
 | Severity | `high` |
 | Confidence | `high` |
 | Status | `stable` |
 | Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 
-Detects production databases without deletion protection.
+Detects KMS key policies that grant administrative or decrypt access to public or external principals.
 
 ## Resources
 
-- `aws_db_instance`
-- `aws_rds_cluster`
+- `aws_kms_key`
 
 ## Why It Matters
 

@@ -224,12 +224,62 @@ func asString(value any) string {
 	}
 }
 
+func stringList(value any) []string {
+	switch typed := value.(type) {
+	case []any:
+		out := make([]string, 0, len(typed))
+		for _, item := range typed {
+			text := asString(item)
+			if text != "" && text != "<nil>" {
+				out = append(out, text)
+			}
+		}
+		sort.Strings(out)
+		return out
+	case []string:
+		out := append([]string(nil), typed...)
+		sort.Strings(out)
+		return out
+	case string:
+		if typed == "" {
+			return nil
+		}
+		return []string{typed}
+	default:
+		return nil
+	}
+}
+
+func asList(value any) []any {
+	switch typed := value.(type) {
+	case []any:
+		return typed
+	case nil:
+		return nil
+	default:
+		return []any{typed}
+	}
+}
+
 func truthy(value any) bool {
 	switch typed := value.(type) {
 	case bool:
 		return typed
 	case string:
 		return strings.EqualFold(typed, "true")
+	default:
+		return false
+	}
+}
+
+func falsey(value any) bool {
+	switch typed := value.(type) {
+	case bool:
+		return !typed
+	case string:
+		return strings.EqualFold(typed, "false") || strings.EqualFold(typed, "disabled") || strings.EqualFold(typed, "suspended")
+	case nil:
+		return true
 	default:
 		return false
 	}
@@ -254,12 +304,165 @@ func intValue(value any) int {
 	}
 }
 
+func hasAction(change model.Change, action model.Action) bool {
+	for _, candidate := range change.Actions {
+		if candidate == action {
+			return true
+		}
+	}
+	return false
+}
+
 func asJSON(value any) string {
 	encoded, err := json.Marshal(value)
 	if err != nil {
 		return fmt.Sprint(value)
 	}
 	return strings.ToLower(string(encoded))
+}
+
+func normalizedChangeText(change model.Change) string {
+	return strings.ToLower(change.Address + " " + change.Name + " " + fmt.Sprint(change.Tags) + " " + asJSON(change.After) + " " + asJSON(change.Before))
+}
+
+func hasProductionOrSensitiveContext(change model.Change) bool {
+	if envFromChange(change) == "production" {
+		return true
+	}
+	text := normalizedChangeText(change)
+	for _, marker := range []string{"prod", "production", "sensitive", "customer", "payment", "pii", "secret", "backup", "audit", "security"} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
+}
+
+func policyAllowsPublicPrincipal(text string) bool {
+	normalized := normalizePolicyText(text)
+	return strings.Contains(normalized, `"principal":"*"`) ||
+		strings.Contains(normalized, `"aws":"*"`) ||
+		strings.Contains(normalized, `"principal":{"aws":"*"}`) ||
+		strings.Contains(normalized, `"principal":{"canonicaluser":"*"}`)
+}
+
+func policyAllowsActions(text string, actions ...string) bool {
+	normalized := normalizePolicyText(text)
+	for _, action := range actions {
+		action = strings.ToLower(action)
+		if action == "*" {
+			if strings.Contains(normalized, `"action":"*"`) || strings.Contains(normalized, `"action":["*"`) {
+				return true
+			}
+			continue
+		}
+		if strings.Contains(normalized, action) {
+			return true
+		}
+	}
+	return false
+}
+
+func policyHasWildcardResource(text string) bool {
+	normalized := normalizePolicyText(text)
+	return strings.Contains(normalized, `"resource":"*"`) || strings.Contains(normalized, `"resource":["*"`)
+}
+
+func policyHasAllowNotAction(text string) bool {
+	normalized := normalizePolicyText(text)
+	return strings.Contains(normalized, `"effect":"allow"`) && strings.Contains(normalized, `"notaction"`)
+}
+
+func firstNestedValue(value any, key string) any {
+	for _, item := range asList(value) {
+		if obj, ok := item.(map[string]any); ok {
+			if nested, exists := obj[key]; exists {
+				return nested
+			}
+		}
+	}
+	return nil
+}
+
+func statefulOpenSecurityGroupFindings(input RuleInput, meta Metadata, resourceTypes map[string]bool, message string, remediation string) []model.Finding {
+	publicSGs := publicSecurityGroups(input)
+	out := make([]model.Finding, 0)
+	for _, change := range sortedChanges(input.Plan) {
+		if !resourceTypes[change.Type] || !hasProductionOrSensitiveContext(change) {
+			continue
+		}
+		for _, sg := range append(stringList(change.After["security_group_ids"]), stringList(change.After["vpc_security_group_ids"])...) {
+			if publicSGs[sg] || strings.Contains(strings.ToLower(sg), "public") {
+				out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "security_group_ids", sg, message)}, remediation))
+				break
+			}
+		}
+	}
+	if input.Graph == nil {
+		return out
+	}
+	seen := make(map[string]bool, len(out))
+	for _, existing := range out {
+		seen[existing.ResourceAddress] = true
+	}
+	for id, node := range sortedNodes(input.Graph) {
+		if node == nil || !resourceTypes[node.Type] || !hasSensitiveGraphContext(node) || seen[node.Address] {
+			continue
+		}
+		for _, candidate := range sortedNodes(input.Graph) {
+			if candidate == nil || candidate.Type != "aws_security_group" {
+				continue
+			}
+			sgID := graph.ResourceID(candidate.ID)
+			if !input.Graph.IsInternetExposed(sgID) || !input.Graph.CanReach(sgID, id) {
+				continue
+			}
+			out = append(out, finding(meta, node.Address, node.Provider, node.Environment, exposureEvidence(input.Graph, sgID, id, node.Address), remediation))
+			seen[node.Address] = true
+			break
+		}
+	}
+	return out
+}
+
+func publicSecurityGroups(input RuleInput) map[string]bool {
+	out := make(map[string]bool)
+	for _, change := range sortedChanges(input.Plan) {
+		if change.Type != "aws_security_group" && change.Type != "aws_vpc_security_group_ingress_rule" {
+			continue
+		}
+		if !publicCIDRInChange(change) {
+			continue
+		}
+		for _, value := range []string{
+			change.Address,
+			change.Name,
+			asString(change.After["id"]),
+			asString(change.After["name"]),
+			asString(change.After["security_group_id"]),
+		} {
+			if value != "" {
+				out[value] = true
+			}
+		}
+	}
+	return out
+}
+
+func hasSensitiveGraphContext(node *graph.Node) bool {
+	if node == nil {
+		return false
+	}
+	if node.Environment == "production" {
+		return true
+	}
+	text := strings.ToLower(node.Address + " " + node.Name + " " + fmt.Sprint(node.Tags) + " " + asJSON(node.Values))
+	for _, marker := range []string{"prod", "production", "sensitive", "customer", "payment", "pii", "backup", "secret"} {
+		if strings.Contains(text, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func isRDS(typ string) bool {
@@ -281,7 +484,7 @@ func isReplacement(change model.Change) bool {
 
 func statefulType(typ string) bool {
 	switch typ {
-	case "aws_db_instance", "aws_rds_cluster", "aws_s3_bucket", "aws_efs_file_system", "aws_dynamodb_table", "aws_elasticache_cluster":
+	case "aws_db_instance", "aws_rds_cluster", "aws_s3_bucket", "aws_efs_file_system", "aws_dynamodb_table", "aws_elasticache_cluster", "aws_elasticache_replication_group":
 		return true
 	default:
 		return false
@@ -316,7 +519,7 @@ func isSensitiveNode(node *graph.Node) bool {
 		return false
 	}
 	switch node.Type {
-	case "aws_db_instance", "aws_rds_cluster", "aws_s3_bucket", "aws_secretsmanager_secret", "aws_dynamodb_table":
+	case "aws_db_instance", "aws_rds_cluster", "aws_s3_bucket", "aws_secretsmanager_secret", "aws_dynamodb_table", "aws_efs_file_system", "aws_elasticache_cluster", "aws_elasticache_replication_group", "aws_kms_key":
 		return true
 	default:
 		return false
