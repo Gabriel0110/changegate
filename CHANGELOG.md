@@ -2,45 +2,59 @@
 
 All notable changes to ChangeGate are documented here.
 
-The format follows Keep a Changelog, and every release section must include a `Breaking changes` heading.
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
 ## Unreleased
 
 ### Added
 
-* Initial release engineering assets: cross-platform builds, checksums, signing, SBOMs, provenance, Docker, Homebrew template, and GitHub Action wrapper.
-* Review Intelligence command set:
-  * `changegate impact` for Security Impact Statement JSON, Markdown, and deterministic impact audit bundles.
-  * `changegate graph summary`, `graph path`, `graph exposure`, and `graph export` for Blast-Radius Graph v2 inspection.
-  * `changegate review github` and `changegate review gitlab` for sticky PR/MR review comments, GitHub annotations, step summaries, and GitLab Code Quality artifact links.
-  * `changegate attack-paths` for public-to-sensitive-data and IAM privilege-escalation path evidence.
-  * `changegate context aws snapshot --collect` for optional read-only AWS context snapshots.
-  * `changegate test` for Terraform/OpenTofu module risk regression tests.
-* Audit bundle v2 evidence for impact statements, graph summaries, attack paths, cloud-context summaries, sticky review comments, risk-test metadata, waiver/baseline evidence, and run-task-compatible decision evidence.
-* Sanitized example risk-test corpus and checked-in AWS read-only context policy example.
-* Real scanner-output fixtures for Checkov, Trivy, KICS, and Grype adapter normalization.
-* Structured remediation metadata for effort, downtime risk, destructive-change signal, fix options, and Terraform/OpenTofu hints.
-* Example custom YAML and Rego policy workflows under `examples/custom-policy`.
-* SOC 2 and ISO 27001 compliance metadata across the stable AWS rule pack.
-* Organization-specific compliance mapping metadata in `.changegate.yaml`.
+### Changed
+
+### Fixed
+
+### Breaking changes
+
+* None.
+
+## v0.2.0 - 2026-06-02
+
+### Added
+
+* Expanded the built-in AWS stable ruleset to 53 high-confidence rules.
+* Added stable AWS coverage for public S3 policies and ACLs, Lambda function URLs, admin API Gateway routes, weak public load balancer listeners, EFS and ElastiCache exposure, RDS public subnet groups, RDS backup/final-snapshot regressions, DynamoDB PITR, CloudTrail, AWS Config, ECR, KMS policy, and additional IAM wildcard/NotAction risks.
+* Added generated rule reference pages and default compliance mappings for the new AWS rules.
+* Added README guidance for external scanner imports with SARIF, Checkov, Trivy, KICS, and Grype examples.
 
 ### Changed
 
-* JSON reports may now include additional `run`, `audit`, `risk_movement`, `imports`, and `compliance` fields when the corresponding features are used.
-* Graph JSON output now uses the Graph v2 schema only. Pre-release Graph v1 artifacts should be regenerated with `changegate graph export --plan tfplan.json --format json`.
-* AWS cloud-context capabilities now report granular edge, compute, and service-level coverage so partial-permission snapshots are explicit.
-* External scanner imports deduplicate repeated imported findings by stable fingerprint before correlation.
-* `custom_rules.required` now controls whether empty custom-rule globs fail validation.
-* `policy validate` now compiles configured Rego modules and queries before scan time.
+* GitLab release smoke now validates the real GoReleaser release path instead of the legacy release script.
+* README and release metadata now use normalized public license information.
 
-### Experimental
+### Fixed
 
-* Additional AWS cloud-context API coverage beyond the current read-only collector remains experimental.
-* Attack Path v1 intentionally covers only high-signal public-to-sensitive-data and IAM escalation paths. It is not a full CSPM pathfinding engine.
+* Removed leftover Apache license template appendix text from `LICENSE`.
 
-### Deferred
+### Breaking changes
 
-* The self-hosted HCP Terraform run task adapter remains deferred. Current Terraform Cloud/Enterprise guidance uses the CLI from an external worker that already has access to plan JSON.
+* None.
+
+## v0.1.0 - 2026-06-02
+
+### Added
+
+* Initial public release of ChangeGate.
+* Plan-aware Terraform/OpenTofu scan engine with deterministic `ALLOW`, `WARN`, and `BLOCK` decisions.
+* Built-in AWS rule pack, graph evidence, remediation metadata, baselines, waivers, audit bundles, SARIF, Markdown, JSON, JUnit, GitHub, and GitLab-oriented outputs.
+* Review Intelligence commands for impact statements, graph inspection, attack paths, PR/MR comments, optional AWS context snapshots, and risk tests.
+* Release archives, checksums, signed checksum bundles, SBOMs, provenance attestations, Docker images, Linux packages, and installer script.
+
+### Changed
+
+* None.
+
+### Fixed
+
+* None.
 
 ### Breaking changes
 

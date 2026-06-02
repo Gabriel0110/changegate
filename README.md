@@ -34,6 +34,18 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 | Governed exceptions | Supports expiring waivers and baselines for existing debt. |
 | Evidence-rich output | Emits findings with evidence, graph paths, remediation, fingerprints, and audit bundles. |
 
+## Features
+
+* **Plan-aware deployment gating:** evaluates Terraform/OpenTofu plan JSON and returns one CI-friendly deploy decision.
+* **Blast-radius graph:** maps changing resources to public entrypoints, IAM edges, networks, workloads, and sensitive assets.
+* **Attack-path evidence:** highlights deterministic public-to-sensitive-data and IAM privilege-escalation paths.
+* **Review Intelligence:** generates security impact statements, PR/MR comments, GitHub annotations, GitLab Code Quality output, and visual graph artifacts.
+* **Governed adoption:** supports baselines, new-risk-only mode, expiring waivers, audit bundles, and stable finding fingerprints.
+* **External scanner imports:** ingests SARIF, Checkov, Trivy, KICS, Grype, and generic JSON findings for graph-aware correlation.
+* **Optional cloud context:** collects redacted AWS read-only snapshots while keeping normal scans offline and credential-free.
+* **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
+* **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, and Linux packages.
+
 ## Review Intelligence
 
 ChangeGate includes review-oriented commands for pull requests, merge requests, approval workflows, and module regression tests:
