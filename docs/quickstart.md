@@ -13,13 +13,21 @@ go build -o bin/changegate ./cmd/changegate
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=vX.Y.Z
+export CHANGEGATE_VERSION=v0.2.0
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
 Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for teams that install CLI tools through package mirrors or runner images.
 
-## 2. Create A Plan JSON
+## 2. Try The Demo
+
+```bash
+changegate scan --plan examples/demo-public-admin-path/tfplan.json
+```
+
+Expected result: `BLOCK`. The demo shows a public ALB reaching an admin ECS service with a path to customer RDS. See [the demo README](../examples/demo-public-admin-path) for the generated Security Impact Statement, PR comment, graph, and attack-path outputs.
+
+## 3. Create A Plan JSON
 
 Terraform:
 
@@ -37,19 +45,19 @@ tofu plan -out=tfplan
 tofu show -json tfplan > tfplan.json
 ```
 
-## 3. Scan
+## 4. Scan
 
 ```bash
 changegate scan --plan tfplan.json
 ```
 
-## 4. Generate A Shareable Report
+## 5. Generate A Shareable Report
 
 ```bash
 changegate scan --plan tfplan.json --format markdown --out changegate.md
 ```
 
-## 5. Archive Evidence
+## 6. Archive Evidence
 
 ```bash
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip
