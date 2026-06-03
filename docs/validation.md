@@ -1,36 +1,47 @@
-# Validation Evidence
+# Verification Examples
 
-This page collects reproducible evidence that ChangeGate is doing useful work, not only emitting generic scanner output.
+This page shows how to run ChangeGate against bundled fixtures and inspect the kinds of decisions, findings, graph paths, and review artifacts it produces.
 
-## Canonical Demo
+## Public Admin Path Demo
 
-The primary proof fixture is [examples/demo-public-admin-path](../examples/demo-public-admin-path). It models:
+The [public admin path demo](../examples/demo-public-admin-path) uses a sanitized Terraform plan fixture that models:
 
 ```text
 internet -> public ALB -> listener -> target group -> admin ECS service -> security group -> customer RDS
 ```
 
-Expected result:
+Running ChangeGate on this fixture produces:
 
-* deploy decision: `BLOCK`
-* top finding: `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`
-* attack path: `public_to_sensitive_data`
-* critical evidence: public entrypoint reaches admin workload and sensitive datastore
-* generated artifacts: Markdown report, Security Impact Statement, PR comment, Mermaid graph, interactive HTML graph, interactive HTML attack-path view, rendered SVG
+* a `BLOCK` deploy decision
+* an `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH` finding
+* a `public_to_sensitive_data` attack path
+* a Security Impact Statement
+* PR/MR comment text
+* Mermaid, SVG, and self-contained HTML graph visualizations
+
+From the repository root:
+
+```bash
+changegate scan --plan examples/demo-public-admin-path/tfplan.json
+changegate impact --plan examples/demo-public-admin-path/tfplan.json --format markdown
+changegate attack-paths --plan examples/demo-public-admin-path/tfplan.json --format markdown
+```
+
+The demo includes pre-generated artifacts in [examples/demo-public-admin-path/outputs](../examples/demo-public-admin-path/outputs).
 
 ## Runnable Corpus
 
-The sanitized corpus at [examples/risk-tests](../examples/risk-tests) is executable documentation:
+The [examples/risk-tests](../examples/risk-tests) corpus contains deterministic fixtures for common ChangeGate behavior:
 
 ```bash
 changegate test examples/risk-tests
 ```
 
-It covers expected public web exposure, blocked public admin exposure, public-to-sensitive paths, Lambda URL to secret paths, IAM escalation paths, baseline behavior, waiver scoping, and cloud-context severity changes.
+The corpus covers expected public web exposure, blocked public admin exposure, public-to-sensitive paths, Lambda URL to secret paths, IAM escalation paths, baseline behavior, waiver scoping, and cloud-context severity changes.
 
-## Local Verification
+## Local Checks
 
-Run the same checks used before release:
+When building ChangeGate from source, these commands provide a quick local check:
 
 ```bash
 go test ./...
@@ -38,14 +49,4 @@ go test -race ./...
 changegate test examples/risk-tests
 ```
 
-For release packaging and CI validation, see [GitHub Actions](github-actions.md), [GitLab CI](gitlab-ci.md), [Output formats](output-formats.md), and [Audit evidence](audit-compliance.md).
-
-## Evidence To Add Over Time
-
-The next validation work should focus on real-world signal quality:
-
-* run ChangeGate against a set of sanitized real Terraform/OpenTofu plans
-* record false positives, false negatives, and confidence downgrades
-* compare native ChangeGate findings with imported Checkov, Trivy, KICS, Grype, and SARIF findings
-* publish representative terminal, PR/MR, SARIF, graph, and audit-bundle artifacts
-* keep demos reproducible without requiring users to apply infrastructure
+For CI setup and output artifacts, see [GitHub Actions](github-actions.md), [GitLab CI](gitlab-ci.md), [Output formats](output-formats.md), and [Audit evidence](audit-compliance.md).

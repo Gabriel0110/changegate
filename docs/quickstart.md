@@ -25,7 +25,7 @@ Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifact
 changegate scan --plan examples/demo-public-admin-path/tfplan.json
 ```
 
-Expected result: `BLOCK`. The demo shows a public ALB reaching an admin ECS service with a path to customer RDS. See [the demo README](../examples/demo-public-admin-path) for the generated Security Impact Statement, PR comment, graph, and attack-path outputs.
+Expected result: `BLOCK`. The demo shows a public ALB reaching an admin ECS service with a path to customer RDS. See [the demo README](../examples/demo-public-admin-path) for generated Security Impact Statement, PR comment, graph, and attack-path outputs.
 
 ## 3. Create A Plan JSON
 

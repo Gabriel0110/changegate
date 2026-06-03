@@ -16,7 +16,7 @@ Try the bundled demo first if you do not have a Terraform plan ready:
 changegate scan --plan examples/demo-public-admin-path/tfplan.json
 ```
 
-The demo blocks because a public ALB reaches an admin ECS service with a path to customer RDS. See [validation evidence](validation.md) for the generated impact statement, PR comment, graph, and attack-path artifacts.
+The demo blocks because a public ALB reaches an admin ECS service with a path to customer RDS. See [verification examples](validation.md) for generated impact statements, PR comments, graphs, and attack-path artifacts.
 
 Then run against your own plan:
 
@@ -59,7 +59,7 @@ changegate scan --plan tfplan.json --baseline .changegate/baseline.json --new-on
 ## Next Docs
 
 * [Five-minute quickstart](quickstart.md)
-* [Validation evidence](validation.md)
+* [Verification examples](validation.md)
 * [Known limitations](limitations.md)
 * [GitHub Actions](github-actions.md)
 * [Audit rollout](audit-rollout.md)

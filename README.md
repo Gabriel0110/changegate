@@ -46,46 +46,6 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 * **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
 * **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, and Linux packages.
 
-## Demo: Public Admin Path
-
-ChangeGate's core value is graph-aware deploy decisioning. The canonical demo models a public ALB that routes to an admin ECS service with a path to a customer RDS database:
-
-```text
-internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin
-         -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
-```
-
-ChangeGate turns that path into a blocking deployment decision:
-
-```text
-Decision: BLOCK
-Review required: Yes
-
-This change introduces:
-- 4 public entrypoints
-- 5 sensitive assets touched
-- 4 network path changes
-- 5 data path changes
-
-Top finding:
-AWS_PUBLIC_TO_SENSITIVE_DATA_PATH critical/high
-Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer
-```
-
-<p align="center">
-  <img src="docs/assets/demo/public-admin-path.svg" alt="ChangeGate public admin path demo graph" width="900">
-</p>
-
-Run the demo locally:
-
-```bash
-changegate scan --plan examples/demo-public-admin-path/tfplan.json
-changegate impact --plan examples/demo-public-admin-path/tfplan.json --format markdown
-changegate attack-paths --plan examples/demo-public-admin-path/tfplan.json --format markdown
-```
-
-See [the full demo](examples/demo-public-admin-path), including generated PR comment, Security Impact Statement, attack-path evidence, Mermaid graph, and self-contained HTML visualizations.
-
 ## Review Intelligence
 
 ChangeGate includes review-oriented commands for pull requests, merge requests, approval workflows, and module regression tests:
@@ -332,6 +292,12 @@ waivers:
 
 See [policy config](docs/policy-config.md), [config schema](docs/config-schema.md), and [custom policy](docs/custom-policy.md).
 
+## Examples
+
+Want to see ChangeGate output before wiring it into your own pipeline? Start with the [public admin path demo](examples/demo-public-admin-path), which includes a sanitized plan fixture, scan output, PR/MR comment output, attack-path output, and graph visualizations.
+
+For additional runnable fixtures, see [verification examples](docs/validation.md) and [risk tests](docs/risk-tests.md).
+
 ## Project Status
 
 ChangeGate is pre-`v1.0` and ready for early adopters who can run it in audit or warning mode against real Terraform/OpenTofu plans. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
@@ -345,7 +311,7 @@ Start here:
 * [Start here](docs/start-here.md)
 * [Five-minute quickstart](docs/quickstart.md)
 * [Rule reference](docs/rules/README.md)
-* [Validation evidence](docs/validation.md)
+* [Verification examples](docs/validation.md)
 * [GitHub Actions](docs/github-actions.md)
 * [CI adoption](docs/ci-adoption.md)
 * [Troubleshooting](docs/troubleshooting.md)
