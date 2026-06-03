@@ -1,7 +1,7 @@
 steps:
   - label: ":terraform: changegate"
     env:
-      CHANGEGATE_VERSION: "vX.Y.Z"
+      CHANGEGATE_VERSION: "v0.2.0"
     command: |
       mkdir -p .changegate-bin
       curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh

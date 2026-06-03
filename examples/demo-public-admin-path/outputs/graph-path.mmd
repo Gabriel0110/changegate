@@ -1,0 +1,32 @@
+flowchart LR
+  %% ChangeGate Graph Path
+  n1["aws_db_instance.customer<br/>data_store"]
+  n2["aws_ecs_service.admin<br/>workload"]
+  n3["aws_lb.admin<br/>public_entrypoint"]
+  n4["aws_lb_listener.admin<br/>unknown"]
+  n5["aws_lb_target_group.admin<br/>unknown"]
+  n6["aws_security_group.public<br/>network_boundary"]
+  n2 -->|"allows egress"| n6
+  n3 -->|"routes to"| n4
+  n4 -->|"routes to"| n5
+  n5 -->|"routes to"| n2
+  n6 -->|"allows ingress"| n1
+  classDef default fill:#f8fafc,stroke:#94a3b8,color:#0f172a
+  classDef changed fill:#fff7ed,stroke:#f97316,color:#7c2d12
+  classDef public fill:#eff6ff,stroke:#2563eb,color:#1e3a8a
+  classDef workload fill:#ecfeff,stroke:#0891b2,color:#164e63
+  classDef sensitive fill:#fef2f2,stroke:#dc2626,color:#7f1d1d
+  classDef principal fill:#f5f3ff,stroke:#7c3aed,color:#3b0764
+  classDef policy fill:#fdf4ff,stroke:#c026d3,color:#701a75
+  classDef network fill:#f0fdf4,stroke:#16a34a,color:#14532d
+  classDef path fill:#eef2ff,stroke:#4f46e5,color:#312e81
+  classDef block fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d
+  classDef warn fill:#fef3c7,stroke:#d97706,color:#78350f
+  classDef allow fill:#dcfce7,stroke:#16a34a,color:#14532d
+  classDef internet fill:#e0f2fe,stroke:#0284c7,color:#0c4a6e
+  class n1 sensitive
+  class n2 workload
+  class n3 public
+  class n4 path
+  class n5 path
+  class n6 network

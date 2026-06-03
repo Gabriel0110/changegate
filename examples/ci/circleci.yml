@@ -6,7 +6,7 @@ jobs:
       - image: cimg/base:stable
     environment:
       TERRAFORM_VERSION: 1.8.5
-      CHANGEGATE_VERSION: vX.Y.Z
+      CHANGEGATE_VERSION: v0.2.0
     steps:
       - checkout
       - run:

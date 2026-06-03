@@ -29,7 +29,7 @@ jobs:
           terraform show -json tfplan > tfplan.json
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: vX.Y.Z
+          CHANGEGATE_VERSION: v0.2.0
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
@@ -76,9 +76,9 @@ jobs:
 The repository also includes a composite action. The `version` input is required so CI never installs a floating binary:
 
 ```yaml
-- uses: Gabriel0110/changegate@vX.Y.Z
+- uses: Gabriel0110/changegate@v0.2.0
   with:
-    version: vX.Y.Z
+    version: v0.2.0
     plan: infra/tfplan.json
     format: table
 ```

@@ -25,7 +25,7 @@ jobs:
           terraform show -json tfplan > tfplan.json
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: vX.Y.Z
+          CHANGEGATE_VERSION: v0.2.0
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh

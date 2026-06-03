@@ -46,6 +46,46 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 * **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
 * **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, and Linux packages.
 
+## Demo: Public Admin Path
+
+ChangeGate's core value is graph-aware deploy decisioning. The canonical demo models a public ALB that routes to an admin ECS service with a path to a customer RDS database:
+
+```text
+internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin
+         -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
+```
+
+ChangeGate turns that path into a blocking deployment decision:
+
+```text
+Decision: BLOCK
+Review required: Yes
+
+This change introduces:
+- 4 public entrypoints
+- 5 sensitive assets touched
+- 4 network path changes
+- 5 data path changes
+
+Top finding:
+AWS_PUBLIC_TO_SENSITIVE_DATA_PATH critical/high
+Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer
+```
+
+<p align="center">
+  <img src="docs/assets/demo/public-admin-path.svg" alt="ChangeGate public admin path demo graph" width="900">
+</p>
+
+Run the demo locally:
+
+```bash
+changegate scan --plan examples/demo-public-admin-path/tfplan.json
+changegate impact --plan examples/demo-public-admin-path/tfplan.json --format markdown
+changegate attack-paths --plan examples/demo-public-admin-path/tfplan.json --format markdown
+```
+
+See [the full demo](examples/demo-public-admin-path), including generated PR comment, Security Impact Statement, attack-path evidence, Mermaid graph, and self-contained HTML visualizations.
+
 ## Review Intelligence
 
 ChangeGate includes review-oriented commands for pull requests, merge requests, approval workflows, and module regression tests:
@@ -86,11 +126,11 @@ See the generated [rule reference](docs/rules/README.md) for the full list.
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=vX.Y.Z
+export CHANGEGATE_VERSION=v0.2.0
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
-The installer verifies `checksums.txt` and refuses checksum mismatches. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
+The installer verifies `checksums.txt` and refuses checksum mismatches. Set `CHANGEGATE_VERSION` to another release tag when upgrading. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
 
 Development build:
 
@@ -212,7 +252,7 @@ jobs:
 
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: vX.Y.Z
+          CHANGEGATE_VERSION: v0.2.0
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
@@ -305,6 +345,7 @@ Start here:
 * [Start here](docs/start-here.md)
 * [Five-minute quickstart](docs/quickstart.md)
 * [Rule reference](docs/rules/README.md)
+* [Validation evidence](docs/validation.md)
 * [GitHub Actions](docs/github-actions.md)
 * [CI adoption](docs/ci-adoption.md)
 * [Troubleshooting](docs/troubleshooting.md)
@@ -317,6 +358,7 @@ Operators:
 * [Waivers](docs/waivers.md)
 * [Cloud context](docs/cloud-context.md)
 * [Security model](docs/security-model.md)
+* [Known limitations](docs/limitations.md)
 
 Reference:
 

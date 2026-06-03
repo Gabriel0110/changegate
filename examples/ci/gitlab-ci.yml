@@ -4,7 +4,7 @@ changegate:
     entrypoint: [""]
   stage: test
   variables:
-    CHANGEGATE_VERSION: vX.Y.Z
+    CHANGEGATE_VERSION: v0.2.0
   before_script:
     - apk add --no-cache bash curl tar perl-utils
     - curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
