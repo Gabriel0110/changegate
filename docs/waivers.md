@@ -78,9 +78,9 @@ Active matching waivers suppress findings and add `SUPPRESSED` decision reasons.
 
 A waiver does not apply when:
 
-* the resource address changes and the waiver is resource-scoped
-* the environment condition no longer matches
-* the finding fingerprint no longer matches
-* `conditions.evidence_fingerprint` no longer matches the current finding fingerprint
-* the policy pack major version condition no longer matches, when present
-* `expires_at` has passed
+- the resource address changes and the waiver is resource-scoped
+- the environment condition no longer matches
+- the finding fingerprint no longer matches
+- `conditions.evidence_fingerprint` no longer matches the current finding fingerprint
+- the policy pack major version condition no longer matches, when present
+- `expires_at` has passed

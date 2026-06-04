@@ -28,8 +28,8 @@ Attack paths are deterministic review evidence. They are not a full exploit simu
 
 Current high-confidence paths focus on:
 
-* public entrypoint to workload to sensitive datastore, secret, or key
-* principal to `iam:PassRole`, `sts:AssumeRole`, Lambda mutation, or ECS mutation paths that reach admin or sensitive access
+- public entrypoint to workload to sensitive datastore, secret, or key
+- principal to `iam:PassRole`, `sts:AssumeRole`, Lambda mutation, or ECS mutation paths that reach admin or sensitive access
 
 Ambiguous graph or IAM evidence lowers confidence and should not create high-confidence blocking findings.
 
@@ -47,5 +47,4 @@ Waivers should be scoped, owned, justified, and time-bound. Broad permanent waiv
 
 ## Stability
 
-ChangeGate is pre-`v1.0`. Exit codes, core report schema names, and release verification behavior are intended to be stable, but some command flags, rule metadata, visualization details, and experimental integrations may change before `v1.0`.
-
+ChangeGate is pre-`v1.0`. Exit codes, core report schema names, and release verification behavior are intended to be stable, but some command flags, rule metadata, and visualization details may change before `v1.0`.

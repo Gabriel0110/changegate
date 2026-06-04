@@ -1,14 +1,14 @@
 # Public admin service path
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_PUBLIC_ADMIN_SERVICE_PATH` |
-| Category | `public_exposure` |
-| Severity | `medium` |
-| Confidence | `medium` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                           |
+| ----------- | ------------------------------- |
+| Rule ID     | `AWS_PUBLIC_ADMIN_SERVICE_PATH` |
+| Category    | `public_exposure`               |
+| Severity    | `medium`                        |
+| Confidence  | `medium`                        |
+| Status      | `stable`                        |
+| Version     | `0.1.0`                         |
+| Policy pack | `aws-public-exposure`           |
 
 ## What It Detects
 

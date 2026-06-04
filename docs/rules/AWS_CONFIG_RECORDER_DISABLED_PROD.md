@@ -1,14 +1,14 @@
 # Production AWS Config recorder disabled
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_CONFIG_RECORDER_DISABLED_PROD` |
-| Category | `compliance` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Field       | Value                               |
+| ----------- | ----------------------------------- |
+| Rule ID     | `AWS_CONFIG_RECORDER_DISABLED_PROD` |
+| Category    | `compliance`                        |
+| Severity    | `high`                              |
+| Confidence  | `high`                              |
+| Status      | `stable`                            |
+| Version     | `0.1.0`                             |
+| Policy pack | `aws-core`                          |
 
 ## What It Detects
 

@@ -1,14 +1,14 @@
 # Internet-facing ALB routes to admin service
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_PUBLIC_ADMIN_SERVICE` |
-| Category | `public_exposure` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                      |
+| ----------- | -------------------------- |
+| Rule ID     | `AWS_PUBLIC_ADMIN_SERVICE` |
+| Category    | `public_exposure`          |
+| Severity    | `high`                     |
+| Confidence  | `high`                     |
+| Status      | `stable`                   |
+| Version     | `0.1.0`                    |
+| Policy pack | `aws-public-exposure`      |
 
 ## What It Detects
 

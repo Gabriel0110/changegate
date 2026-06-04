@@ -6,30 +6,30 @@ ChangeGate builds a deterministic resource graph from Terraform/OpenTofu plan JS
 
 Graph v2 adds first-class security classification for nodes:
 
-* `public_entrypoint`
-* `workload`
-* `data_store`
-* `secret`
-* `kms_key`
-* `principal`
-* `policy`
-* `network_boundary`
-* `unknown`
+- `public_entrypoint`
+- `workload`
+- `data_store`
+- `secret`
+- `kms_key`
+- `principal`
+- `policy`
+- `network_boundary`
+- `unknown`
 
 Graph v2 also adds richer relationship edges, including routing, ingress, egress, attachment, role assumption, pass-role, permission grants, secret reads, KMS encryption, writes, replication, and protective controls. Every edge can carry `source` and `confidence` so path output can distinguish plan-derived relationships from optional live cloud-context relationships.
 
-Graph v2 is the only supported graph contract. Older graph JSON artifacts are not loaded or emitted; regenerate graph artifacts with the current CLI.
+Graph v2 is the supported graph contract. If you have older graph JSON artifacts, create fresh graph output with the current CLI.
 
 ## Query Model
 
 Graph commands support:
 
-* exposure checks for a resource
-* deterministic path extraction with depth and count limits
-* blast-radius summaries from a resource
-* public entrypoint enumeration
-* sensitive asset enumeration
-* changed public-to-sensitive boundary crossings
+- exposure checks for a resource
+- deterministic path extraction with depth and count limits
+- blast-radius summaries from a resource
+- public entrypoint enumeration
+- sensitive asset enumeration
+- changed public-to-sensitive boundary crossings
 
 These APIs are exposed through:
 
@@ -54,9 +54,9 @@ changegate graph render --plan tfplan.json --view exposure --resource aws_ecs_se
 
 Scan, review, and impact commands merge cloud context into the graph when `--context-file` or `--cloud-context aws` is supplied. The merge preserves provenance:
 
-* `source: plan` for Terraform/OpenTofu plan relationships.
-* `source: cloud_context` for live AWS snapshot relationships.
-* `metadata.sources: plan,cloud_context` when both inputs support the same relationship.
+- `source: plan` for Terraform/OpenTofu plan relationships.
+- `source: cloud_context` for live AWS snapshot relationships.
+- `metadata.sources: plan,cloud_context` when both inputs support the same relationship.
 
 Cloud context can add live-only attachments, public exposure edges, sensitive-data relationships, and IAM relationships. Conflict diagnostics are emitted when live context materially contradicts the plan graph, such as a resource that the plan graph treats as private but live AWS reports as public.
 
@@ -90,10 +90,10 @@ Cloud context can add live-only attachments, public exposure edges, sensitive-da
 
 Graph v2 classifies and connects common AWS resources where plan data is sufficient:
 
-* ALB/NLB/ELB, listeners, target groups, CloudFront, API Gateway, API Gateway integrations, and Lambda Function URLs
-* ECS services, task definitions, Lambda functions, EC2 instances, EKS clusters, and node groups
-* security groups, subnets, route tables, routes, internet gateways, NAT gateways, VPC peering, and transit gateway routes
-* RDS/Aurora, S3, DynamoDB, EFS, OpenSearch, ElastiCache, Secrets Manager, and KMS
-* IAM roles, users, groups, policies, inline policies, attachments, trust policies, instance profiles, Lambda secret references, and KMS relationships
+- ALB/NLB/ELB, listeners, target groups, CloudFront, API Gateway, API Gateway integrations, and Lambda Function URLs
+- ECS services, task definitions, Lambda functions, EC2 instances, EKS clusters, and node groups
+- security groups, subnets, route tables, routes, internet gateways, NAT gateways, VPC peering, and transit gateway routes
+- RDS/Aurora, S3, DynamoDB, EFS, OpenSearch, ElastiCache, Secrets Manager, and KMS
+- IAM roles, users, groups, policies, inline policies, attachments, trust policies, instance profiles, Lambda secret references, and KMS relationships
 
 Unknown resources are still represented as graph nodes so the graph remains tolerant of new provider resources and partial plan data.

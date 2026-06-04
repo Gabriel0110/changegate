@@ -2,7 +2,7 @@
 
 Use the sanitized risk-test fixtures to generate local review artifacts without cloud credentials.
 
-For committed example artifacts, see [the public admin path demo](../demo-public-admin-path). It includes self-contained HTML graph and attack-path visualizations plus a rendered SVG.
+For example artifacts, see [the public admin path demo](../demo-public-admin-path). It includes self-contained HTML graph and attack-path visualizations plus a rendered SVG.
 
 ```bash
 changegate graph export \

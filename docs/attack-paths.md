@@ -4,8 +4,8 @@ Attack paths are first-class ChangeGate evidence objects. They explain how a pla
 
 The v2 model supports two categories:
 
-* `public_to_sensitive_data`: a public entrypoint can reach a sensitive datastore, secret, or key.
-* `iam_privilege_escalation`: a principal can reach admin or sensitive access through high-signal IAM actions such as pass-role, assume-role, or function/service update.
+- `public_to_sensitive_data`: a public entrypoint can reach a sensitive datastore, secret, or key.
+- `iam_privilege_escalation`: a principal can reach admin or sensitive access through high-signal IAM actions such as pass-role, assume-role, or function/service update.
 
 The detector commands are available through `changegate attack-paths`, and high-confidence attack paths are integrated into scan, impact, review comment, and audit-bundle output when attack-path policy is enabled.
 
@@ -23,7 +23,7 @@ DOT and Mermaid output are intended for teams that already publish diagrams in d
 
 Public-to-sensitive detection uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 
-Sensitive assets include common AWS data stores, secrets, and KMS keys by default. Teams can extend classification with `.changegate.yaml` selectors for resource addresses, resource types, names, and tags; see [Policy Config Guide](policy-config.md#sensitive-assets). This lets internal data platforms, backup vaults, or custom provider resources participate in attack paths and graph-aware rules.
+Sensitive assets include common AWS data stores, secrets, and KMS keys by default. Teams can extend classification with `.changegate.yaml` selectors for resource addresses, resource types, names, and tags; see [Policy Config Guide](policy-config.md#sensitive-assets). This lets private data platforms, backup vaults, or custom provider resources participate in attack paths and graph-aware rules.
 
 When an optional AWS cloud-context snapshot is merged into the graph, attack paths preserve provenance. A path can report `source=plan`, `source=cloud_context`, or `source=mixed` when live AWS context confirms or extends planned graph evidence. Cloud-confirmed edges can raise confidence; partial or ambiguous context lowers confidence and produces warning-oriented output.
 
@@ -33,12 +33,12 @@ IAM privilege-escalation detection normalizes IAM action wildcards, service wild
 
 Attack path JSON uses schema version 2 and is documented by [`schemas/attack-paths.schema.json`](../schemas/attack-paths.schema.json). Version 2 keeps the core v1 fields and adds first-class context for review and audit workflows:
 
-* `kind`: the path domain, such as `network` or `identity`.
-* `source`: whether the path came from plan evidence, cloud context, inference, or mixed evidence.
-* `confidence_reason`: the concise reason ChangeGate assigned the path confidence.
-* `affected_resources`: the resources that participate in the path and their role in it.
-* `finding_rule_ids`: the deploy-decision rules that can be produced from the path.
-* step-level `source`, `confidence`, `evidence`, and `metadata`.
+- `kind`: the path domain, such as `network` or `identity`.
+- `source`: whether the path came from plan evidence, cloud context, inference, or mixed evidence.
+- `confidence_reason`: the concise reason ChangeGate assigned the path confidence.
+- `affected_resources`: the resources that participate in the path and their role in it.
+- `finding_rule_ids`: the deploy-decision rules that can be produced from the path.
+- step-level `source`, `confidence`, `evidence`, and `metadata`.
 
 ```json
 {
@@ -95,7 +95,7 @@ This keeps ChangeGate’s enforcement posture conservative while still giving re
 
 Attack Paths v2 is intentionally deterministic rather than exhaustive. It focuses on high-signal infrastructure changes that are practical to gate before apply:
 
-* public entrypoint to workload to sensitive datastore, secret, or key
-* principal to `iam:PassRole`, `sts:AssumeRole`, Lambda update, or ECS update paths that reach admin or sensitive access
+- public entrypoint to workload to sensitive datastore, secret, or key
+- principal to `iam:PassRole`, `sts:AssumeRole`, Lambda update, or ECS update paths that reach admin or sensitive access
 
 When graph or IAM evidence is ambiguous, detectors lower confidence and produce warning-oriented evidence instead of pretending the path is certain.

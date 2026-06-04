@@ -1,14 +1,14 @@
 # EFS allows broad network ingress
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_EFS_OPEN_SECURITY_GROUP` |
-| Category | `public_exposure` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                         |
+| ----------- | ----------------------------- |
+| Rule ID     | `AWS_EFS_OPEN_SECURITY_GROUP` |
+| Category    | `public_exposure`             |
+| Severity    | `high`                        |
+| Confidence  | `high`                        |
+| Status      | `stable`                      |
+| Version     | `0.1.0`                       |
+| Policy pack | `aws-public-exposure`         |
 
 ## What It Detects
 

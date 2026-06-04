@@ -85,6 +85,30 @@ tests:
         include:
           - iam_privilege_escalation
 
+  - name: public_opensearch_domain_blocked
+    plan: fixtures/public-opensearch-domain.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_PUBLIC_OPENSEARCH_DOMAIN
+
+  - name: public_s3_bucket_policy_blocked
+    plan: fixtures/public-s3-bucket-policy.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_S3_BUCKET_PUBLIC_POLICY
+
+  - name: public_admin_api_route_blocked
+    plan: fixtures/public-admin-api-route.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_API_GATEWAY_PUBLIC_ADMIN_ROUTE
+
   - name: stale_baseline_suppresses_unchanged_risk
     plan: fixtures/public-rds-prod.json
     baseline: baselines/public-rds-prod.json

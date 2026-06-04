@@ -20,22 +20,22 @@ changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 
 The JSON statement has schema version `1` and includes:
 
-| Field | Meaning |
-| --- | --- |
-| `decision` | Final `allow`, `warn`, or `block` decision. |
-| `decision_reasons` | Policy reasons that explain the decision. |
-| `summary` | Counts for changed resources, public entrypoints, sensitive assets, IAM changes, network paths, and data paths. |
-| `risk_movement` | New, resolved, existing, worsened, improved, and waived risk counts. |
-| `top_findings` | Highest-priority redacted findings after policy, baseline, and waiver handling. |
-| `top_graph_paths` | Graph paths promoted into review evidence. |
-| `attack_paths` | Public-to-sensitive and IAM escalation paths promoted into review evidence. |
-| `waivers` | Active, expired, and total waiver counts. |
-| `baseline` | Existing and new finding counts. |
-| `ownership` | Owner hints inferred from tags, remediation metadata, or finding context. |
-| `required_reviewers` | Deterministic review requirements derived from the decision and high-risk findings. |
-| `section_ids` | Stable anchors for downstream renderers and comments. |
-| `source` | Source scan report, plan, and graph summary metadata. |
-| `diagnostics` | Non-fatal warnings from parsing, imports, cloud context, or collection coverage. |
+| Field                | Meaning                                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `decision`           | Final `allow`, `warn`, or `block` decision.                                                                     |
+| `decision_reasons`   | Policy reasons that explain the decision.                                                                       |
+| `summary`            | Counts for changed resources, public entrypoints, sensitive assets, IAM changes, network paths, and data paths. |
+| `risk_movement`      | New, resolved, existing, worsened, improved, and waived risk counts.                                            |
+| `top_findings`       | Highest-priority redacted findings after policy, baseline, and waiver handling.                                 |
+| `top_graph_paths`    | Graph paths promoted into review evidence.                                                                      |
+| `attack_paths`       | Public-to-sensitive and IAM escalation paths promoted into review evidence.                                     |
+| `waivers`            | Active, expired, and total waiver counts.                                                                       |
+| `baseline`           | Existing and new finding counts.                                                                                |
+| `ownership`          | Owner hints inferred from tags, remediation metadata, or finding context.                                       |
+| `required_reviewers` | Deterministic review requirements derived from the decision and high-risk findings.                             |
+| `section_ids`        | Stable anchors for downstream renderers and comments.                                                           |
+| `source`             | Source scan report, plan, and graph summary metadata.                                                           |
+| `diagnostics`        | Non-fatal warnings from parsing, imports, cloud context, or collection coverage.                                |
 
 ## Markdown Output
 
@@ -47,13 +47,13 @@ changegate impact --plan tfplan.json --format markdown --out impact.md
 
 It summarizes:
 
-* deploy decision and whether review is required
-* public entrypoints, sensitive assets, IAM changes, network changes, and data changes
-* risk movement against the configured baseline
-* top blast-radius graph paths
-* attack paths
-* top findings
-* required review routing
+- deploy decision and whether review is required
+- public entrypoints, sensitive assets, IAM changes, network changes, and data changes
+- risk movement against the configured baseline
+- top blast-radius graph paths
+- attack paths
+- top findings
+- required review routing
 
 For GitHub/GitLab comments, prefer `changegate review github` or `changegate review gitlab`; those commands use the same statement model but render a sticky provider-specific comment with size limits and artifact links.
 
@@ -61,9 +61,9 @@ For GitHub/GitLab comments, prefer `changegate review github` or `changegate rev
 
 `changegate impact --audit-bundle impact-audit.zip` writes a deterministic impact archive:
 
-* `changegate-impact/impact-statement.json`
-* `changegate-impact/impact-statement.md`
-* `changegate-impact/scan-report.json`
+- `changegate-impact/impact-statement.json`
+- `changegate-impact/impact-statement.md`
+- `changegate-impact/scan-report.json`
 
 For full CI evidence, prefer `changegate scan --audit-bundle changegate-audit.zip`, which includes the impact statement plus graph, attack-path, cloud-context summary, waiver, baseline, compliance, and review-comment evidence.
 

@@ -74,16 +74,16 @@ The GitLab review command uses `GITLAB_TOKEN`, `CI_API_V4_URL`, `CI_PROJECT_ID`,
 
 Examples are available in [../examples/ci](../examples/ci):
 
-* GitHub comment-only: sticky PR review without SARIF upload.
-* GitHub SARIF and annotations: sticky PR review, workflow annotations, SARIF, and audit bundle.
-* GitLab Code Quality and MR note: native Code Quality widget plus sticky merge request note.
-* Audit-only rollout: non-blocking review mode for first adoption.
-* Blocking rollout: default enforcement mode with review artifacts.
-* CircleCI: publish JUnit and Markdown artifacts.
-* Buildkite: use GitHub-style annotation output or upload Markdown artifacts.
-* Jenkins: publish JUnit XML and archive Markdown/JSON artifacts.
-* Atlantis: run ChangeGate in a custom workflow after producing `terraform show -json`.
-* Terraform Cloud/Enterprise: run ChangeGate from a run task-compatible external worker that receives or downloads plan JSON, then reports status back through your existing automation.
+- GitHub comment-only: sticky PR review without SARIF upload.
+- GitHub SARIF and annotations: sticky PR review, workflow annotations, SARIF, and audit bundle.
+- GitLab Code Quality and MR note: native Code Quality widget plus sticky merge request note.
+- Audit-only rollout: non-blocking review mode for first adoption.
+- Blocking rollout: default enforcement mode with review artifacts.
+- CircleCI: publish JUnit and Markdown artifacts.
+- Buildkite: use GitHub-style annotation output or upload Markdown artifacts.
+- Jenkins: publish JUnit XML and archive Markdown/JSON artifacts.
+- Atlantis: run ChangeGate in a custom workflow after producing `terraform show -json`.
+- Terraform Cloud/Enterprise: run ChangeGate from a run task-compatible external worker that receives or downloads plan JSON, then reports status back through your existing automation.
 
 ## Monorepos
 
@@ -174,7 +174,7 @@ changegate scan --plan tfplan.json --policy .changegate/new-critical-only.yaml
 
 ## Caching
 
-Use `--cache-dir` to create stable CI cache directories for policy packs and future cloud-context snapshots:
+Use `--cache-dir` to create stable CI cache directories for policy packs and cloud-context snapshots:
 
 ```bash
 changegate scan --plan tfplan.json --cache-dir .changegate/cache
@@ -182,5 +182,5 @@ changegate scan --plan tfplan.json --cache-dir .changegate/cache
 
 Cache these paths in CI:
 
-* `.changegate/cache/policy-packs`
-* `.changegate/cache/cloud-context`
+- `.changegate/cache/policy-packs`
+- `.changegate/cache/cloud-context`

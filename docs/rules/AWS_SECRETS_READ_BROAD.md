@@ -1,14 +1,14 @@
 # Secrets Manager read access granted broadly
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_SECRETS_READ_BROAD` |
-| Category | `privilege_escalation` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-iam-escalation` |
+| Field       | Value                    |
+| ----------- | ------------------------ |
+| Rule ID     | `AWS_SECRETS_READ_BROAD` |
+| Category    | `privilege_escalation`   |
+| Severity    | `high`                   |
+| Confidence  | `high`                   |
+| Status      | `stable`                 |
+| Version     | `0.1.0`                  |
+| Policy pack | `aws-iam-escalation`     |
 
 ## What It Detects
 

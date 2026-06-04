@@ -1,0 +1,21 @@
+{
+  "matches": [
+    {
+      "vulnerability": {
+        "id": "CVE-2026-0001",
+        "severity": "High",
+        "description": "Synthetic package vulnerability used to demonstrate external scanner import."
+      },
+      "artifact": {
+        "name": "openssl",
+        "version": "1.0.0",
+        "type": "deb",
+        "locations": [
+          {
+            "path": "/image"
+          }
+        ]
+      }
+    }
+  ]
+}

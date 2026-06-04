@@ -104,10 +104,10 @@ Audit mode records the decision and evidence but does not return the blocking ex
 
 Required token permissions:
 
-* `contents: read` to check out repository content.
-* `issues: write` to create or update the sticky PR comment.
-* `pull-requests: write` when using pull request metadata or future inline review comments.
-* `security-events: write` only when uploading SARIF.
+- `contents: read` to check out repository content.
+- `issues: write` to create or update the sticky PR comment.
+- `pull-requests: write` when using pull request metadata or review-comment workflows that require pull request API access.
+- `security-events: write` only when uploading SARIF.
 
 Use `--dry-run` to validate configuration without calling the GitHub API:
 

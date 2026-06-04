@@ -1,14 +1,14 @@
 # Sensitive IAM actions granted on wildcard resources
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_IAM_SENSITIVE_ACTIONS_RESOURCE_WILDCARD` |
-| Category | `privilege_escalation` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-iam-escalation` |
+| Field       | Value                                         |
+| ----------- | --------------------------------------------- |
+| Rule ID     | `AWS_IAM_SENSITIVE_ACTIONS_RESOURCE_WILDCARD` |
+| Category    | `privilege_escalation`                        |
+| Severity    | `high`                                        |
+| Confidence  | `high`                                        |
+| Status      | `stable`                                      |
+| Version     | `0.1.0`                                       |
+| Policy pack | `aws-iam-escalation`                          |
 
 ## What It Detects
 

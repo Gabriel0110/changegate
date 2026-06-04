@@ -52,10 +52,10 @@ Recognized fields are `rule_id`, `id`, `title`, `name`, `description`, `resource
 
 Imported findings are labeled with external metadata:
 
-* `rule_id` is prefixed with `EXT_<SOURCE>_`.
-* `policy_pack` is set to `external:<source>`.
-* `policy_pack_version` is set to `import`.
-* evidence includes `type: external_scanner`.
+- `rule_id` is prefixed with `EXT_<SOURCE>_`.
+- `policy_pack` is set to `external:<source>`.
+- `policy_pack_version` is set to `import`.
+- evidence includes `type: external_scanner`.
 
 This makes imported findings visually distinct while keeping them suppressable with the same waiver, baseline, and policy mechanisms as native findings.
 
@@ -66,6 +66,8 @@ Imported findings are deduplicated by stable fingerprint when the same scanner a
 If an imported finding references a changed graph resource, ChangeGate adds `external_correlation` evidence. If the graph shows public exposure or sensitive-data access for that resource, ChangeGate can upgrade the imported finding's materiality. If the imported finding cannot be correlated to a changed resource, ChangeGate downgrades high-severity/high-confidence imported noise.
 
 Adapter normalization is tested against real scanner JSON fixtures for Checkov, Trivy, KICS, and Grype in addition to minimal schema fixtures. This keeps parser behavior tied to actual tool output shapes while preserving ChangeGate's local-only model: external tools are never installed or run by ChangeGate.
+
+For copy-pasteable sample artifacts and generated output snapshots, see [external scanner import examples](../examples/scanner-imports).
 
 ## Failure behavior
 

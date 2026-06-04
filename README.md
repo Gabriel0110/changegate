@@ -7,7 +7,6 @@
 [![CI](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml)
 [![Security](https://github.com/Gabriel0110/changegate/actions/workflows/security.yml/badge.svg)](https://github.com/Gabriel0110/changegate/actions/workflows/security.yml)
 [![Go Reference](https://pkg.go.dev/badge/github.com/Gabriel0110/changegate.svg)](https://pkg.go.dev/github.com/Gabriel0110/changegate)
-[![License](https://img.shields.io/github/license/Gabriel0110/changegate)](LICENSE)
 
 ChangeGate is a fast, graph-aware Terraform/OpenTofu risk gate for CI/CD. It reads the plan that is actually about to apply, builds a graph of changing infrastructure, and returns one deployment decision: `ALLOW`, `WARN`, or `BLOCK`.
 
@@ -25,26 +24,26 @@ By default, ChangeGate runs offline from plan JSON. It does not require a SaaS a
 
 Most IaC scanners inspect source files and produce checklists. ChangeGate gates the planned change.
 
-| ChangeGate focuses on | Why it matters |
-| --- | --- |
-| Plan-aware analysis | Evaluates the resources and actions Terraform/OpenTofu is about to apply. |
-| Graph-aware risk | Understands relationships between load balancers, security groups, IAM, compute, networks, and data stores. |
-| High-confidence blocking | Blocks only risks that meet policy, severity, confidence, and context thresholds. |
-| One deploy decision | Produces a deterministic allow/warn/block result for CI. |
-| Governed exceptions | Supports expiring waivers and baselines for existing debt. |
-| Evidence-rich output | Emits findings with evidence, graph paths, remediation, fingerprints, and audit bundles. |
+| ChangeGate focuses on    | Why it matters                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------- |
+| Plan-aware analysis      | Evaluates the resources and actions Terraform/OpenTofu is about to apply.                                   |
+| Graph-aware risk         | Understands relationships between load balancers, security groups, IAM, compute, networks, and data stores. |
+| High-confidence blocking | Blocks only risks that meet policy, severity, confidence, and context thresholds.                           |
+| One deploy decision      | Produces a deterministic allow/warn/block result for CI.                                                    |
+| Governed exceptions      | Supports expiring waivers and baselines for existing debt.                                                  |
+| Evidence-rich output     | Emits findings with evidence, graph paths, remediation, fingerprints, and audit bundles.                    |
 
 ## Features
 
-* **Plan-aware deployment gating:** evaluates Terraform/OpenTofu plan JSON and returns one CI-friendly deploy decision.
-* **Blast-radius graph:** maps changing resources to public entrypoints, IAM edges, networks, workloads, and sensitive assets.
-* **Attack-path evidence:** highlights deterministic public-to-sensitive-data and IAM privilege-escalation paths.
-* **Review Intelligence:** generates security impact statements, PR/MR comments, GitHub annotations, GitLab Code Quality output, and visual graph artifacts.
-* **Governed adoption:** supports baselines, new-risk-only mode, expiring waivers, audit bundles, and stable finding fingerprints.
-* **External scanner imports:** ingests SARIF, Checkov, Trivy, KICS, Grype, and generic JSON findings for graph-aware correlation.
-* **Optional cloud context:** collects redacted AWS read-only snapshots while keeping normal scans offline and credential-free.
-* **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
-* **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, and Linux packages.
+- **Plan-aware deployment gating:** evaluates Terraform/OpenTofu plan JSON and returns one CI-friendly deploy decision.
+- **Blast-radius graph:** maps changing resources to public entrypoints, IAM edges, networks, workloads, and sensitive assets.
+- **Attack-path evidence:** highlights deterministic public-to-sensitive-data and IAM privilege-escalation paths.
+- **Review Intelligence:** generates security impact statements, PR/MR comments, GitHub annotations, GitLab Code Quality output, and visual graph artifacts.
+- **Governed adoption:** supports baselines, new-risk-only mode, expiring waivers, audit bundles, and stable finding fingerprints.
+- **External scanner imports:** ingests SARIF, Checkov, Trivy, KICS, Grype, and generic JSON findings for graph-aware correlation.
+- **Optional cloud context:** collects redacted AWS read-only snapshots while keeping normal scans offline and credential-free.
+- **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
+- **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, and Linux packages.
 
 ## Review Intelligence
 
@@ -69,17 +68,17 @@ These commands reuse the same deterministic scan engine. The default path remain
 
 The built-in AWS rule pack currently includes 53 stable high-confidence rules, including:
 
-* public administrative services and database exposure
-* world-open security group ingress on admin, database, and all-port ranges
-* production RDS replacement, backup reduction, disabled final snapshots, disabled backups, and disabled deletion protection
-* DynamoDB PITR, S3 versioning/logging, CloudTrail, AWS Config, and ECR production guardrails
-* public S3 policies and ACLs, public Lambda function URLs, public admin API Gateway routes, and weak public load balancer listeners
-* broad IAM admin, NotAction, sensitive wildcard access, PassRole, assume-role, KMS decrypt, and Secrets Manager read paths
-* public-to-sensitive datastore graph paths
-* sensitive storage without encryption, logging, or versioning
-* public subnet, EFS, ElastiCache, private subnet, and transit/peering blast-radius expansion
+- public administrative services and database exposure
+- world-open security group ingress on admin, database, and all-port ranges
+- production RDS replacement, backup reduction, disabled final snapshots, disabled backups, and disabled deletion protection
+- DynamoDB PITR, S3 versioning/logging, CloudTrail, AWS Config, and ECR production guardrails
+- public S3 policies and ACLs, public Lambda function URLs, public admin API Gateway routes, and weak public load balancer listeners
+- broad IAM admin, NotAction, sensitive wildcard access, PassRole, assume-role, KMS decrypt, and Secrets Manager read paths
+- public-to-sensitive datastore graph paths
+- sensitive storage without encryption, logging, or versioning
+- public subnet, EFS, ElastiCache, private subnet, and transit/peering blast-radius expansion
 
-See the generated [rule reference](docs/rules/README.md) for the full list.
+See the [rule reference](docs/rules/README.md) for the full list.
 
 ## Install
 
@@ -129,15 +128,15 @@ changegate scan --plan tfplan.json
 
 Exit codes are stable:
 
-| Exit code | Meaning |
-| --- | --- |
-| `0` | Deployment is allowed. |
-| `1` | ChangeGate found a blocking risk. |
-| `2` | Usage or flag error. |
-| `3` | Input parsing error. |
-| `4` | Policy/configuration error. |
-| `5` | Cloud-context error. |
-| `10` | Internal error. |
+| Exit code | Meaning                           |
+| --------- | --------------------------------- |
+| `0`       | Deployment is allowed.            |
+| `1`       | ChangeGate found a blocking risk. |
+| `2`       | Usage or flag error.              |
+| `3`       | Input parsing error.              |
+| `4`       | Policy/configuration error.       |
+| `5`       | Cloud-context error.              |
+| `10`      | Internal error.                   |
 
 ## Repository Setup
 
@@ -152,15 +151,15 @@ The initializer writes safe audit-mode defaults so teams can collect signal befo
 
 Common options:
 
-| Option | Creates |
-| --- | --- |
+| Option             | Creates                                                                                                            |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------ |
 | `--github-actions` | `.github/workflows/changegate.yml` with audit-mode scan, PR review comment, SARIF upload, and audit bundle upload. |
-| `--gitlab-ci` | `.gitlab-ci.yml` with audit-mode scan, GitLab Code Quality output, MR note, and audit bundle artifact. |
-| `--baseline` | `.changegate/README.md` with baseline creation commands for existing-risk adoption. |
-| `--waivers` | `.changegate/waivers.yaml` starter file for governed exceptions. |
-| `--audit-mode` | `.changegate.yaml` configured for evidence collection before enforcement. |
-| `--dir PATH` | Writes starter files into a specific repository directory. |
-| `--force` | Allows overwriting generated files after review. |
+| `--gitlab-ci`      | `.gitlab-ci.yml` with audit-mode scan, GitLab Code Quality output, MR note, and audit bundle artifact.             |
+| `--baseline`       | `.changegate/README.md` with baseline creation commands for existing-risk adoption.                                |
+| `--waivers`        | `.changegate/waivers.yaml` starter file for governed exceptions.                                                   |
+| `--audit-mode`     | `.changegate.yaml` configured for evidence collection before enforcement.                                          |
+| `--dir PATH`       | Writes starter files into a specific repository directory.                                                         |
+| `--force`          | Allows overwriting generated files after review.                                                                   |
 
 Typical rollout:
 
@@ -339,46 +338,53 @@ See [policy config](docs/policy-config.md), [config schema](docs/config-schema.m
 
 Want to see ChangeGate output before wiring it into your own pipeline? Start with the [public admin path demo](examples/demo-public-admin-path), which includes a sanitized plan fixture, scan output, PR/MR comment output, attack-path output, and graph visualizations.
 
-For additional runnable fixtures and validation coverage, see the [validation matrix](docs/validation.md) and [risk tests](docs/risk-tests.md).
+For additional runnable fixtures and validation coverage, see the
+[validation matrix](docs/validation.md) and [risk tests](docs/risk-tests.md).
+
+Additional examples:
+
+- [Review scenario demos](examples/demo-review-scenarios)
+- [External scanner import examples](examples/scanner-imports)
+- [AWS cloud-context sandbox walkthrough](examples/cloud-context-sandbox)
 
 ## Project Status
 
 ChangeGate is pre-`v1.0` and ready for early adopters who can run it in audit or warning mode against real Terraform/OpenTofu plans. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
 
-See the [roadmap](docs/roadmap.md).
+See [known limitations](docs/limitations.md) for current scope and boundaries.
 
 ## Documentation
 
 Start here:
 
-* [Start here](docs/start-here.md)
-* [Five-minute quickstart](docs/quickstart.md)
-* [Rule reference](docs/rules/README.md)
-* [Validation matrix](docs/validation.md)
-* [GitHub Actions](docs/github-actions.md)
-* [CI adoption](docs/ci-adoption.md)
-* [Troubleshooting](docs/troubleshooting.md)
-* [FAQ](docs/faq.md)
+- [Start here](docs/start-here.md)
+- [Five-minute quickstart](docs/quickstart.md)
+- [Rule reference](docs/rules/README.md)
+- [Validation matrix](docs/validation.md)
+- [GitHub Actions](docs/github-actions.md)
+- [CI adoption](docs/ci-adoption.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [FAQ](docs/faq.md)
 
 Operators:
 
-* [Audit rollout](docs/audit-rollout.md)
-* [Baselines](docs/baselines.md)
-* [Waivers](docs/waivers.md)
-* [Cloud context](docs/cloud-context.md)
-* [Security model](docs/security-model.md)
-* [Known limitations](docs/limitations.md)
+- [Audit rollout](docs/audit-rollout.md)
+- [Baselines](docs/baselines.md)
+- [Waivers](docs/waivers.md)
+- [Cloud context](docs/cloud-context.md)
+- [Security model](docs/security-model.md)
+- [Known limitations](docs/limitations.md)
 
 Reference:
 
-* [Architecture](docs/architecture.md)
-* [Decision model](docs/decision-model.md)
-* [Security Impact Statement](docs/security-impact-statement.md)
-* [Review Intelligence](docs/review-intelligence.md)
-* [Performance and scale](docs/performance.md)
-* [JSON report schema](schemas/changegate-report.schema.json)
-* [Graph JSON schema](schemas/changegate-graph.schema.json)
-* [OPA input schema](schemas/changegate-opa-input.schema.json)
+- [Architecture](docs/architecture.md)
+- [Decision model](docs/decision-model.md)
+- [Security Impact Statement](docs/security-impact-statement.md)
+- [Review Intelligence](docs/review-intelligence.md)
+- [Performance and scale](docs/performance.md)
+- [JSON report schema](schemas/changegate-report.schema.json)
+- [Graph JSON schema](schemas/changegate-graph.schema.json)
+- [OPA input schema](schemas/changegate-opa-input.schema.json)
 
 ## Contributing
 

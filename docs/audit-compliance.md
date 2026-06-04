@@ -16,27 +16,27 @@ changegate scan --plan tfplan.json --format sarif --out changegate.sarif --audit
 
 The zip uses a stable `changegate-audit/` prefix and deterministic member ordering:
 
-* `decision.json` records the allow/warn/block decision, reason codes, decision reasons, and risk summary.
-* `findings.json` contains the already-redacted canonical findings.
-* `suppressed.json` contains only findings with active suppressions.
-* `waivers.json` contains waiver application evidence when a waiver file is configured.
-* `baseline.json` contains baseline diff evidence when a baseline is configured.
-* `policy.yaml` contains the active policy file, or the generated default policy stub.
-* `policy-digest.txt` and `plan-digest.txt` contain SHA-256 digests.
-* `rule-pack-versions.json` records bundled policy pack versions.
-* `environment.json` records non-secret scan context, plan summary, graph summary, decision, and optional cloud-context timestamp.
-* `evidence.json` contains finding evidence and decision reasons.
-* `compliance.json` contains rule-to-framework mappings and mapped actual findings.
-* `run-metadata.json` contains CLI version, build metadata, digests, policy pack versions, and redaction status.
-* `redaction-report.json` summarizes sensitive evidence counts.
-* `summary.md` is a human-readable archive summary.
-* `impact.json` and `impact.md` contain the Security Impact Statement generated from the same scan report.
-* `review-comment.md` contains the sticky PR/MR review comment body that can be posted by the review integrations.
-* `graph.json` contains a sanitized graph evidence export with node identities, kinds, actions, and edge provenance, but not raw resource values.
-* `attack-paths.json` contains the attack path summaries promoted into review output.
-* `cloud-context-summary.json` records only cloud-context metadata, capability coverage, resource counts, relationship counts, and diagnostics. It does not include full cloud inventory.
-* `risk-tests.json` records whether this bundle came from a risk-test run.
-* `hcp-run-task.json` records run-task-compatible pass/fail evidence for future adapters and later HCP Terraform integrations.
+- `decision.json` records the allow/warn/block decision, reason codes, decision reasons, and risk summary.
+- `findings.json` contains the already-redacted canonical findings.
+- `suppressed.json` contains only findings with active suppressions.
+- `waivers.json` contains waiver application evidence when a waiver file is configured.
+- `baseline.json` contains baseline diff evidence when a baseline is configured.
+- `policy.yaml` contains the active policy file, or the generated default policy stub.
+- `policy-digest.txt` and `plan-digest.txt` contain SHA-256 digests.
+- `rule-pack-versions.json` records bundled policy pack versions.
+- `environment.json` records non-secret scan context, plan summary, graph summary, decision, and optional cloud-context timestamp.
+- `evidence.json` contains finding evidence and decision reasons.
+- `compliance.json` contains rule-to-framework mappings and mapped actual findings.
+- `run-metadata.json` contains CLI version, build metadata, digests, policy pack versions, and redaction status.
+- `redaction-report.json` summarizes sensitive evidence counts.
+- `summary.md` is a human-readable archive summary.
+- `impact.json` and `impact.md` contain the Security Impact Statement created from the same scan report.
+- `review-comment.md` contains the sticky PR/MR review comment body that can be posted by the review integrations.
+- `graph.json` contains a sanitized graph evidence export with node identities, kinds, actions, and edge provenance, but not raw resource values.
+- `attack-paths.json` contains the attack path summaries promoted into review output.
+- `cloud-context-summary.json` records only cloud-context metadata, capability coverage, resource counts, relationship counts, and diagnostics. It does not include full cloud inventory.
+- `risk-tests.json` records whether this bundle came from a risk-test run.
+- `hcp-run-task.json` records pass/fail evidence in a Terraform run-task-compatible shape.
 
 The bundle does not include raw plan JSON or raw cloud inventory. It includes only the plan digest, redacted finding evidence, sanitized graph evidence, and summary-level cloud-context metadata.
 

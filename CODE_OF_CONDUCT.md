@@ -8,6 +8,6 @@ Unacceptable behavior includes harassment, threats, sustained disruption, person
 
 ## Enforcement
 
-Maintainers may moderate issues, pull requests, discussions, and other project spaces. Reports that involve safety, abuse, or private disclosure concerns should use the private contact path listed in [SECURITY.md](SECURITY.md).
+The project team may moderate issues, pull requests, discussions, and other project spaces. Reports that involve safety, abuse, or private disclosure concerns should use the private contact path listed in [SECURITY.md](SECURITY.md).
 
-Maintainers will review reports promptly and may remove content, warn participants, limit participation, or ban accounts from project spaces.
+The project team will review reports promptly and may remove content, warn participants, limit participation, or ban accounts from project spaces.

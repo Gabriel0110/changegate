@@ -385,10 +385,18 @@ func RenderPRComment(report Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "## ChangeGate: %s\n\n", strings.ToUpper(string(report.Decision)))
 	clusters := clustersForReport(report)
-	fmt.Fprintf(&b, "**%d risk clusters** from %d findings: %d blocking, %d warnings, %d suppressed.\n\n", len(clusters), report.RiskSummary.Total, report.RiskSummary.Blocking, report.RiskSummary.Warnings, report.RiskSummary.Suppressed)
+	fmt.Fprintf(&b, "**%d %s** from %d %s: %d blocking, %d warnings, %d suppressed.\n\n",
+		len(clusters),
+		pluralize(len(clusters), "risk cluster", "risk clusters"),
+		report.RiskSummary.Total,
+		pluralize(report.RiskSummary.Total, "finding", "findings"),
+		report.RiskSummary.Blocking,
+		report.RiskSummary.Warnings,
+		report.RiskSummary.Suppressed,
+	)
 	reasons := collapsedDecisionReasons(report)
 	if len(reasons) > 0 {
-		b.WriteString("**Decision reasons**\n")
+		b.WriteString("### Decision Reasons\n\n")
 		for index, reason := range reasons {
 			if index >= 3 {
 				fmt.Fprintf(&b, "- ... %d more reasons\n", len(reasons)-index)
@@ -406,21 +414,43 @@ func RenderPRComment(report Report) string {
 		b.WriteString("No findings.\n")
 		return b.String()
 	}
-	b.WriteString("**Risk clusters**\n")
+	b.WriteString("### Risk Clusters\n\n")
+	displayedClusters := len(clusters)
+	if displayedClusters > 3 {
+		displayedClusters = 3
+	}
 	for index, cluster := range clusters {
 		if index >= 3 {
-			fmt.Fprintf(&b, "- ... %d more risk clusters\n", len(clusters)-index)
+			fmt.Fprintf(&b, "... %d more risk clusters\n", len(clusters)-index)
 			break
 		}
-		fmt.Fprintf(&b, "- `%s/%s` %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, cluster.Title, len(cluster.AffectedResources), len(cluster.SupportingFindings))
+		fmt.Fprintf(&b, "#### %d. %s\n\n", index+1, cluster.Title)
+		fmt.Fprintf(&b, "- Severity: `%s`\n", cluster.Severity)
+		fmt.Fprintf(&b, "- Confidence: `%s`\n", cluster.Confidence)
+		fmt.Fprintf(&b, "- Decision: `%s`\n", cluster.Decision)
+		fmt.Fprintf(&b, "- Affected resources: %d\n", len(cluster.AffectedResources))
+		fmt.Fprintf(&b, "- Supporting findings: %d\n\n", len(cluster.SupportingFindings))
 		if cluster.RemediationSummary != "" {
-			fmt.Fprintf(&b, "  Fix: %s\n", cluster.RemediationSummary)
+			fmt.Fprintf(&b, "**Fix:** %s\n\n", cluster.RemediationSummary)
 		}
 		if len(cluster.RuleIDs) > 0 {
-			fmt.Fprintf(&b, "  Rules: `%s`\n", strings.Join(cluster.RuleIDs, "`, `"))
+			b.WriteString("Rules:\n\n")
+			for _, ruleID := range cluster.RuleIDs {
+				fmt.Fprintf(&b, "- `%s`\n", ruleID)
+			}
+		}
+		if index < displayedClusters-1 {
+			b.WriteString("\n")
 		}
 	}
 	return b.String()
+}
+
+func pluralize(count int, singular string, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }
 
 // RenderGitHubStepSummary renders a compact Markdown summary for GITHUB_STEP_SUMMARY.

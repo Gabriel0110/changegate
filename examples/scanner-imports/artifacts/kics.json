@@ -1,0 +1,17 @@
+{
+  "queries": [
+    {
+      "query_id": "381c3f2a-ef6f-4eff-99f7-b169cda3422c",
+      "query_name": "S3 bucket policy allows public access",
+      "severity": "HIGH",
+      "category": "Access Control",
+      "files": [
+        {
+          "file_name": "main.tf",
+          "resource_id": "aws_s3_bucket_policy.assets",
+          "line": 3
+        }
+      ]
+    }
+  ]
+}

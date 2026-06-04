@@ -16,7 +16,7 @@ Try the bundled demo first if you do not have a Terraform plan ready:
 changegate scan --plan examples/demo-public-admin-path/tfplan.json
 ```
 
-The demo blocks because a public ALB reaches an admin ECS service with a path to customer RDS. See [verification examples](validation.md) for generated impact statements, PR comments, graphs, and attack-path artifacts.
+The demo blocks because a public ALB reaches an admin ECS service with a path to customer RDS. See [validation examples](validation.md) for impact statements, PR comments, graphs, and attack-path artifacts.
 
 Then run against your own plan:
 
@@ -28,9 +28,9 @@ changegate scan --plan tfplan.json
 
 ## Read The Result
 
-* `ALLOW`: no blocking or warning findings met policy thresholds.
-* `WARN`: risk exists, but current mode or thresholds do not block.
-* `BLOCK`: at least one high-confidence risk met the blocking policy.
+- `ALLOW`: no blocking or warning findings met policy thresholds.
+- `WARN`: risk exists, but current mode or thresholds do not block.
+- `BLOCK`: at least one high-confidence risk met the blocking policy.
 
 Every finding includes evidence, a stable fingerprint, remediation guidance, and decision reasons.
 
@@ -58,9 +58,9 @@ changegate scan --plan tfplan.json --baseline .changegate/baseline.json --new-on
 
 ## Next Docs
 
-* [Five-minute quickstart](quickstart.md)
-* [Verification examples](validation.md)
-* [Known limitations](limitations.md)
-* [GitHub Actions](github-actions.md)
-* [Audit rollout](audit-rollout.md)
-* [Troubleshooting](troubleshooting.md)
+- [Five-minute quickstart](quickstart.md)
+- [Validation examples](validation.md)
+- [Known limitations](limitations.md)
+- [GitHub Actions](github-actions.md)
+- [Audit rollout](audit-rollout.md)
+- [Troubleshooting](troubleshooting.md)

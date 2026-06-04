@@ -6,18 +6,18 @@ ChangeGate is designed to run in CI before infrastructure deployment.
 
 Inputs:
 
-* Terraform/OpenTofu plan JSON
-* optional `.changegate.yaml` policy
-* optional baseline and waiver files
-* optional offline cloud-context snapshot
-* optional external scanner outputs
+- Terraform/OpenTofu plan JSON
+- optional `.changegate.yaml` policy
+- optional baseline and waiver files
+- optional offline cloud-context snapshot
+- optional external scanner outputs
 
 Outputs:
 
-* allow/warn/block decision
-* redacted reports
-* audit evidence bundle
-* SARIF/JUnit/Markdown/JSON integrations
+- allow/warn/block decision
+- redacted reports
+- audit evidence bundle
+- SARIF/JUnit/Markdown/JSON integrations
 
 ## Default Offline Mode
 
@@ -51,8 +51,8 @@ Snapshots should contain read-only, redacted inventory context.
 
 For untrusted pull requests, do not run arbitrary repository code or Terraform module hooks in a workflow that has a write-capable review token. Generate plans with read-only credentials, post comments from trusted workflow context, and keep GitHub/GitLab tokens least-privilege and masked.
 
-## Release Integrity
+## Download Integrity
 
-Official releases include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
+Release downloads include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
 
 The install script always verifies the downloaded archive against `checksums.txt`. Users who want keyless Sigstore verification during install can set `CHANGEGATE_VERIFY_SIG=true`; the script then requires `cosign` and verifies `checksums.txt.sigstore.json` or the `checksums.txt.sig` and `checksums.txt.pem` pair before trusting the checksum manifest.

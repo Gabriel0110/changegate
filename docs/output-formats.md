@@ -34,16 +34,16 @@ changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 
 `--format json` emits the canonical report documented by [../schemas/changegate-report.schema.json](../schemas/changegate-report.schema.json). It includes:
 
-* `schema_version`
-* final `decision`
-* plan and graph summaries
-* optional external import summary with imported, deduplicated, correlated, downgraded, and upgraded counts
-* risk summary, including suppressed and downgraded counts
-* optional risk movement when a baseline is configured
-* decision reason codes and human-readable reasons
-* findings with evidence, remediation, fingerprints, and suppression context
-* rule metadata used by integrations
-* optional run metadata with CLI version, policy pack versions, plan/config digests, redaction status, and compliance mapping metadata
+- `schema_version`
+- final `decision`
+- plan and graph summaries
+- optional external import summary with imported, deduplicated, correlated, downgraded, and upgraded counts
+- risk summary, including suppressed and downgraded counts
+- optional risk movement when a baseline is configured
+- decision reason codes and human-readable reasons
+- findings with evidence, remediation, fingerprints, and suppression context
+- rule metadata used by integrations
+- optional run metadata with CLI version, policy pack versions, plan/config digests, redaction status, and compliance mapping metadata
 
 All finding evidence is normalized through the model redaction path before rendering. Sensitive evidence values are emitted as `(sensitive)`.
 
@@ -53,29 +53,29 @@ All finding evidence is normalized through the model redaction path before rende
 
 Supported impact formats:
 
-* `--format markdown` for pull requests, merge requests, and approval workflows
-* `--format json` for automation and archival
+- `--format markdown` for pull requests, merge requests, and approval workflows
+- `--format json` for automation and archival
 
 The impact audit bundle is deterministic and contains:
 
-* `changegate-impact/impact-statement.json`
-* `changegate-impact/impact-statement.md`
-* `changegate-impact/scan-report.json`
+- `changegate-impact/impact-statement.json`
+- `changegate-impact/impact-statement.md`
+- `changegate-impact/scan-report.json`
 
 ## Graph JSON
 
 `changegate graph summary`, `graph path`, and `graph exposure` support `--format json` for automation and emit graph result `version: 2`. `changegate graph export` emits the full graph v2 JSON artifact with `--format json`.
 
-Graph v2 is documented by [../schemas/changegate-graph.schema.json](../schemas/changegate-graph.schema.json). Older graph JSON is not emitted; regenerate old artifacts with `changegate graph export --plan tfplan.json --format json`.
+Graph v2 is documented by [../schemas/changegate-graph.schema.json](../schemas/changegate-graph.schema.json). To create a current graph JSON artifact, run `changegate graph export --plan tfplan.json --format json`.
 
 ## Diagram Formats
 
 Graph and attack-path commands support renderable diagram source for review artifacts:
 
-* `--format dot` emits Graphviz DOT.
-* `--format mermaid` emits Mermaid `flowchart LR`.
-* `graph visualize` and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, highlighted paths, and an evidence inspector.
-* `graph render` optionally shells out to Graphviz `dot` to render SVG, PNG, or PDF when Graphviz is installed.
+- `--format dot` emits Graphviz DOT.
+- `--format mermaid` emits Mermaid `flowchart LR`.
+- `graph visualize` and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, highlighted paths, and an evidence inspector.
+- `graph render` optionally shells out to Graphviz `dot` to render SVG, PNG, or PDF when Graphviz is installed.
 
 The HTML visualizations do not fetch network assets or external JavaScript. They are suitable for CI artifacts, audit bundles produced outside ChangeGate, organization documentation, and pull-request links.
 
@@ -83,8 +83,8 @@ The HTML visualizations do not fetch network assets or external JavaScript. They
 
 `--format sarif` emits SARIF 2.1.0 for GitHub code scanning and compatible viewers. Results include stable rule IDs, rule help and remediation, severity mapping, plan-file locations when available, and stable partial fingerprints:
 
-* `changegateFingerprint/v1`
-* `changegateDedupKey/v1`
+- `changegateFingerprint/v1`
+- `changegateDedupKey/v1`
 
 ## JUnit
 
@@ -108,20 +108,20 @@ The HTML visualizations do not fetch network assets or external JavaScript. They
 
 The archive is deterministic for the same scan inputs and contains:
 
-* `changegate-audit/decision.json`
-* `changegate-audit/findings.json`
-* `changegate-audit/suppressed.json`
-* `changegate-audit/waivers.json`
-* `changegate-audit/baseline.json`
-* `changegate-audit/policy.yaml`
-* `changegate-audit/policy-digest.txt`
-* `changegate-audit/plan-digest.txt`
-* `changegate-audit/rule-pack-versions.json`
-* `changegate-audit/environment.json`
-* `changegate-audit/evidence.json`
-* `changegate-audit/compliance.json`
-* `changegate-audit/run-metadata.json`
-* `changegate-audit/redaction-report.json`
-* `changegate-audit/summary.md`
+- `changegate-audit/decision.json`
+- `changegate-audit/findings.json`
+- `changegate-audit/suppressed.json`
+- `changegate-audit/waivers.json`
+- `changegate-audit/baseline.json`
+- `changegate-audit/policy.yaml`
+- `changegate-audit/policy-digest.txt`
+- `changegate-audit/plan-digest.txt`
+- `changegate-audit/rule-pack-versions.json`
+- `changegate-audit/environment.json`
+- `changegate-audit/evidence.json`
+- `changegate-audit/compliance.json`
+- `changegate-audit/run-metadata.json`
+- `changegate-audit/redaction-report.json`
+- `changegate-audit/summary.md`
 
 The bundle never stores the Terraform/OpenTofu plan body. It stores only the plan digest plus the already-redacted findings and evidence. Compliance mappings are metadata attached to real findings; they do not create additional risks or change the allow/warn/block decision.

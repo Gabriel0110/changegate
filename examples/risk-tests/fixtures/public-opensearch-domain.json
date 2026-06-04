@@ -1,0 +1,48 @@
+{
+  "format_version": "1.0",
+  "terraform_version": "1.6.6",
+  "planned_values": {
+    "root_module": {
+      "resources": [
+        {
+          "address": "aws_opensearch_domain.logs",
+          "mode": "managed",
+          "type": "aws_opensearch_domain",
+          "name": "logs",
+          "provider_name": "registry.terraform.io/hashicorp/aws",
+          "values": {
+            "domain_name": "example-prod-logs",
+            "access_policies": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"es:ESHttpGet\",\"Resource\":\"arn:aws:es:us-east-1:123456789012:domain/example-prod-logs/*\"}]}",
+            "tags": {
+              "env": "prod",
+              "service": "logging"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "resource_changes": [
+    {
+      "address": "aws_opensearch_domain.logs",
+      "mode": "managed",
+      "type": "aws_opensearch_domain",
+      "name": "logs",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "access_policies": "{\"Version\":\"2012-10-17\",\"Statement\":[]}"
+        },
+        "after": {
+          "domain_name": "example-prod-logs",
+          "access_policies": "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":\"*\",\"Action\":\"es:ESHttpGet\",\"Resource\":\"arn:aws:es:us-east-1:123456789012:domain/example-prod-logs/*\"}]}",
+          "tags": {
+            "env": "prod",
+            "service": "logging"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,14 +1,14 @@
 # Public resource can reach sensitive datastore
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_PUBLIC_TO_SENSITIVE_DATASTORE` |
-| Category | `sensitive_data` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                               |
+| ----------- | ----------------------------------- |
+| Rule ID     | `AWS_PUBLIC_TO_SENSITIVE_DATASTORE` |
+| Category    | `sensitive_data`                    |
+| Severity    | `high`                              |
+| Confidence  | `high`                              |
+| Status      | `stable`                            |
+| Version     | `0.1.0`                             |
+| Policy pack | `aws-public-exposure`               |
 
 ## What It Detects
 

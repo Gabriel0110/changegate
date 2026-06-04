@@ -14,7 +14,7 @@ The plan shows the concrete actions Terraform/OpenTofu intends to apply. ChangeG
 
 ## Does ChangeGate use AI to make decisions?
 
-No. AI can draft explanations in future workflows, but allow/warn/block decisions are deterministic policy evaluations.
+No. Allow/warn/block decisions are deterministic policy evaluations. Any explanation or remediation text is separate from the deployment decision.
 
 ## How do I handle existing known risk?
 

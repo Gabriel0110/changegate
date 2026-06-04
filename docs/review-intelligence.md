@@ -15,18 +15,16 @@ Review Intelligence focuses on six capabilities:
 5. Risk Tests for Terraform modules.
 6. Audit-ready evidence that ties findings, graph paths, waivers, baselines, and remediation together.
 
-The HCP Terraform run task adapter is intentionally deferred. It remains planned, but it is out of scope until the core Review Intelligence features are production-ready.
-
 ## User Experience
 
 The workflow helps teams answer these questions from a pull request or CI run:
 
-* What changed?
-* What became public or reachable?
-* Which workloads and data assets are in the blast radius?
-* Which risks are new, existing, resolved, worsened, or waived?
-* Which graph or attack paths justify the decision?
-* What should the author or reviewer do next?
+- What changed?
+- What became public or reachable?
+- Which workloads and data assets are in the blast radius?
+- Which risks are new, existing, resolved, worsened, or waived?
+- Which graph or attack paths justify the decision?
+- What should the author or reviewer do next?
 
 ## Commands
 

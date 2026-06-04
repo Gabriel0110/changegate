@@ -12,7 +12,7 @@ changegate scan --plan tfplan.json
 
 ## `unsupported plan format_version`
 
-ChangeGate supports Terraform/OpenTofu plan JSON format major version `1.x`. Regenerate the JSON with a supported `terraform show -json` or `tofu show -json`.
+ChangeGate supports Terraform/OpenTofu plan JSON format major version `1.x`. Create the JSON with a supported `terraform show -json` or `tofu show -json`.
 
 ## Invalid JSON
 

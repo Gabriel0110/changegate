@@ -1,14 +1,14 @@
 # IAM pass-role function escalation path
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
-| Category | `privilege_escalation` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-iam-escalation` |
+| Field       | Value                                  |
+| ----------- | -------------------------------------- |
+| Rule ID     | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
+| Category    | `privilege_escalation`                 |
+| Severity    | `high`                                 |
+| Confidence  | `high`                                 |
+| Status      | `stable`                               |
+| Version     | `0.1.0`                                |
+| Policy pack | `aws-iam-escalation`                   |
 
 ## What It Detects
 

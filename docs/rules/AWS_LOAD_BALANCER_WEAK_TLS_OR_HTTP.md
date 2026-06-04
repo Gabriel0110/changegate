@@ -1,14 +1,14 @@
 # Public load balancer uses weak TLS or plaintext HTTP
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP` |
-| Category | `public_exposure` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                                |
+| ----------- | ------------------------------------ |
+| Rule ID     | `AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP` |
+| Category    | `public_exposure`                    |
+| Severity    | `high`                               |
+| Confidence  | `high`                               |
+| Status      | `stable`                             |
+| Version     | `0.1.0`                              |
+| Policy pack | `aws-public-exposure`                |
 
 ## What It Detects
 

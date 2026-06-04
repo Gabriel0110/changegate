@@ -1,14 +1,14 @@
 # Private workload exposed by NAT or security group change
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG` |
-| Category | `network_blast_radius` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-public-exposure` |
+| Field       | Value                                       |
+| ----------- | ------------------------------------------- |
+| Rule ID     | `AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG` |
+| Category    | `network_blast_radius`                      |
+| Severity    | `high`                                      |
+| Confidence  | `high`                                      |
+| Status      | `stable`                                    |
+| Version     | `0.1.0`                                     |
+| Policy pack | `aws-public-exposure`                       |
 
 ## What It Detects
 

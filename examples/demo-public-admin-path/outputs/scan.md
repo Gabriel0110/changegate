@@ -1,15 +1,15 @@
 # ChangeGate: BLOCK
 
-| Metric | Value |
-| --- | ---: |
-| Risk clusters | 2 |
-| Findings | 11 |
-| Blocking | 11 |
-| Warnings | 0 |
-| Suppressed | 0 |
-| Downgraded | 0 |
-| Graph nodes | 7 |
-| Graph edges | 12 |
+| Metric        | Value |
+| ------------- | ----: |
+| Risk clusters |     2 |
+| Findings      |    11 |
+| Blocking      |    11 |
+| Warnings      |     0 |
+| Suppressed    |     0 |
+| Downgraded    |     0 |
+| Graph nodes   |     7 |
+| Graph edges   |    12 |
 
 ## Decision reasons
 
@@ -50,6 +50,7 @@
 ChangeGate detected a high-signal infrastructure attack path.
 
 Evidence:
+
 - `attack_path` `attack_path.id`: attack path attack-path-809c77cb5de3cd2d produced block decision
 - `attack_path` `attack_path.type`: attack path type is public_to_sensitive_data
 - `attack_path` `attack_path.kind`: attack path kind is network
@@ -65,6 +66,7 @@ Evidence:
 - `attack_path.step` `allows_ingress`: security group applies to resource
 
 Remediation:
+
 - Remove the public route to the workload or restrict ingress to approved CIDRs.
 - Allow sensitive assets only from reviewed workload security groups and roles.
 - Remove direct routing from public workloads to sensitive datastores or secrets.
@@ -88,9 +90,11 @@ Remediation:
 Detects production databases with backup retention disabled or reduced to zero.
 
 Evidence:
+
 - `rule` `backup_retention_period`: production database backup retention is disabled
 
 Remediation:
+
 - Set backup retention to a non-zero period aligned with recovery requirements.
 - Confirm the planned delete or replacement is intentional.
 - Enable deletion protection where supported.
@@ -112,9 +116,11 @@ Remediation:
 Detects production databases without deletion protection.
 
 Evidence:
+
 - `rule` `deletion_protection`: production database deletion protection is disabled
 
 Remediation:
+
 - Enable deletion protection for production databases.
 - Confirm the planned delete or replacement is intentional.
 - Enable deletion protection where supported.
@@ -136,10 +142,12 @@ Remediation:
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
+
 - `rule` `graph`: aws_ecs_service.admin: security group applies to resource (security_groups)
 - `rule` `graph`: aws_security_group.public: security group allows public ingress (ingress)
 
 Remediation:
+
 - Remove public routing to the admin service or require private/authenticated access.
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
@@ -157,6 +165,7 @@ resource "aws_lb" "admin" {
   # Keep admin listeners reachable only from private subnets or a trusted proxy.
 }
 ```
+
 - Owner hints: `service=admin`
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
@@ -171,9 +180,11 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
+
 - `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
 
 Remediation:
+
 - Remove public routing to the admin service or require private/authenticated access.
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
@@ -191,6 +202,7 @@ resource "aws_lb" "admin" {
   # Keep admin listeners reachable only from private subnets or a trusted proxy.
 }
 ```
+
 - Owner hints: `service=admin`
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
@@ -205,10 +217,12 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
+
 - `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
 - `rule` `graph`: aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
 
 Remediation:
+
 - Remove public routing to the admin service or require private/authenticated access.
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
@@ -226,6 +240,7 @@ resource "aws_lb" "admin" {
   # Keep admin listeners reachable only from private subnets or a trusted proxy.
 }
 ```
+
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
@@ -239,11 +254,13 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
+
 - `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
 - `rule` `graph`: aws_lb_listener.admin: listener forwards to target group (default_action.target_group_arn)
 - `rule` `graph`: aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
 
 Remediation:
+
 - Remove public routing to the admin service or require private/authenticated access.
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
@@ -261,6 +278,7 @@ resource "aws_lb" "admin" {
   # Keep admin listeners reachable only from private subnets or a trusted proxy.
 }
 ```
+
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
@@ -274,12 +292,14 @@ resource "aws_lb" "admin" {
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
+
 - `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
 - `rule` `graph.target`: sensitive datastore is reachable from public resource
 - `rule` `graph.edge`: resource can send traffic through security group
 - `rule` `graph.edge`: security group applies to resource
 
 Remediation:
+
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
@@ -302,6 +322,7 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
+
 - `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
 - `rule` `graph.target`: sensitive datastore is reachable from public resource
 - `rule` `graph.edge`: load balancer routes to listener
@@ -311,6 +332,7 @@ Evidence:
 - `rule` `graph.edge`: security group applies to resource
 
 Remediation:
+
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
@@ -333,6 +355,7 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
+
 - `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
 - `rule` `graph.target`: sensitive datastore is reachable from public resource
 - `rule` `graph.edge`: listener forwards to target group
@@ -341,6 +364,7 @@ Evidence:
 - `rule` `graph.edge`: security group applies to resource
 
 Remediation:
+
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
@@ -362,6 +386,7 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
+
 - `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
 - `rule` `graph.target`: sensitive datastore is reachable from public resource
 - `rule` `graph.edge`: target group routes to ECS service
@@ -369,6 +394,7 @@ Evidence:
 - `rule` `graph.edge`: security group applies to resource
 
 Remediation:
+
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
@@ -379,4 +405,3 @@ Remediation:
 - Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
-

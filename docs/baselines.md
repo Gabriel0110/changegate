@@ -13,15 +13,15 @@ changegate baseline create \
 
 The baseline file is deterministic, reviewable JSON. It stores non-secret finding metadata only:
 
-* fingerprint
-* deduplication key
-* rule ID
-* resource address
-* provider
-* category
-* severity
-* confidence
-* title
+- fingerprint
+- deduplication key
+- rule ID
+- resource address
+- provider
+- category
+- severity
+- confidence
+- title
 
 Evidence values are not stored in the baseline.
 
@@ -50,15 +50,15 @@ changegate baseline diff \
 
 Diff categories:
 
-* `new`: present now, absent from the baseline
-* `unchanged`: matching fingerprint in the baseline
-* `changed`: similar rule/category/provider/severity/confidence but changed fingerprint, commonly caused by a resource rename or changed evidence path
-* `stale`: present in the baseline, absent from current findings
-* `new_risk`: absent from the baseline and enforceable as new risk
-* `existing_unchanged`: existing risk with no material movement
-* `existing_worsened`: existing risk whose impact increased and should remain visible/enforceable
-* `existing_improved`: existing risk whose impact decreased
-* `resolved`: baseline risk absent from current findings
+- `new`: present now, absent from the baseline
+- `unchanged`: matching fingerprint in the baseline
+- `changed`: similar rule/category/provider/severity/confidence but changed fingerprint, commonly caused by a resource rename or changed evidence path
+- `stale`: present in the baseline, absent from current findings
+- `new_risk`: absent from the baseline and enforceable as new risk
+- `existing_unchanged`: existing risk with no material movement
+- `existing_worsened`: existing risk whose impact increased and should remain visible/enforceable
+- `existing_improved`: existing risk whose impact decreased
+- `resolved`: baseline risk absent from current findings
 
 Stale or resolved entries should be removed from the baseline as resources are fixed or deleted.
 

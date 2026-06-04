@@ -62,29 +62,29 @@ rules:
 
 `select` restricts which changed resources a rule evaluates:
 
-| Field | Meaning |
-| --- | --- |
-| `type` | Terraform/OpenTofu resource type, such as `aws_lb`. |
-| `provider` | Provider substring, such as `hashicorp/aws`. |
-| `address` | Exact resource address. |
-| `tags` | Exact tag key/value matches. |
-| `actions` | Any matching plan action: `create`, `update`, `delete`, `replace`, `read`, or `no-op`. |
+| Field      | Meaning                                                                                |
+| ---------- | -------------------------------------------------------------------------------------- |
+| `type`     | Terraform/OpenTofu resource type, such as `aws_lb`.                                    |
+| `provider` | Provider substring, such as `hashicorp/aws`.                                           |
+| `address`  | Exact resource address.                                                                |
+| `tags`     | Exact tag key/value matches.                                                           |
+| `actions`  | Any matching plan action: `create`, `update`, `delete`, `replace`, `read`, or `no-op`. |
 
 ## Conditions
 
 `where` supports boolean composition and field checks:
 
-| Syntax | Meaning |
-| --- | --- |
-| `all` | Every nested condition must match. |
-| `any` | At least one nested condition must match. |
-| `not` | Nested condition must not match. |
-| `field` | Field path over the changed resource. |
-| `equals` | Case-insensitive equality. |
-| `not_equals` | Case-insensitive inequality. |
-| `contains` | Case-insensitive substring match. |
-| `in` | Value must match one item in the list. |
-| `exists` | Field existence check. |
+| Syntax       | Meaning                                   |
+| ------------ | ----------------------------------------- |
+| `all`        | Every nested condition must match.        |
+| `any`        | At least one nested condition must match. |
+| `not`        | Nested condition must not match.          |
+| `field`      | Field path over the changed resource.     |
+| `equals`     | Case-insensitive equality.                |
+| `not_equals` | Case-insensitive inequality.              |
+| `contains`   | Case-insensitive substring match.         |
+| `in`         | Value must match one item in the list.    |
+| `exists`     | Field existence check.                    |
 
 Field paths can reference `address`, `name`, `type`, `provider`, `tags.<key>`, `before.<path>`, and `after.<path>`. Unqualified field names read from `after`.
 
@@ -92,11 +92,11 @@ Field paths can reference `address`, `name`, `type`, `provider`, `tags.<key>`, `
 
 Custom YAML rules can reference graph context:
 
-| Predicate | Meaning |
-| --- | --- |
-| `graph.routes_to.tag` | The selected resource routes to or attaches to a graph node with the tag key/value. |
-| `graph.internet_exposed` | The graph proves whether the selected resource is internet-exposed. |
-| `graph.sensitive_data_access` | The graph proves whether the selected resource can read or write sensitive data. |
+| Predicate                     | Meaning                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------- |
+| `graph.routes_to.tag`         | The selected resource routes to or attaches to a graph node with the tag key/value. |
+| `graph.internet_exposed`      | The graph proves whether the selected resource is internet-exposed.                 |
+| `graph.sensitive_data_access` | The graph proves whether the selected resource can read or write sensitive data.    |
 
 ## Optional OPA/Rego
 

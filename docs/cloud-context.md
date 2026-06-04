@@ -31,9 +31,9 @@ If cloud context confirms an existing plan edge, ChangeGate records the edge as 
 
 The merge can emit non-fatal diagnostics when live state changes the risk picture:
 
-* `CLOUD_CONTEXT_PUBLIC_CONFLICT`: live AWS reports a resource as public, but the plan graph has no public inbound path.
-* `CLOUD_CONTEXT_ATTACHMENT_CONFLICT`: live AWS reports an attachment or association that is absent from the plan graph.
-* `CLOUD_CONTEXT_UNMANAGED_RELATIONSHIP`: a Terraform-managed resource is attached to an unmanaged live resource.
+- `CLOUD_CONTEXT_PUBLIC_CONFLICT`: live AWS reports a resource as public, but the plan graph has no public inbound path.
+- `CLOUD_CONTEXT_ATTACHMENT_CONFLICT`: live AWS reports an attachment or association that is absent from the plan graph.
+- `CLOUD_CONTEXT_UNMANAGED_RELATIONSHIP`: a Terraform-managed resource is attached to an unmanaged live resource.
 
 ## Commands
 
@@ -52,11 +52,13 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 The same policy is checked in at [`examples/aws-context-readonly-policy.json`](../examples/aws-context-readonly-policy.json) for teams that prefer to review or vendor the IAM document.
 
+For a read-only sandbox walkthrough, see [AWS cloud context sandbox walkthrough](../examples/cloud-context-sandbox).
+
 `validate-permissions` checks the snapshot capability flags and reports missing coverage as warnings. Capability flags are intentionally granular: broad domains such as `network`, `edge`, `compute`, and `data` are supported by service-level flags such as `security_groups`, `elbv2`, `cloudfront`, `api_gateway`, `ec2`, `ecs`, `lambda`, `eks`, `s3`, `rds`, `kms`, and `secrets_manager`. This lets partial-permission snapshots remain useful while making missing context explicit.
 
 ## Snapshot schema
 
-Cloud context snapshots use schema version 2. The supported JSON Schema is published in [`schemas/cloud-context.schema.json`](../schemas/cloud-context.schema.json). Version 1 snapshots are not accepted; regenerate old snapshots with the current CLI or inventory job.
+Cloud context snapshots use schema version 2. The supported JSON Schema is published in [`schemas/cloud-context.schema.json`](../schemas/cloud-context.schema.json). Version 1 snapshots are not accepted; create a new snapshot with the current CLI or inventory job.
 
 ```json
 {
@@ -150,11 +152,11 @@ Cloud context snapshots use schema version 2. The supported JSON Schema is publi
 
 Top-level resource domains are:
 
-* `network`: VPCs, subnets, route tables, security groups, route targets, and related reachability inventory.
-* `iam`: principals, trust policies, permission policies, role attachments, and high-signal permission summaries.
-* `data`: RDS, S3, Secrets Manager, KMS, OpenSearch, ElastiCache, and other sensitive data assets.
-* `compute`: ECS, EKS, Lambda, EC2, task definitions, instance profiles, and workload identity.
-* `edge`: ALB/NLB, CloudFront, API Gateway, public DNS, public IPs, and other entrypoints.
+- `network`: VPCs, subnets, route tables, security groups, route targets, and related reachability inventory.
+- `iam`: principals, trust policies, permission policies, role attachments, and high-signal permission summaries.
+- `data`: RDS, S3, Secrets Manager, KMS, OpenSearch, ElastiCache, and other sensitive data assets.
+- `compute`: ECS, EKS, Lambda, EC2, task definitions, instance profiles, and workload identity.
+- `edge`: ALB/NLB, CloudFront, API Gateway, public DNS, public IPs, and other entrypoints.
 
 Resource entries are keyed by Terraform/OpenTofu address when available. Enrichment also indexes `terraform_address`, `arn`, `id`, selected known attributes such as `name` and `resource_id`, and selected tags such as `Name` and `terraform_address`. Sensitive tag values, sensitive-looking map values, drift values, and relationship source values are redacted on load/write.
 
@@ -174,17 +176,17 @@ Relationships use a uniform edge shape:
 
 Cloud context can downgrade expected public resources when compensating controls are present, such as:
 
-* `expected_public_tls_edge`
-* `edge_tls`
-* `waf`
-* `cloudfront_oac`
-* `ip_allowlist`
+- `expected_public_tls_edge`
+- `edge_tls`
+- `waf`
+- `cloudfront_oac`
+- `ip_allowlist`
 
 Cloud context can upgrade findings when actual state shows stronger risk, such as:
 
-* sensitive data relationships
-* drift between plan assumptions and actual cloud state
-* disabled encryption in actual state
-* disabled S3 public access block in actual state
+- sensitive data relationships
+- drift between plan assumptions and actual cloud state
+- disabled encryption in actual state
+- disabled S3 public access block in actual state
 
 Context evidence is added to findings with `type: cloud_context`. API failures or missing permissions are diagnostics and do not create false confidence.

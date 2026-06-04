@@ -22,15 +22,15 @@ flowchart LR
 
 ## Major Components
 
-| Component | Role |
-| --- | --- |
-| Plan ingestion | Reads Terraform/OpenTofu JSON plans and redacts sensitive values before analysis. |
-| Normalized model | Represents changed resources, actions, evidence, findings, and deploy decisions consistently across output formats. |
-| Graph analysis | Builds resource relationships used for exposure, blast-radius, and attack-path reasoning. |
-| Rule evaluation | Applies built-in AWS rules and optional custom YAML/Rego policies. |
-| Policy evaluation | Converts findings, baselines, waivers, and confidence thresholds into allow, warn, block, or manual-review outcomes. |
-| Review Intelligence | Produces Security Impact Statements, PR/MR comments, graph evidence, and attack-path summaries. |
-| Output rendering | Emits console, JSON, Markdown, SARIF, JUnit, GitHub, GitLab, visualization, and audit-bundle artifacts. |
+| Component           | Role                                                                                                                 |
+| ------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Plan ingestion      | Reads Terraform/OpenTofu JSON plans and redacts sensitive values before analysis.                                    |
+| Normalized model    | Represents changed resources, actions, evidence, findings, and deploy decisions consistently across output formats.  |
+| Graph analysis      | Builds resource relationships used for exposure, blast-radius, and attack-path reasoning.                            |
+| Rule evaluation     | Applies built-in AWS rules and optional custom YAML/Rego policies.                                                   |
+| Policy evaluation   | Converts findings, baselines, waivers, and confidence thresholds into allow, warn, block, or manual-review outcomes. |
+| Review Intelligence | Produces Security Impact Statements, PR/MR comments, graph evidence, and attack-path summaries.                      |
+| Output rendering    | Emits console, JSON, Markdown, SARIF, JUnit, GitHub, GitLab, visualization, and audit-bundle artifacts.              |
 
 ## Determinism
 

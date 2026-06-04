@@ -64,19 +64,21 @@ Paths are resolved relative to the manifest file. The parser is strict: unknown 
 
 The repository includes a sanitized runnable corpus at [examples/risk-tests](../examples/risk-tests). It covers expected public edges, public admin exposure, public-to-sensitive graph paths, IAM escalation paths, baseline movement, waiver scoping, and cloud-context severity changes.
 
+For copy-pasteable review examples built from the same sanitized fixtures, see [review scenario demos](../examples/demo-review-scenarios).
+
 ## Case Fields
 
 Each test case supports:
 
-| Field | Required | Meaning |
-| --- | --- | --- |
-| `name` | yes | Stable test name shown in CLI, JSON, and JUnit output. |
-| `plan` | yes | Terraform/OpenTofu plan JSON fixture. |
-| `config` | no | ChangeGate policy file for this test. Policy-local `baseline.file` and `waivers.file` references are resolved relative to that policy file. |
-| `baseline` | no | Baseline file passed as `--baseline` for this test. |
-| `new_only` | no | Enables `--new-only`; requires `baseline`. |
-| `context_file` | no | Offline cloud context snapshot passed as `--context-file`. |
-| `expect` | yes | Assertions for the scan result. |
+| Field          | Required | Meaning                                                                                                                                     |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`         | yes      | Stable test name shown in CLI, JSON, and JUnit output.                                                                                      |
+| `plan`         | yes      | Terraform/OpenTofu plan JSON fixture.                                                                                                       |
+| `config`       | no       | ChangeGate policy file for this test. Policy-local `baseline.file` and `waivers.file` references are resolved relative to that policy file. |
+| `baseline`     | no       | Baseline file passed as `--baseline` for this test.                                                                                         |
+| `new_only`     | no       | Enables `--new-only`; requires `baseline`.                                                                                                  |
+| `context_file` | no       | Offline cloud context snapshot passed as `--context-file`.                                                                                  |
+| `expect`       | yes      | Assertions for the scan result.                                                                                                             |
 
 ## Output
 
@@ -101,30 +103,30 @@ Use `--format json` for machine-readable CI output. Use `--format junit --out ch
 
 Supported assertions:
 
-| Field | Meaning |
-| --- | --- |
-| `decision` | Expected deployment decision: `allow`, `warn`, or `block`. |
-| `findings.include` | Rule IDs that must appear in the scan report. |
-| `findings.exclude` | Rule IDs that must not appear in the scan report. |
-| `severity_count` | Exact finding count by severity. |
-| `attack_paths.include` / `exclude` | Attack path types such as `public_to_sensitive_data` or `iam_privilege_escalation`. |
-| `graph_paths.include` / `exclude` | Graph path fragments that must or must not appear in graph path evidence. |
-| `risk_movement` | Exact baseline movement counters, including `new_high`, `existing_worsened`, and waiver counters. |
-| `waivers.applied` | Rule IDs that must have an active waiver suppression. |
-| `waivers.not_applied` | Rule IDs that must not have an active waiver suppression. |
-| `snapshot` | Stable JSON snapshot path for the full scan report. |
+| Field                              | Meaning                                                                                           |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `decision`                         | Expected deployment decision: `allow`, `warn`, or `block`.                                        |
+| `findings.include`                 | Rule IDs that must appear in the scan report.                                                     |
+| `findings.exclude`                 | Rule IDs that must not appear in the scan report.                                                 |
+| `severity_count`                   | Exact finding count by severity.                                                                  |
+| `attack_paths.include` / `exclude` | Attack path types such as `public_to_sensitive_data` or `iam_privilege_escalation`.               |
+| `graph_paths.include` / `exclude`  | Graph path fragments that must or must not appear in graph path evidence.                         |
+| `risk_movement`                    | Exact baseline movement counters, including `new_high`, `existing_worsened`, and waiver counters. |
+| `waivers.applied`                  | Rule IDs that must have an active waiver suppression.                                             |
+| `waivers.not_applied`              | Rule IDs that must not have an active waiver suppression.                                         |
+| `snapshot`                         | Stable JSON snapshot path for the full scan report.                                               |
 
 ## Discovery
 
 Directory discovery recursively finds:
 
-* `changegate-test.yaml`
-* `changegate-test.yml`
-* `changegate-tests.yaml`
-* `changegate-tests.yml`
-* `.changegate-test.yaml`
-* `.changegate-tests.yaml`
-* `*.changegate-test.yaml`
-* `*.changegate-test.yml`
+- `changegate-test.yaml`
+- `changegate-test.yml`
+- `changegate-tests.yaml`
+- `changegate-tests.yml`
+- `.changegate-test.yaml`
+- `.changegate-tests.yaml`
+- `*.changegate-test.yaml`
+- `*.changegate-test.yml`
 
 Discovery skips `.git`, `.terraform`, `node_modules`, and `vendor`.

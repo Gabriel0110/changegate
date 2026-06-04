@@ -11,17 +11,17 @@ changegate explain AWS_PUBLIC_ADMIN_SERVICE --json
 
 The output includes:
 
-* what happened
-* why it matters
-* recommended fix
-* why the fix works
-* fix confidence
-* effort and downtime-risk estimates
-* whether the change is potentially destructive
-* fix options with operational tradeoffs
-* Terraform/OpenTofu resource and attribute hints
-* advisory patch snippets when safe enough to suggest
-* severity-specific next steps
+- what happened
+- why it matters
+- recommended fix
+- why the fix works
+- fix confidence
+- effort and downtime-risk estimates
+- whether the change is potentially destructive
+- fix options with operational tradeoffs
+- Terraform/OpenTofu resource and attribute hints
+- advisory patch snippets when safe enough to suggest
+- severity-specific next steps
 
 ## Explain a finding from a report
 

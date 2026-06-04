@@ -1,0 +1,47 @@
+{
+  "version": "2.1.0",
+  "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "example-sarif-scanner",
+          "rules": [
+            {
+              "id": "CG_PUBLIC_WEB_EDGE_REVIEW",
+              "name": "Public web edge should be reviewed",
+              "properties": {
+                "category": "public"
+              }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CG_PUBLIC_WEB_EDGE_REVIEW",
+          "level": "warning",
+          "message": {
+            "text": "Public web load balancer should have compensating controls."
+          },
+          "properties": {
+            "resource": "aws_lb.web",
+            "severity": "MEDIUM"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "main.tf"
+                },
+                "region": {
+                  "startLine": 12
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

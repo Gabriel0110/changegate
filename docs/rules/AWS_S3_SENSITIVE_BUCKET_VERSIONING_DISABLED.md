@@ -1,14 +1,14 @@
 # Sensitive S3 bucket versioning disabled
 
-| Field | Value |
-| --- | --- |
-| Rule ID | `AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED` |
-| Category | `sensitive_data` |
-| Severity | `high` |
-| Confidence | `high` |
-| Status | `stable` |
-| Version | `0.1.0` |
-| Policy pack | `aws-core` |
+| Field       | Value                                         |
+| ----------- | --------------------------------------------- |
+| Rule ID     | `AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED` |
+| Category    | `sensitive_data`                              |
+| Severity    | `high`                                        |
+| Confidence  | `high`                                        |
+| Status      | `stable`                                      |
+| Version     | `0.1.0`                                       |
+| Policy pack | `aws-core`                                    |
 
 ## What It Detects
 

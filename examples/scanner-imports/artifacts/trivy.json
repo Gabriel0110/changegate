@@ -1,0 +1,19 @@
+{
+  "Results": [
+    {
+      "Target": "main.tf",
+      "Misconfigurations": [
+        {
+          "ID": "AVD-AWS-0086",
+          "Title": "S3 bucket policy allows public access",
+          "Description": "Bucket policy allows public object reads.",
+          "Severity": "HIGH",
+          "CauseMetadata": {
+            "Resource": "aws_s3_bucket_policy.assets",
+            "StartLine": 3
+          }
+        }
+      ]
+    }
+  ]
+}

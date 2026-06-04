@@ -27,19 +27,17 @@ changegate graph path \
 
 The demo also includes pre-generated outputs in [outputs](outputs):
 
-| Artifact | Purpose |
-| --- | --- |
-| [scan.md](outputs/scan.md) | Full Markdown scan report with findings, evidence, remediation, and fingerprints. |
-| [security-impact.md](outputs/security-impact.md) | Review-friendly Security Impact Statement. |
-| [pr-comment.md](outputs/pr-comment.md) | Condensed PR/MR comment body. |
-| [attack-paths.md](outputs/attack-paths.md) | Deterministic attack-path evidence. |
-| [graph-path.mmd](outputs/graph-path.mmd) | Mermaid graph path source for docs and markdown systems. |
-| [graph-path.html](outputs/graph-path.html) | Self-contained interactive graph visualization. |
-| [attack-paths.html](outputs/attack-paths.html) | Self-contained interactive attack-path visualization. |
+| Artifact                                         | Purpose                                                                           |
+| ------------------------------------------------ | --------------------------------------------------------------------------------- |
+| [scan.md](outputs/scan.md)                       | Full Markdown scan report with findings, evidence, remediation, and fingerprints. |
+| [security-impact.md](outputs/security-impact.md) | Review-friendly Security Impact Statement.                                        |
+| [pr-comment.md](outputs/pr-comment.md)           | Condensed PR/MR comment body.                                                     |
+| [attack-paths.md](outputs/attack-paths.md)       | Deterministic attack-path evidence.                                               |
+| [graph-path.mmd](outputs/graph-path.mmd)         | Mermaid graph path source for docs and markdown systems.                          |
+| [graph-path.html](outputs/graph-path.html)       | Self-contained interactive graph visualization.                                   |
+| [attack-paths.html](outputs/attack-paths.html)   | Self-contained interactive attack-path visualization.                             |
 
-The rendered SVG used by the README is [docs/assets/demo/public-admin-path.svg](../../docs/assets/demo/public-admin-path.svg).
-
-## Regenerate Outputs
+## Generate Outputs Locally
 
 ```bash
 changegate scan --plan examples/demo-public-admin-path/tfplan.json --format markdown --out examples/demo-public-admin-path/outputs/scan.md || true
@@ -52,5 +50,4 @@ changegate attack-paths visualize --plan examples/demo-public-admin-path/tfplan.
 changegate graph render --plan examples/demo-public-admin-path/tfplan.json --view path --from aws_lb.admin --to aws_db_instance.customer --render-format svg --out docs/assets/demo/public-admin-path.svg
 ```
 
-The blocking commands intentionally return exit code `1`; `|| true` keeps regeneration scripts moving while preserving the real deploy-gate behavior.
-
+The blocking commands intentionally return exit code `1`; `|| true` lets you create every artifact in one shell session while preserving the real deploy-gate behavior.

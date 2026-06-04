@@ -93,10 +93,10 @@ sensitive_assets:
 
 The selectors are additive. A resource is classified as a sensitive data asset when any selector matches:
 
-* `resource_addresses` matches a Terraform/OpenTofu resource address exactly.
-* `resource_types` matches the Terraform/OpenTofu resource type exactly.
-* `name_contains` matches a case-insensitive substring in the resource address, name, or type.
-* `tags` matches a tag key and value; an empty value matches the presence of the tag key.
+- `resource_addresses` matches a Terraform/OpenTofu resource address exactly.
+- `resource_types` matches the Terraform/OpenTofu resource type exactly.
+- `name_contains` matches a case-insensitive substring in the resource address, name, or type.
+- `tags` matches a tag key and value; an empty value matches the presence of the tag key.
 
 Built-in sensitivity tag defaults also classify otherwise-unknown resources when tags such as `data=sensitive`, `classification=restricted`, `sensitivity=confidential`, or `confidentiality=pii` are present. Generic environment tags such as `env=prod` do not make a resource sensitive by themselves.
 

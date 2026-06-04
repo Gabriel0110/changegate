@@ -4,28 +4,28 @@ Generic IaC scanners are useful. ChangeGate is not trying to replace every broad
 
 ## Positioning
 
-| Tool type | Strength | ChangeGate difference |
-| --- | --- | --- |
-| Checkov-style IaC scanning | Broad static policy coverage across IaC files and frameworks | ChangeGate focuses on the concrete plan, graph context, risk movement, and deployment decision. |
-| Trivy-style security scanning | Broad vulnerability, container, SBOM, secret, and IaC coverage | ChangeGate focuses on infrastructure change risk before apply and can import external findings as evidence. |
-| KICS-style query scanning | Large query library for common IaC misconfiguration patterns | ChangeGate focuses on high-confidence blocking, waiver/baseline governance, and review-ready blast-radius evidence. |
-| CSPM/CNAPP platforms | Runtime cloud inventory, posture, exposure, identity, and threat context | ChangeGate is local and CI-first. Optional cloud context can enrich plan review, but ChangeGate is not a runtime platform. |
+| Tool type                     | Strength                                                                 | ChangeGate difference                                                                                                      |
+| ----------------------------- | ------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------- |
+| Checkov-style IaC scanning    | Broad static policy coverage across IaC files and frameworks             | ChangeGate focuses on the concrete plan, graph context, risk movement, and deployment decision.                            |
+| Trivy-style security scanning | Broad vulnerability, container, SBOM, secret, and IaC coverage           | ChangeGate focuses on infrastructure change risk before apply and can import external findings as evidence.                |
+| KICS-style query scanning     | Large query library for common IaC misconfiguration patterns             | ChangeGate focuses on high-confidence blocking, waiver/baseline governance, and review-ready blast-radius evidence.        |
+| CSPM/CNAPP platforms          | Runtime cloud inventory, posture, exposure, identity, and threat context | ChangeGate is local and CI-first. Optional cloud context can enrich plan review, but ChangeGate is not a runtime platform. |
 
 ## Capability Comparison
 
-| Capability | Broad IaC scanner | ChangeGate |
-| --- | --- | --- |
-| Static Terraform source checks | Yes | Not the primary path |
-| Terraform/OpenTofu plan-aware actions | Sometimes | Yes |
-| Graph-aware resource relationships | Sometimes limited | Yes |
-| Public-to-sensitive path evidence | Usually limited | Built in for supported AWS paths |
-| IAM escalation path evidence | Usually rule-oriented | Built in for supported deterministic paths |
-| One CI deploy decision | Usually no | Yes |
-| Baselines and new-risk-only adoption | Tool-specific | Built in |
-| Expiring waiver governance | Tool-specific | Built in |
-| Audit evidence bundle | Usually separate | Built in |
-| Offline default | Varies | Yes |
-| External scanner findings | Native output | Import and correlate |
+| Capability                            | Broad IaC scanner     | ChangeGate                                 |
+| ------------------------------------- | --------------------- | ------------------------------------------ |
+| Static Terraform source checks        | Yes                   | Not the primary path                       |
+| Terraform/OpenTofu plan-aware actions | Sometimes             | Yes                                        |
+| Graph-aware resource relationships    | Sometimes limited     | Yes                                        |
+| Public-to-sensitive path evidence     | Usually limited       | Built in for supported AWS paths           |
+| IAM escalation path evidence          | Usually rule-oriented | Built in for supported deterministic paths |
+| One CI deploy decision                | Usually no            | Yes                                        |
+| Baselines and new-risk-only adoption  | Tool-specific         | Built in                                   |
+| Expiring waiver governance            | Tool-specific         | Built in                                   |
+| Audit evidence bundle                 | Usually separate      | Built in                                   |
+| Offline default                       | Varies                | Yes                                        |
+| External scanner findings             | Native output         | Import and correlate                       |
 
 ## When To Use Both
 

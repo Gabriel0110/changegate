@@ -4,6 +4,7 @@ Decision: BLOCK
 Review required: Yes
 
 This change introduces:
+
 - 4 public entrypoints
 - 5 sensitive assets touched
 - 0 IAM permission changes
@@ -26,21 +27,21 @@ This change introduces:
 
 ## Risk Movement
 
-| Metric | Count |
-| --- | ---: |
-| New critical risks | 1 |
-| New high risks | 10 |
-| New medium risks | 0 |
-| Existing unchanged risks | 0 |
-| Existing worsened risks | 0 |
-| Existing improved risks | 0 |
-| Resolved high risks | 0 |
+| Metric                   | Count |
+| ------------------------ | ----: |
+| New critical risks       |     1 |
+| New high risks           |    10 |
+| New medium risks         |     0 |
+| Existing unchanged risks |     0 |
+| Existing worsened risks  |     0 |
+| Existing improved risks  |     0 |
+| Resolved high risks      |     0 |
 
 ## Top Graph Paths
 
 - `aws_db_instance.customer`: internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
-- `aws_ecs_service.admin`: 
-- `aws_ecs_service.admin`: 
+- `aws_ecs_service.admin`:
+- `aws_ecs_service.admin`:
 - `aws_ecs_service.admin`: aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
 - `aws_ecs_service.admin`: aws_db_instance.customer
 

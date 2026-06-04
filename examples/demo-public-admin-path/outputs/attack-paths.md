@@ -15,6 +15,7 @@
 - Target: `aws_db_instance.customer`
 
 Affected resources:
+
 - `aws_db_instance.customer` `sensitive_asset` `aws_db_instance`
 - `aws_ecs_service.admin` `intermediate` `aws_ecs_service`
 - `aws_lb.admin` `entrypoint` `aws_lb`
@@ -24,6 +25,7 @@ Affected resources:
 - `internet` `intermediate`
 
 Steps:
+
 1. `internet` -> `aws_lb.admin` via `has_public_access` (`plan/high`): load balancer is internet exposed
 1. `aws_lb.admin` -> `aws_lb_listener.admin` via `routes_to` (`plan/high`): load balancer routes to listener
 1. `aws_lb_listener.admin` -> `aws_lb_target_group.admin` via `routes_to` (`plan/high`): listener forwards to target group
@@ -32,8 +34,10 @@ Steps:
 1. `aws_security_group.public` -> `aws_db_instance.customer` via `allows_ingress` (`plan/high`): security group applies to resource
 
 Mitigations:
+
 - Remove the public route to the workload or restrict ingress to approved CIDRs.
 - Segment the workload from sensitive data stores and secrets.
 
 References:
+
 - docs/attack-paths.md
