@@ -76,6 +76,20 @@ func RenderMarkdown(statement Statement) string {
 	fmt.Fprintf(&b, "- %d data path change%s\n", statement.Summary.DataPathChanges, plural(statement.Summary.DataPathChanges))
 	fmt.Fprintf(&b, "- %d active waiver%s\n\n", statement.Waivers.Active, plural(statement.Waivers.Active))
 
+	if len(statement.RiskClusters) > 0 {
+		fmt.Fprintf(&b, "## Risk Clusters\n\n")
+		for _, cluster := range statement.RiskClusters {
+			fmt.Fprintf(&b, "- `%s/%s` %s\n", cluster.Severity, cluster.Confidence, cluster.Title)
+			fmt.Fprintf(&b, "  - Decision: `%s`\n", cluster.Decision)
+			fmt.Fprintf(&b, "  - Affected resources: %d\n", len(cluster.AffectedResources))
+			fmt.Fprintf(&b, "  - Supporting findings: %d\n", len(cluster.SupportingFindings))
+			if cluster.RemediationSummary != "" {
+				fmt.Fprintf(&b, "  - Primary fix: %s\n", cluster.RemediationSummary)
+			}
+		}
+		b.WriteString("\n")
+	}
+
 	fmt.Fprintf(&b, "## Risk Movement\n\n")
 	fmt.Fprintf(&b, "| Metric | Count |\n| --- | ---: |\n")
 	fmt.Fprintf(&b, "| New critical risks | %d |\n", statement.RiskMovement.NewCritical)
@@ -191,6 +205,7 @@ type Statement struct {
 	DecisionReasons   []model.DecisionReason     `json:"decision_reasons"`
 	Summary           Summary                    `json:"summary"`
 	RiskMovement      RiskMovement               `json:"risk_movement"`
+	RiskClusters      []output.RiskCluster       `json:"risk_clusters,omitempty"`
 	TopFindings       []model.Finding            `json:"top_findings,omitempty"`
 	TopGraphPaths     []GraphPathSummary         `json:"top_graph_paths,omitempty"`
 	AttackPaths       []AttackPathSummary        `json:"attack_paths,omitempty"`
@@ -312,6 +327,7 @@ func Build(report output.Report, opts Options) (Statement, error) {
 		DecisionReasons: sortedDecisionReasons(report.Reasons),
 		Summary:         buildSummary(report, findings, opts),
 		RiskMovement:    buildRiskMovement(report, findings),
+		RiskClusters:    output.BuildRiskClusters(findings),
 		TopFindings:     limitFindings(findings, opts.TopFindingsLimit),
 		TopGraphPaths:   limitGraphPaths(buildGraphPaths(findings), opts.TopGraphPathsLimit),
 		AttackPaths:     limitAttackPaths(buildAttackPaths(findings, report.Decision), opts.AttackPathsLimit),

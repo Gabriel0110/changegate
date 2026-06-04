@@ -92,6 +92,14 @@ curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGAT
 
 The installer verifies `checksums.txt` and refuses checksum mismatches. Set `CHANGEGATE_VERSION` to another release tag when upgrading. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
 
+To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
+
+```bash
+export CHANGEGATE_VERSION=v0.2.0
+export CHANGEGATE_VERIFY_SIG=true
+curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
+```
+
 Development build:
 
 ```bash
@@ -130,6 +138,37 @@ Exit codes are stable:
 | `4` | Policy/configuration error. |
 | `5` | Cloud-context error. |
 | `10` | Internal error. |
+
+## Repository Setup
+
+Use `changegate init` when you want ChangeGate to create starter files for a repository instead of wiring everything by hand:
+
+```bash
+changegate init --dry-run
+changegate init --github-actions --audit-mode
+```
+
+The initializer writes safe audit-mode defaults so teams can collect signal before enforcing block decisions. It never overwrites existing files unless `--force` is passed.
+
+Common options:
+
+| Option | Creates |
+| --- | --- |
+| `--github-actions` | `.github/workflows/changegate.yml` with audit-mode scan, PR review comment, SARIF upload, and audit bundle upload. |
+| `--gitlab-ci` | `.gitlab-ci.yml` with audit-mode scan, GitLab Code Quality output, MR note, and audit bundle artifact. |
+| `--baseline` | `.changegate/README.md` with baseline creation commands for existing-risk adoption. |
+| `--waivers` | `.changegate/waivers.yaml` starter file for governed exceptions. |
+| `--audit-mode` | `.changegate.yaml` configured for evidence collection before enforcement. |
+| `--dir PATH` | Writes starter files into a specific repository directory. |
+| `--force` | Allows overwriting generated files after review. |
+
+Typical rollout:
+
+```bash
+changegate init --github-actions --baseline --waivers --audit-mode
+```
+
+After reviewing the generated files, commit them with your Terraform/OpenTofu root conventions and adjust paths as needed.
 
 ## Output Formats
 
@@ -267,11 +306,15 @@ changegate baseline create --plan tfplan.json --out .changegate/baseline.json
 changegate scan --plan tfplan.json --baseline .changegate/baseline.json --new-only
 ```
 
+`changegate init --baseline --waivers --audit-mode` can scaffold the repository files used by this rollout path.
+
 See [audit rollout](docs/audit-rollout.md), [baselines](docs/baselines.md), and [waivers](docs/waivers.md).
 
 ## Configuration
 
 ChangeGate works with no config, but `.changegate.yaml` can tune policy, modes, rule packs, waivers, baselines, custom docs links, custom YAML rules, and custom Rego policies.
+
+Run `changegate init --dry-run` to preview a starter `.changegate.yaml` before writing it.
 
 ```yaml
 mode: block
@@ -296,7 +339,7 @@ See [policy config](docs/policy-config.md), [config schema](docs/config-schema.m
 
 Want to see ChangeGate output before wiring it into your own pipeline? Start with the [public admin path demo](examples/demo-public-admin-path), which includes a sanitized plan fixture, scan output, PR/MR comment output, attack-path output, and graph visualizations.
 
-For additional runnable fixtures, see [verification examples](docs/validation.md) and [risk tests](docs/risk-tests.md).
+For additional runnable fixtures and validation coverage, see the [validation matrix](docs/validation.md) and [risk tests](docs/risk-tests.md).
 
 ## Project Status
 
@@ -311,7 +354,7 @@ Start here:
 * [Start here](docs/start-here.md)
 * [Five-minute quickstart](docs/quickstart.md)
 * [Rule reference](docs/rules/README.md)
-* [Verification examples](docs/validation.md)
+* [Validation matrix](docs/validation.md)
 * [GitHub Actions](docs/github-actions.md)
 * [CI adoption](docs/ci-adoption.md)
 * [Troubleshooting](docs/troubleshooting.md)

@@ -91,6 +91,10 @@
       "type": "array",
       "items": { "$ref": "#/$defs/decision_reason" }
     },
+    "risk_clusters": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/risk_cluster" }
+    },
     "findings": {
       "type": "array",
       "items": { "$ref": "#/$defs/finding" }
@@ -128,6 +132,48 @@
         "policy": { "type": "string" },
         "code": { "type": "string" },
         "reason": { "type": "string" }
+      }
+    },
+    "risk_cluster": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "decision",
+        "severity",
+        "confidence",
+        "category",
+        "affected_resources",
+        "supporting_findings",
+        "rule_ids"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "decision": { "enum": ["allow", "warn", "block", "error"] },
+        "severity": { "enum": ["critical", "high", "medium", "low", "info"] },
+        "confidence": { "enum": ["high", "medium", "low", "unknown"] },
+        "category": { "type": "string" },
+        "affected_resources": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "supporting_findings": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "rule_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "reason_codes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "primary_finding_id": { "type": "string" },
+        "remediation_summary": { "type": "string" }
       }
     },
     "rule_summary": {

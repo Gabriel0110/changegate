@@ -23,13 +23,16 @@ Detects public resources that can reach sensitive data stores through the graph.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+This is topology risk, not a missing storage control. A public-facing resource can reach a sensitive datastore, which increases the chance that an exposed workload becomes a data exposure path.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Remove direct routing from public workloads to sensitive datastores.
+- Allow datastore access only from reviewed private workload security groups.
+- Treat automatic patching as unsafe for this rule; the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.
 
 ## References
 
-- No external references.
+- [Blast-Radius Graph](../graph.md)
+- [Attack Paths](../attack-paths.md)

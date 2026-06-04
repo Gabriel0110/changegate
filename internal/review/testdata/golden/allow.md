@@ -24,7 +24,7 @@ No blocking infrastructure risks were detected for this change.
 - Existing improved risks: 0
 - Resolved critical/high risks: 1
 
-### Top Findings
+### Finding Details
 
 No findings.
 

@@ -45,6 +45,94 @@
     "waived_active": 1,
     "waived_expired": 0
   },
+  "risk_clusters": [
+    {
+      "id": "RISK-583F5E01BB2B4A7C",
+      "title": "IAM principal can reach elevated access",
+      "decision": "block",
+      "severity": "high",
+      "confidence": "high",
+      "category": "privilege_escalation",
+      "affected_resources": [
+        "aws_iam_role.deploy"
+      ],
+      "supporting_findings": [
+        "CHG-56C54BDF81A5F874"
+      ],
+      "rule_ids": [
+        "AWS_PASSROLE_WITH_COMPUTE_MUTATION"
+      ],
+      "reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "primary_finding_id": "CHG-56C54BDF81A5F874"
+    },
+    {
+      "id": "RISK-24EFE14A71A43BEA",
+      "title": "Public admin service reaches sensitive data",
+      "description": "The admin load balancer can reach a sensitive datastore.",
+      "decision": "block",
+      "severity": "high",
+      "confidence": "high",
+      "category": "sensitive_data",
+      "affected_resources": [
+        "aws_lb.admin"
+      ],
+      "supporting_findings": [
+        "CHG-AB70D31821075A45"
+      ],
+      "rule_ids": [
+        "AWS_PUBLIC_ADMIN_SERVICE"
+      ],
+      "reason_codes": [
+        "MEETS_BLOCK_THRESHOLD"
+      ],
+      "primary_finding_id": "CHG-AB70D31821075A45"
+    },
+    {
+      "id": "RISK-97957D9E5419A3D1",
+      "title": "AWS_PUBLIC_RDS_INSTANCE",
+      "decision": "allow",
+      "severity": "high",
+      "confidence": "high",
+      "category": "sensitive_data",
+      "affected_resources": [
+        "aws_db_instance.legacy"
+      ],
+      "supporting_findings": [
+        "CHG-AA9FDFEEE6C8C6B9"
+      ],
+      "rule_ids": [
+        "AWS_PUBLIC_RDS_INSTANCE"
+      ],
+      "reason_codes": [
+        "SUPPRESSED"
+      ],
+      "primary_finding_id": "CHG-AA9FDFEEE6C8C6B9"
+    },
+    {
+      "id": "RISK-AFE4A415C56B952D",
+      "title": "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD",
+      "decision": "allow",
+      "severity": "medium",
+      "confidence": "high",
+      "category": "sensitive_data",
+      "affected_resources": [
+        "aws_s3_bucket.logs"
+      ],
+      "supporting_findings": [
+        "CHG-3ABD547483CE2CE4"
+      ],
+      "rule_ids": [
+        "AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD"
+      ],
+      "reason_codes": [
+        "EXISTING_RISK",
+        "SUPPRESSED"
+      ],
+      "primary_finding_id": "CHG-3ABD547483CE2CE4"
+    }
+  ],
   "top_findings": [
     {
       "id": "CHG-56C54BDF81A5F874",

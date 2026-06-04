@@ -11,6 +11,7 @@ import (
 
 	"github.com/Gabriel0110/changegate/internal/impact"
 	"github.com/Gabriel0110/changegate/internal/model"
+	"github.com/Gabriel0110/changegate/internal/output"
 )
 
 var unsafeMarkdownLinkPattern = regexp.MustCompile(`(?i)\]\(\s*(javascript|data|vbscript):[^)]*\)`)
@@ -103,6 +104,7 @@ func renderFullComment(statement impact.Statement, opts CommentOptions) string {
 	})
 
 	writeRiskMovement(&b, statement)
+	writeRiskClusters(&b, statement)
 	writeTopFindings(&b, statement, opts)
 	writeGraphPaths(&b, statement, opts)
 	writeAttackPaths(&b, statement, opts)
@@ -121,18 +123,18 @@ func renderCompactComment(statement impact.Statement, opts CommentOptions) strin
 	fmt.Fprintf(&b, "## ChangeGate Infrastructure Review: %s\n\n", strings.ToUpper(string(statement.Decision)))
 	fmt.Fprintf(&b, "%s\n\n", summarySentence(statement))
 	writeBullets(&b, []string{
-		fmt.Sprintf("Blocking findings shown: %d of %d total top findings", min(len(statement.TopFindings), 3), len(statement.TopFindings)),
+		fmt.Sprintf("Risk clusters shown: %d of %d", min(len(statement.RiskClusters), 3), len(statement.RiskClusters)),
 		fmt.Sprintf("New critical/high risks: %d", statement.RiskMovement.NewCritical+statement.RiskMovement.NewHigh),
 		fmt.Sprintf("Existing worsened risks: %d", statement.RiskMovement.ExistingWorsened),
 		fmt.Sprintf("Active waivers: %d", statement.Waivers.Active),
 	})
-	if len(statement.TopFindings) > 0 {
-		b.WriteString("### Top Findings\n\n")
-		for index, finding := range statement.TopFindings {
+	if len(statementRiskClusters(statement)) > 0 {
+		b.WriteString("### Risk Clusters\n\n")
+		for index, cluster := range statementRiskClusters(statement) {
 			if index >= 3 {
 				break
 			}
-			fmt.Fprintf(&b, "- `%s` `%s/%s` %s on `%s`\n", finding.RuleID, finding.Severity, finding.Confidence, safeInline(finding.Title), safeInline(finding.ResourceAddress))
+			fmt.Fprintf(&b, "- `%s/%s` %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, safeInline(cluster.Title), len(cluster.AffectedResources), len(cluster.SupportingFindings))
 		}
 		b.WriteString("\n")
 	}
@@ -143,14 +145,14 @@ func renderCompactComment(statement impact.Statement, opts CommentOptions) strin
 func summarySentence(statement impact.Statement) string {
 	switch statement.Decision {
 	case model.DecisionAllow:
-		if len(statement.TopFindings) == 0 {
+		if len(statement.TopFindings) == 0 && len(statement.RiskClusters) == 0 {
 			return "No blocking infrastructure risks were detected for this change."
 		}
-		return fmt.Sprintf("This change is allowed with %d non-blocking finding%s for reviewer awareness.", len(statement.TopFindings), plural(len(statement.TopFindings)))
+		return fmt.Sprintf("This change is allowed with %d non-blocking risk cluster%s for reviewer awareness.", len(statement.RiskClusters), plural(len(statement.RiskClusters)))
 	case model.DecisionWarn:
-		return fmt.Sprintf("This change introduces %d warning finding%s that should be reviewed before apply.", len(statement.TopFindings), plural(len(statement.TopFindings)))
+		return fmt.Sprintf("This change introduces %d warning risk cluster%s that should be reviewed before apply.", countWarningClusters(statement), plural(countWarningClusters(statement)))
 	case model.DecisionBlock:
-		return fmt.Sprintf("This change introduces %d blocking infrastructure risk%s and requires remediation or an approved waiver.", countBlockingFindings(statement.TopFindings), plural(countBlockingFindings(statement.TopFindings)))
+		return fmt.Sprintf("This change introduces %d blocking infrastructure risk cluster%s and requires remediation or an approved waiver.", countBlockingClusters(statement), plural(countBlockingClusters(statement)))
 	case model.DecisionError:
 		return "ChangeGate could not complete the review reliably. Treat this as a failed infrastructure review."
 	default:
@@ -171,12 +173,33 @@ func writeRiskMovement(b *strings.Builder, statement impact.Statement) {
 	})
 }
 
-func writeTopFindings(b *strings.Builder, statement impact.Statement, opts CommentOptions) {
-	if len(statement.TopFindings) == 0 {
-		b.WriteString("### Top Findings\n\nNo findings.\n\n")
+func writeRiskClusters(b *strings.Builder, statement impact.Statement) {
+	clusters := statementRiskClusters(statement)
+	if len(clusters) == 0 {
 		return
 	}
-	b.WriteString("### Top Findings\n\n")
+	b.WriteString("### Risk Clusters\n\n")
+	for index, cluster := range clusters {
+		fmt.Fprintf(b, "%d. `%s/%s` %s\n", index+1, cluster.Severity, cluster.Confidence, safeInline(cluster.Title))
+		fmt.Fprintf(b, "   - Decision: `%s`\n", cluster.Decision)
+		fmt.Fprintf(b, "   - Affected resources: %d\n", len(cluster.AffectedResources))
+		fmt.Fprintf(b, "   - Supporting findings: %d\n", len(cluster.SupportingFindings))
+		if len(cluster.RuleIDs) > 0 {
+			fmt.Fprintf(b, "   - Rules: `%s`\n", strings.Join(safeInlineSlice(cluster.RuleIDs), "`, `"))
+		}
+		if cluster.RemediationSummary != "" {
+			fmt.Fprintf(b, "   - Fix: %s\n", safeInline(cluster.RemediationSummary))
+		}
+	}
+	b.WriteString("\n")
+}
+
+func writeTopFindings(b *strings.Builder, statement impact.Statement, opts CommentOptions) {
+	if len(statement.TopFindings) == 0 {
+		b.WriteString("### Finding Details\n\nNo findings.\n\n")
+		return
+	}
+	b.WriteString("### Finding Details\n\n")
 	limit := boundedLimit(len(statement.TopFindings), opts.MaxFindings)
 	for index, finding := range statement.TopFindings[:limit] {
 		fmt.Fprintf(b, "%d. `%s` `%s/%s` %s on `%s`\n", index+1, finding.RuleID, finding.Severity, finding.Confidence, safeInline(finding.Title), safeInline(finding.ResourceAddress))
@@ -360,6 +383,39 @@ func countBlockingFindings(findings []model.Finding) int {
 		return len(findings)
 	}
 	return count
+}
+
+func countBlockingClusters(statement impact.Statement) int {
+	count := 0
+	for _, cluster := range statementRiskClusters(statement) {
+		if cluster.Decision == model.DecisionBlock {
+			count++
+		}
+	}
+	if count == 0 {
+		return countBlockingFindings(statement.TopFindings)
+	}
+	return count
+}
+
+func countWarningClusters(statement impact.Statement) int {
+	count := 0
+	for _, cluster := range statementRiskClusters(statement) {
+		if cluster.Decision == model.DecisionWarn {
+			count++
+		}
+	}
+	if count == 0 && len(statementRiskClusters(statement)) > 0 {
+		return len(statementRiskClusters(statement))
+	}
+	return count
+}
+
+func statementRiskClusters(statement impact.Statement) []output.RiskCluster {
+	if len(statement.RiskClusters) > 0 {
+		return statement.RiskClusters
+	}
+	return output.BuildRiskClusters(statement.TopFindings)
 }
 
 func boundedLimit(length int, limit int) int {

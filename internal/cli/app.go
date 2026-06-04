@@ -81,6 +81,7 @@ func newRootCommand(ctx context.Context, opts *options, stdin io.Reader, stdout 
 
 	root.AddCommand(newVersionCommand())
 	root.AddCommand(newDoctorCommand())
+	root.AddCommand(newInitCommand())
 	root.AddCommand(newScanCommand())
 	root.AddCommand(newImpactCommand())
 	root.AddCommand(newAttackPathsCommand())

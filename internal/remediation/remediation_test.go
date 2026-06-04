@@ -77,6 +77,7 @@ func TestAttackPathRemediationIsAdvisoryAndNonAutofix(t *testing.T) {
 
 	for _, ruleID := range []string{
 		"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+		"AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
 		"AWS_PUBLIC_ADMIN_SERVICE_PATH",
 		"AWS_IAM_PASSROLE_FUNCTION_ESCALATION",
 		"AWS_IAM_ASSUME_ADMIN_PATH",
@@ -109,6 +110,9 @@ func TestAttackPathRemediationIsAdvisoryAndNonAutofix(t *testing.T) {
 			for _, patch := range enriched.Remediation.Patches {
 				if patch.SafeToApply || !patch.ReviewNeeded {
 					t.Fatalf("%s has unsafe patch metadata: %#v", ruleID, patch)
+				}
+				if strings.Contains(patch.Snippet, "aws_s3_bucket") || strings.Contains(patch.Title, "S3") {
+					t.Fatalf("%s unexpectedly used S3-specific patch guidance: %#v", ruleID, patch)
 				}
 			}
 		})

@@ -4,6 +4,10 @@ inputs:
   version:
     description: ChangeGate release version to install, for example v0.1.0. Required to avoid floating installs.
     required: true
+  verify_sig:
+    description: Set to true to verify the signed checksum manifest with cosign during install.
+    required: false
+    default: "false"
   plan:
     description: Optional Terraform/OpenTofu plan JSON path to scan.
     required: false
@@ -12,12 +16,48 @@ inputs:
     description: Scan output format.
     required: false
     default: table
+  out:
+    description: Optional output file for the scan result.
+    required: false
+    default: ""
+  mode:
+    description: "Enforcement mode: block, warn, or audit."
+    required: false
+    default: block
   policy:
     description: Optional ChangeGate policy path.
     required: false
     default: ""
-  args:
-    description: Additional arguments passed to changegate scan.
+  audit_bundle:
+    description: Optional audit bundle zip output path.
+    required: false
+    default: ""
+  baseline:
+    description: Optional baseline file used to suppress existing findings.
+    required: false
+    default: ""
+  new_only:
+    description: Set to true to enforce only findings not present in the baseline.
+    required: false
+    default: "false"
+  changed_only:
+    description: Set to true to enforce only findings on resources changed by the plan.
+    required: false
+    default: "false"
+  context_file:
+    description: Optional offline cloud context snapshot file.
+    required: false
+    default: ""
+  cloud_context:
+    description: Optional cloud context provider, for example aws.
+    required: false
+    default: ""
+  timeout:
+    description: Optional scan timeout, for example 30s or 2m.
+    required: false
+    default: ""
+  max_findings:
+    description: Optional maximum findings to include in output; 0 includes all findings.
     required: false
     default: ""
 runs:
@@ -28,6 +68,7 @@ runs:
       env:
         CHANGEGATE_VERSION: ${{ inputs.version }}
         CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
+        CHANGEGATE_VERIFY_SIG: ${{ inputs.verify_sig }}
       run: |
         "${GITHUB_ACTION_PATH}/scripts/install.sh"
         echo "${CHANGEGATE_INSTALL_DIR}" >> "${GITHUB_PATH}"
@@ -35,14 +76,62 @@ runs:
     - name: Scan plan
       if: ${{ inputs.plan != '' }}
       shell: bash
+      env:
+        INPUT_PLAN: ${{ inputs.plan }}
+        INPUT_FORMAT: ${{ inputs.format }}
+        INPUT_OUT: ${{ inputs.out }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_POLICY: ${{ inputs.policy }}
+        INPUT_AUDIT_BUNDLE: ${{ inputs.audit_bundle }}
+        INPUT_BASELINE: ${{ inputs.baseline }}
+        INPUT_NEW_ONLY: ${{ inputs.new_only }}
+        INPUT_CHANGED_ONLY: ${{ inputs.changed_only }}
+        INPUT_CONTEXT_FILE: ${{ inputs.context_file }}
+        INPUT_CLOUD_CONTEXT: ${{ inputs.cloud_context }}
+        INPUT_TIMEOUT: ${{ inputs.timeout }}
+        INPUT_MAX_FINDINGS: ${{ inputs.max_findings }}
       run: |
-        cmd=(changegate scan --plan "${{ inputs.plan }}" --format "${{ inputs.format }}")
-        if [[ -n "${{ inputs.policy }}" ]]; then
-          cmd+=(--policy "${{ inputs.policy }}")
+        case "${INPUT_MODE}" in
+          block|warn|audit) ;;
+          *) echo "mode must be block, warn, or audit" >&2; exit 2 ;;
+        esac
+
+        cmd=(changegate scan --plan "${INPUT_PLAN}" --format "${INPUT_FORMAT}" --mode "${INPUT_MODE}")
+
+        if [[ -n "${INPUT_POLICY}" ]]; then
+          cmd+=(--policy "${INPUT_POLICY}")
         fi
-        if [[ -n "${{ inputs.args }}" ]]; then
-          # shellcheck disable=SC2206
-          extra=(${{ inputs.args }})
-          cmd+=("${extra[@]}")
+        if [[ -n "${INPUT_OUT}" ]]; then
+          cmd+=(--out "${INPUT_OUT}")
         fi
+        if [[ -n "${INPUT_AUDIT_BUNDLE}" ]]; then
+          cmd+=(--audit-bundle "${INPUT_AUDIT_BUNDLE}")
+        fi
+        if [[ -n "${INPUT_BASELINE}" ]]; then
+          cmd+=(--baseline "${INPUT_BASELINE}")
+        fi
+        if [[ -n "${INPUT_CONTEXT_FILE}" ]]; then
+          cmd+=(--context-file "${INPUT_CONTEXT_FILE}")
+        fi
+        if [[ -n "${INPUT_CLOUD_CONTEXT}" ]]; then
+          cmd+=(--cloud-context "${INPUT_CLOUD_CONTEXT}")
+        fi
+        if [[ -n "${INPUT_TIMEOUT}" ]]; then
+          cmd+=(--timeout "${INPUT_TIMEOUT}")
+        fi
+        if [[ -n "${INPUT_MAX_FINDINGS}" ]]; then
+          cmd+=(--max-findings "${INPUT_MAX_FINDINGS}")
+        fi
+
+        case "${INPUT_NEW_ONLY}" in
+          true|1|yes|YES|TRUE) cmd+=(--new-only) ;;
+          false|0|no|NO|FALSE|"") ;;
+          *) echo "new_only must be true or false" >&2; exit 2 ;;
+        esac
+        case "${INPUT_CHANGED_ONLY}" in
+          true|1|yes|YES|TRUE) cmd+=(--changed-only) ;;
+          false|0|no|NO|FALSE|"") ;;
+          *) echo "changed_only must be true or false" >&2; exit 2 ;;
+        esac
+
         "${cmd[@]}"

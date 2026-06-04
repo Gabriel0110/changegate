@@ -2,6 +2,7 @@
 
 | Metric | Value |
 | --- | ---: |
+| Risk clusters | 1 |
 | Findings | 1 |
 | Blocking | 1 |
 | Warnings | 0 |
@@ -12,9 +13,21 @@
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `aws_security_group.admin`: high severity and high confidence meets block threshold
+- `MEETS_BLOCK_THRESHOLD` `Security group opens SSH to the world`: high severity and high confidence meets block threshold
 
-## Findings
+## Risk clusters
+
+### Security group opens SSH to the world
+
+- Decision: `block`
+- Severity: `high`, confidence: `high`
+- Affected resources: 1
+- Supporting findings: 1
+- Rules: `AWS_SG_WORLD_OPEN_ADMIN_PORT`
+- Primary fix: Restrict administrative ingress to trusted CIDR ranges.
+- Resources: `aws_security_group.admin`
+
+## Finding details
 
 ### Security group opens SSH to the world
 

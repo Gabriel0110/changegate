@@ -2,6 +2,7 @@
 
 | Metric | Value |
 | --- | ---: |
+| Risk clusters | 2 |
 | Findings | 11 |
 | Blocking | 11 |
 | Warnings | 0 |
@@ -12,19 +13,32 @@
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `aws_db_instance.customer`: attack path attack-path-809c77cb5de3cd2d meets critical/high threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_db_instance.customer`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_db_instance.customer`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_ecs_service.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb_listener.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb_target_group.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_ecs_service.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb_listener.admin`: finding meets block threshold
-- `MEETS_BLOCK_THRESHOLD` `aws_lb_target_group.admin`: finding meets block threshold
+- `MEETS_BLOCK_THRESHOLD` `Production RDS resilience controls disabled`: Production RDS resilience controls disabled: 2 supporting findings across 1 affected resources
+- `MEETS_BLOCK_THRESHOLD` `Public admin service reaches sensitive data`: Public admin service reaches sensitive data: 9 supporting findings across 5 affected resources
 
-## Findings
+## Risk clusters
+
+### Public admin service reaches sensitive data
+
+- Decision: `block`
+- Severity: `critical`, confidence: `high`
+- Affected resources: 5
+- Supporting findings: 9
+- Rules: `AWS_PUBLIC_ADMIN_SERVICE`, `AWS_PUBLIC_TO_SENSITIVE_DATASTORE`, `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`
+- Primary fix: Remove the public route to the workload or restrict ingress to approved CIDRs.
+- Resources: `aws_db_instance.customer`, `aws_ecs_service.admin`, `aws_lb.admin`, `aws_lb_listener.admin`, `aws_lb_target_group.admin`
+
+### Production RDS resilience controls disabled
+
+- Decision: `block`
+- Severity: `high`, confidence: `high`
+- Affected resources: 1
+- Supporting findings: 2
+- Rules: `AWS_RDS_BACKUP_RETENTION_DISABLED_PROD`, `AWS_RDS_DELETION_PROTECTION_DISABLED_PROD`
+- Primary fix: Set backup retention to a non-zero period aligned with recovery requirements.
+- Resources: `aws_db_instance.customer`
+
+## Finding details
 
 ### Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer
 
@@ -267,26 +281,13 @@ Evidence:
 
 Remediation:
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
-- Enable access logging or equivalent audit telemetry.
-- Enable encryption with managed or customer-managed keys.
-- Restrict access to the workloads that need the data.
-- Why this works: Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.
+- Allow datastore access only from reviewed private workload security groups.
+- Remove direct routing from public workloads to sensitive datastores.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
 - Fix confidence: `medium`
 - Automatic patch: `false`
-
-Patch suggestion: Enable S3 bucket encryption
-
-```hcl
-resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "aws:kms"
-    }
-  }
-}
-```
+- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
 - Owner hints: `service=admin`
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
@@ -311,26 +312,13 @@ Evidence:
 
 Remediation:
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
-- Enable access logging or equivalent audit telemetry.
-- Enable encryption with managed or customer-managed keys.
-- Restrict access to the workloads that need the data.
-- Why this works: Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.
+- Allow datastore access only from reviewed private workload security groups.
+- Remove direct routing from public workloads to sensitive datastores.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
 - Fix confidence: `medium`
 - Automatic patch: `false`
-
-Patch suggestion: Enable S3 bucket encryption
-
-```hcl
-resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "aws:kms"
-    }
-  }
-}
-```
+- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
 - Owner hints: `service=admin`
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
@@ -354,26 +342,13 @@ Evidence:
 
 Remediation:
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
-- Enable access logging or equivalent audit telemetry.
-- Enable encryption with managed or customer-managed keys.
-- Restrict access to the workloads that need the data.
-- Why this works: Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.
+- Allow datastore access only from reviewed private workload security groups.
+- Remove direct routing from public workloads to sensitive datastores.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
 - Fix confidence: `medium`
 - Automatic patch: `false`
-
-Patch suggestion: Enable S3 bucket encryption
-
-```hcl
-resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "aws:kms"
-    }
-  }
-}
-```
+- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
@@ -395,26 +370,13 @@ Evidence:
 
 Remediation:
 - Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
-- Enable access logging or equivalent audit telemetry.
-- Enable encryption with managed or customer-managed keys.
-- Restrict access to the workloads that need the data.
-- Why this works: Encryption, logging, and scoped access preserve confidentiality and provide evidence during incident review.
+- Allow datastore access only from reviewed private workload security groups.
+- Remove direct routing from public workloads to sensitive datastores.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
 - Fix confidence: `medium`
 - Automatic patch: `false`
-
-Patch suggestion: Enable S3 bucket encryption
-
-```hcl
-resource "aws_s3_bucket_server_side_encryption_configuration" "logs" {
-  bucket = aws_s3_bucket.logs.id
-
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "aws:kms"
-    }
-  }
-}
-```
+- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
 - Next step: Attach evidence of the selected mitigation before apply.
 - Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 

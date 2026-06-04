@@ -11,6 +11,24 @@ This change introduces:
 - 1 data path change
 - 0 active waivers
 
+## Risk Clusters
+
+- `high/high` Sensitive S3 bucket logging disabled
+  - Decision: `block`
+  - Affected resources: 1
+  - Supporting findings: 1
+  - Primary fix: Enable S3 server access logging or equivalent object access audit logging.
+- `high/high` Sensitive S3 bucket versioning disabled
+  - Decision: `block`
+  - Affected resources: 1
+  - Supporting findings: 1
+  - Primary fix: Enable S3 versioning for sensitive buckets.
+- `high/high` Stateful resource replacement
+  - Decision: `block`
+  - Affected resources: 1
+  - Supporting findings: 1
+  - Primary fix: Review stateful replacement, snapshot data, and require approval before apply.
+
 ## Risk Movement
 
 | Metric | Count |

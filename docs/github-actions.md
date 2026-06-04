@@ -80,8 +80,13 @@ The repository also includes a composite action. The `version` input is required
   with:
     version: v0.2.0
     plan: infra/tfplan.json
-    format: table
+    format: json
+    out: infra/changegate.json
+    mode: audit
+    audit_bundle: infra/changegate-audit.zip
 ```
+
+The composite action accepts structured inputs for supported scan flags instead of a freeform argument string. Use `mode`, `policy`, `baseline`, `new_only`, `changed_only`, `context_file`, `cloud_context`, `timeout`, `max_findings`, `out`, and `audit_bundle` when you need to tune the scan. Set `verify_sig: "true"` if your runner has `cosign` installed and should verify the signed checksum manifest during install.
 
 ## Audit-First Mode
 

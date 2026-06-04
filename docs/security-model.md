@@ -54,3 +54,5 @@ For untrusted pull requests, do not run arbitrary repository code or Terraform m
 ## Release Integrity
 
 Official releases include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
+
+The install script always verifies the downloaded archive against `checksums.txt`. Users who want keyless Sigstore verification during install can set `CHANGEGATE_VERIFY_SIG=true`; the script then requires `cosign` and verifies `checksums.txt.sigstore.json` or the `checksums.txt.sig` and `checksums.txt.pem` pair before trusting the checksum manifest.

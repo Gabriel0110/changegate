@@ -2,7 +2,7 @@
 
 ## ChangeGate Infrastructure Review: WARN
 
-This change introduces 2 warning findings that should be reviewed before apply.
+This change introduces 2 warning risk clusters that should be reviewed before apply.
 
 ### Security Impact
 
@@ -24,7 +24,22 @@ This change introduces 2 warning findings that should be reviewed before apply.
 - Existing improved risks: 0
 - Resolved critical/high risks: 1
 
-### Top Findings
+### Risk Clusters
+
+1. `high/high` AWS STATEFUL REPLACEMENT
+   - Decision: `warn`
+   - Affected resources: 1
+   - Supporting findings: 1
+   - Rules: `AWS_STATEFUL_REPLACEMENT`
+   - Fix: Restrict public ingress or move the service behind an internal entrypoint.
+2. `high/high` Public admin service reaches sensitive data
+   - Decision: `warn`
+   - Affected resources: 1
+   - Supporting findings: 1
+   - Rules: `AWS_PUBLIC_ADMIN_SERVICE`
+   - Fix: Restrict public ingress or move the service behind an internal entrypoint.
+
+### Finding Details
 
 1. `AWS_PUBLIC_ADMIN_SERVICE` `high/high` AWS PUBLIC ADMIN SERVICE on `aws_lb.admin`
    - Fix: Restrict public ingress or move the service behind an internal entrypoint.

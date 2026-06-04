@@ -127,6 +127,7 @@ type Report struct {
 	Imports       *ImportSummary             `json:"imports,omitempty"`
 	RiskSummary   model.RiskSummary          `json:"risk_summary"`
 	RiskMovement  *baseline.RiskMovement     `json:"risk_movement,omitempty"`
+	RiskClusters  []RiskCluster              `json:"risk_clusters,omitempty"`
 	ReasonCodes   []model.DecisionReasonCode `json:"reason_codes"`
 	Reasons       []model.DecisionReason     `json:"reasons"`
 	Findings      []model.Finding            `json:"findings"`
@@ -154,13 +155,14 @@ func NewReport(planPath string, plan *model.Plan, graphNodes int, graphEdges int
 			Nodes: graphNodes,
 			Edges: graphEdges,
 		},
-		RiskSummary: outcome.Summary,
-		ReasonCodes: outcome.ReasonCodes,
-		Reasons:     outcome.Reasons,
-		Findings:    outcome.Findings,
-		Diagnostics: plan.Diagnostics,
-		Rules:       rules,
-		Message:     message,
+		RiskSummary:  outcome.Summary,
+		ReasonCodes:  outcome.ReasonCodes,
+		Reasons:      outcome.Reasons,
+		Findings:     outcome.Findings,
+		RiskClusters: BuildRiskClusters(outcome.Findings),
+		Diagnostics:  plan.Diagnostics,
+		Rules:        rules,
+		Message:      message,
 	}
 	return report
 }
@@ -209,6 +211,8 @@ func RenderConsole(report Report) string {
 	fmt.Fprintf(&b, "Changes: %d\n", report.Plan.Changes)
 	fmt.Fprintf(&b, "Graph: %d nodes, %d edges\n", report.Graph.Nodes, report.Graph.Edges)
 	fmt.Fprintf(&b, "Findings: %d\n", report.RiskSummary.Total)
+	clusters := clustersForReport(report)
+	fmt.Fprintf(&b, "Risk clusters: %d\n", len(clusters))
 	if report.Imports != nil {
 		native := report.RiskSummary.Total - report.Imports.Imported + report.Imports.Deduplicated
 		if native < 0 {
@@ -224,7 +228,7 @@ func RenderConsole(report Report) string {
 	fmt.Fprintf(&b, "Blocking: %d\n", report.RiskSummary.Blocking)
 	fmt.Fprintf(&b, "Warnings: %d\n", report.RiskSummary.Warnings)
 	fmt.Fprintf(&b, "Suppressed or downgraded: %d\n", report.RiskSummary.Suppressed+report.RiskSummary.Downgraded)
-	for _, reason := range report.Reasons {
+	for _, reason := range collapsedDecisionReasons(report) {
 		if reason.Resource == "" {
 			fmt.Fprintf(&b, "Reason: %s\n", reason.Reason)
 			continue
@@ -234,14 +238,14 @@ func RenderConsole(report Report) string {
 	for _, diagnostic := range report.Diagnostics {
 		fmt.Fprintf(&b, "Warning: %s\n", diagnostic.Message)
 	}
-	if len(report.Findings) > 0 {
-		b.WriteString("\nTop findings:\n")
-		for i, finding := range report.Findings {
+	if len(clusters) > 0 {
+		b.WriteString("\nRisk clusters:\n")
+		for i, cluster := range clusters {
 			if i >= 5 {
-				fmt.Fprintf(&b, "... %d more findings\n", len(report.Findings)-i)
+				fmt.Fprintf(&b, "... %d more risk clusters\n", len(clusters)-i)
 				break
 			}
-			fmt.Fprintf(&b, "- [%s/%s] %s (%s)\n", finding.Severity, finding.Confidence, finding.Title, finding.ResourceAddress)
+			fmt.Fprintf(&b, "- [%s/%s] %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, cluster.Title, len(cluster.AffectedResources), len(cluster.SupportingFindings))
 		}
 	}
 	return b.String()
@@ -256,7 +260,9 @@ func RenderJSON(report Report) ([]byte, error) {
 func RenderMarkdown(report Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "# ChangeGate: %s\n\n", strings.ToUpper(string(report.Decision)))
+	clusters := clustersForReport(report)
 	fmt.Fprintf(&b, "| Metric | Value |\n| --- | ---: |\n")
+	fmt.Fprintf(&b, "| Risk clusters | %d |\n", len(clusters))
 	fmt.Fprintf(&b, "| Findings | %d |\n", report.RiskSummary.Total)
 	fmt.Fprintf(&b, "| Blocking | %d |\n", report.RiskSummary.Blocking)
 	fmt.Fprintf(&b, "| Warnings | %d |\n", report.RiskSummary.Warnings)
@@ -269,9 +275,10 @@ func RenderMarkdown(report Report) string {
 	}
 	fmt.Fprintf(&b, "| Graph nodes | %d |\n", report.Graph.Nodes)
 	fmt.Fprintf(&b, "| Graph edges | %d |\n\n", report.Graph.Edges)
-	if len(report.Reasons) > 0 {
+	reasons := collapsedDecisionReasons(report)
+	if len(reasons) > 0 {
 		b.WriteString("## Decision reasons\n\n")
-		for _, reason := range report.Reasons {
+		for _, reason := range reasons {
 			if reason.Resource == "" {
 				fmt.Fprintf(&b, "- `%s`: %s\n", reason.Code, reason.Reason)
 				continue
@@ -280,11 +287,38 @@ func RenderMarkdown(report Report) string {
 		}
 		b.WriteString("\n")
 	}
+	if len(clusters) > 0 {
+		b.WriteString("## Risk clusters\n\n")
+		for _, cluster := range clusters {
+			fmt.Fprintf(&b, "### %s\n\n", cluster.Title)
+			fmt.Fprintf(&b, "- Decision: `%s`\n", cluster.Decision)
+			fmt.Fprintf(&b, "- Severity: `%s`, confidence: `%s`\n", cluster.Severity, cluster.Confidence)
+			fmt.Fprintf(&b, "- Affected resources: %d\n", len(cluster.AffectedResources))
+			fmt.Fprintf(&b, "- Supporting findings: %d\n", len(cluster.SupportingFindings))
+			if len(cluster.RuleIDs) > 0 {
+				fmt.Fprintf(&b, "- Rules: `%s`\n", strings.Join(cluster.RuleIDs, "`, `"))
+			}
+			if cluster.RemediationSummary != "" {
+				fmt.Fprintf(&b, "- Primary fix: %s\n", cluster.RemediationSummary)
+			}
+			if len(cluster.AffectedResources) > 0 {
+				limit := len(cluster.AffectedResources)
+				if limit > 8 {
+					limit = 8
+				}
+				fmt.Fprintf(&b, "- Resources: `%s`\n", strings.Join(cluster.AffectedResources[:limit], "`, `"))
+				if len(cluster.AffectedResources) > limit {
+					fmt.Fprintf(&b, "- ... %d more resources\n", len(cluster.AffectedResources)-limit)
+				}
+			}
+			b.WriteString("\n")
+		}
+	}
 	if len(report.Findings) == 0 {
 		b.WriteString("No findings.\n")
 		return b.String()
 	}
-	b.WriteString("## Findings\n\n")
+	b.WriteString("## Finding details\n\n")
 	for _, finding := range report.Findings {
 		fmt.Fprintf(&b, "### %s\n\n", finding.Title)
 		fmt.Fprintf(&b, "- Rule: `%s`\n", finding.RuleID)
@@ -350,12 +384,14 @@ func RenderMarkdown(report Report) string {
 func RenderPRComment(report Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "## ChangeGate: %s\n\n", strings.ToUpper(string(report.Decision)))
-	fmt.Fprintf(&b, "**%d findings**: %d blocking, %d warnings, %d suppressed.\n\n", report.RiskSummary.Total, report.RiskSummary.Blocking, report.RiskSummary.Warnings, report.RiskSummary.Suppressed)
-	if len(report.Reasons) > 0 {
+	clusters := clustersForReport(report)
+	fmt.Fprintf(&b, "**%d risk clusters** from %d findings: %d blocking, %d warnings, %d suppressed.\n\n", len(clusters), report.RiskSummary.Total, report.RiskSummary.Blocking, report.RiskSummary.Warnings, report.RiskSummary.Suppressed)
+	reasons := collapsedDecisionReasons(report)
+	if len(reasons) > 0 {
 		b.WriteString("**Decision reasons**\n")
-		for index, reason := range report.Reasons {
+		for index, reason := range reasons {
 			if index >= 3 {
-				fmt.Fprintf(&b, "- ... %d more reasons\n", len(report.Reasons)-index)
+				fmt.Fprintf(&b, "- ... %d more reasons\n", len(reasons)-index)
 				break
 			}
 			if reason.Resource == "" {
@@ -370,18 +406,18 @@ func RenderPRComment(report Report) string {
 		b.WriteString("No findings.\n")
 		return b.String()
 	}
-	b.WriteString("**Top findings**\n")
-	for index, finding := range report.Findings {
+	b.WriteString("**Risk clusters**\n")
+	for index, cluster := range clusters {
 		if index >= 3 {
-			fmt.Fprintf(&b, "- ... %d more findings\n", len(report.Findings)-index)
+			fmt.Fprintf(&b, "- ... %d more risk clusters\n", len(clusters)-index)
 			break
 		}
-		fmt.Fprintf(&b, "- `%s` `%s/%s` %s on `%s`\n", finding.RuleID, finding.Severity, finding.Confidence, finding.Title, finding.ResourceAddress)
-		if finding.Remediation.Summary != "" {
-			fmt.Fprintf(&b, "  Fix: %s\n", finding.Remediation.Summary)
+		fmt.Fprintf(&b, "- `%s/%s` %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, cluster.Title, len(cluster.AffectedResources), len(cluster.SupportingFindings))
+		if cluster.RemediationSummary != "" {
+			fmt.Fprintf(&b, "  Fix: %s\n", cluster.RemediationSummary)
 		}
-		if finding.Remediation.WhyThisWorks != "" {
-			fmt.Fprintf(&b, "  Why: %s\n", finding.Remediation.WhyThisWorks)
+		if len(cluster.RuleIDs) > 0 {
+			fmt.Fprintf(&b, "  Rules: `%s`\n", strings.Join(cluster.RuleIDs, "`, `"))
 		}
 	}
 	return b.String()
@@ -391,6 +427,8 @@ func RenderPRComment(report Report) string {
 func RenderGitHubStepSummary(report Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "## ChangeGate %s\n\n", strings.ToUpper(string(report.Decision)))
+	clusters := clustersForReport(report)
+	fmt.Fprintf(&b, "- Risk clusters: %d\n", len(clusters))
 	fmt.Fprintf(&b, "- Findings: %d\n", report.RiskSummary.Total)
 	fmt.Fprintf(&b, "- Blocking: %d\n", report.RiskSummary.Blocking)
 	fmt.Fprintf(&b, "- Warnings: %d\n", report.RiskSummary.Warnings)
@@ -404,9 +442,11 @@ func RenderGitHubStepSummary(report Report) string {
 		b.WriteString("\nNo findings.\n")
 		return b.String()
 	}
-	b.WriteString("\n| Severity | Rule | Resource | Title |\n| --- | --- | --- | --- |\n")
-	for _, finding := range report.Findings {
-		fmt.Fprintf(&b, "| `%s` | `%s` | `%s` | %s |\n", finding.Severity, finding.RuleID, finding.ResourceAddress, escapeMarkdownTable(finding.Title))
+	if len(clusters) > 0 {
+		b.WriteString("\n| Severity | Confidence | Risk cluster | Resources | Findings |\n| --- | --- | --- | ---: | ---: |\n")
+		for _, cluster := range clusters {
+			fmt.Fprintf(&b, "| `%s` | `%s` | %s | %d | %d |\n", cluster.Severity, cluster.Confidence, escapeMarkdownTable(cluster.Title), len(cluster.AffectedResources), len(cluster.SupportingFindings))
+		}
 	}
 	return b.String()
 }
@@ -431,6 +471,62 @@ func displayPlanPath(path string) string {
 		return "stdin"
 	}
 	return path
+}
+
+func clustersForReport(report Report) []RiskCluster {
+	if len(report.RiskClusters) > 0 {
+		return append([]RiskCluster(nil), report.RiskClusters...)
+	}
+	return BuildRiskClusters(report.Findings)
+}
+
+func collapsedDecisionReasons(report Report) []model.DecisionReason {
+	if len(report.Reasons) == 0 {
+		return nil
+	}
+	clusters := clustersForReport(report)
+	findingToCluster := make(map[string]RiskCluster)
+	for _, cluster := range clusters {
+		for _, findingID := range cluster.SupportingFindings {
+			findingToCluster[findingID] = cluster
+		}
+	}
+	seen := make(map[string]bool)
+	out := make([]model.DecisionReason, 0, len(report.Reasons))
+	for _, reason := range report.Reasons {
+		current := reason
+		if cluster, ok := findingToCluster[reason.FindingID]; ok {
+			current.FindingID = cluster.ID
+			current.Resource = cluster.Title
+			current.Reason = clusterReason(cluster, reason)
+		}
+		key := string(current.Code) + "\x00" + current.Resource + "\x00" + current.Reason
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		out = append(out, current)
+	}
+	sort.SliceStable(out, func(i int, j int) bool {
+		for _, cmp := range []int{
+			strings.Compare(out[i].Resource, out[j].Resource),
+			strings.Compare(string(out[i].Code), string(out[j].Code)),
+			strings.Compare(out[i].Reason, out[j].Reason),
+		} {
+			if cmp != 0 {
+				return cmp < 0
+			}
+		}
+		return false
+	})
+	return out
+}
+
+func clusterReason(cluster RiskCluster, reason model.DecisionReason) string {
+	if len(cluster.SupportingFindings) == 1 {
+		return reason.Reason
+	}
+	return fmt.Sprintf("%s: %d supporting findings across %d affected resources", cluster.Title, len(cluster.SupportingFindings), len(cluster.AffectedResources))
 }
 
 func escapeMarkdownTable(value string) string {

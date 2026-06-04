@@ -11,6 +11,19 @@ This change introduces:
 - 5 data path changes
 - 0 active waivers
 
+## Risk Clusters
+
+- `critical/high` Public admin service reaches sensitive data
+  - Decision: `block`
+  - Affected resources: 5
+  - Supporting findings: 9
+  - Primary fix: Remove the public route to the workload or restrict ingress to approved CIDRs.
+- `high/high` Production RDS resilience controls disabled
+  - Decision: `block`
+  - Affected resources: 1
+  - Supporting findings: 2
+  - Primary fix: Set backup retention to a non-zero period aligned with recovery requirements.
+
 ## Risk Movement
 
 | Metric | Count |

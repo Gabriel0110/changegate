@@ -17,6 +17,8 @@ export CHANGEGATE_VERSION=v0.2.0
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
+The install script verifies the downloaded archive against `checksums.txt`. To also verify the signed checksum manifest, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true` before running the same command.
+
 Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for teams that install CLI tools through package mirrors or runner images.
 
 ## 2. Try The Demo
@@ -51,13 +53,24 @@ tofu show -json tfplan > tfplan.json
 changegate scan --plan tfplan.json
 ```
 
-## 5. Generate A Shareable Report
+## 5. Create Starter Repository Files
+
+Use `changegate init` when you want ChangeGate to scaffold safe starter files:
+
+```bash
+changegate init --dry-run
+changegate init --github-actions --audit-mode
+```
+
+The generated policy uses audit mode by default. Add `--gitlab-ci`, `--waivers`, or `--baseline` when you want those files created too. Existing files are not overwritten unless you pass `--force`.
+
+## 6. Generate A Shareable Report
 
 ```bash
 changegate scan --plan tfplan.json --format markdown --out changegate.md
 ```
 
-## 6. Archive Evidence
+## 7. Archive Evidence
 
 ```bash
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip

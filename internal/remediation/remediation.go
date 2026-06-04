@@ -173,6 +173,17 @@ var ruleTemplates = map[string]Template{
 		WhyItMatters:  "A public-to-data path is higher confidence than a single misconfiguration because it shows how exposure can reach an asset that matters.",
 		Patches:       []model.PatchSuggestion{advisorySnippet("Attack path requires topology review", "ChangeGate does not auto-patch multi-resource attack paths because the correct fix depends on service ownership, routing intent, and approved access patterns.")},
 	},
+	"AWS_PUBLIC_TO_SENSITIVE_DATASTORE": {
+		ID:            "AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+		Summary:       "Break the public-to-datastore path by removing public exposure, narrowing routing, or segmenting datastore access.",
+		Steps:         []string{"Restrict the public entrypoint to approved CIDRs or authenticated edge controls.", "Remove direct routing from public workloads to sensitive datastores.", "Allow datastore access only from reviewed private workload security groups."},
+		References:    []string{"docs/graph.md", "docs/attack-paths.md"},
+		WhyThisWorks:  "The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.",
+		FixConfidence: model.ConfidenceMedium,
+		WhatHappened:  "The plan creates or preserves a graph path from a public resource to a sensitive datastore.",
+		WhyItMatters:  "This is topology risk, not a missing storage control: a public-facing resource can reach a data asset that should be isolated.",
+		Patches:       []model.PatchSuggestion{advisorySnippet("Datastore reachability requires topology review", "ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.")},
+	},
 	"AWS_PUBLIC_ADMIN_SERVICE_PATH": {
 		ID:            "AWS_PUBLIC_ADMIN_SERVICE_PATH",
 		Summary:       "Remove public reachability to the admin workload or put it behind a reviewed private or authenticated access path.",
