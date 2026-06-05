@@ -172,6 +172,67 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 	}
 }
 
+func TestAWSRulesAvoidValidationFalsePositives(t *testing.T) {
+	t.Parallel()
+
+	registry, err := DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	plan := &model.Plan{
+		Resources: []model.Resource{
+			res("aws_security_group.web", "aws_security_group", "web", map[string]any{
+				"ingress": []any{map[string]any{"cidr_blocks": []any{"0.0.0.0/0"}, "from_port": 443, "to_port": 443, "protocol": "tcp"}},
+				"tags":    map[string]any{"env": "prod", "service": "public-web"},
+			}),
+			res("aws_s3_bucket.logs", "aws_s3_bucket", "logs", map[string]any{
+				"bucket": "logs",
+				"tags":   map[string]any{"env": "prod", "data": "sensitive", "service": "audit-logs"},
+			}),
+			res("aws_s3_bucket_public_access_block.logs", "aws_s3_bucket_public_access_block", "logs", map[string]any{
+				"bucket":                  "logs",
+				"block_public_acls":       true,
+				"block_public_policy":     true,
+				"ignore_public_acls":      true,
+				"restrict_public_buckets": true,
+			}),
+			res("aws_s3_bucket_versioning.logs", "aws_s3_bucket_versioning", "logs", map[string]any{
+				"bucket": "logs",
+				"versioning_configuration": []any{
+					map[string]any{"status": "Enabled"},
+				},
+			}),
+			res("aws_s3_bucket_server_side_encryption_configuration.logs", "aws_s3_bucket_server_side_encryption_configuration", "logs", map[string]any{
+				"bucket": "logs",
+			}),
+		},
+		Changes: []model.Change{
+			{Address: "aws_security_group.web", Type: "aws_security_group", Name: "web", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"ingress": []any{map[string]any{"cidr_blocks": []any{"0.0.0.0/0"}, "from_port": 443, "to_port": 443, "protocol": "tcp"}}, "tags": map[string]any{"env": "prod", "service": "public-web"}}, Tags: map[string]string{"env": "prod", "service": "public-web"}},
+			{Address: "aws_s3_bucket.logs", Type: "aws_s3_bucket", Name: "logs", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"bucket": "logs", "tags": map[string]any{"env": "prod", "data": "sensitive", "service": "audit-logs"}}, Tags: map[string]string{"env": "prod", "data": "sensitive", "service": "audit-logs"}},
+			{Address: "aws_s3_bucket_public_access_block.logs", Type: "aws_s3_bucket_public_access_block", Name: "logs", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"bucket": "logs", "block_public_acls": true, "block_public_policy": true, "ignore_public_acls": true, "restrict_public_buckets": true}},
+			{Address: "aws_s3_bucket_versioning.logs", Type: "aws_s3_bucket_versioning", Name: "logs", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"bucket": "logs", "versioning_configuration": []any{map[string]any{"status": "Enabled"}}}},
+			{Address: "aws_s3_bucket_server_side_encryption_configuration.logs", Type: "aws_s3_bucket_server_side_encryption_configuration", Name: "logs", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"bucket": "logs"}},
+		},
+		Configuration: &model.Configuration{Resources: []model.ConfiguredResource{
+			{Address: "aws_s3_bucket_public_access_block.logs", Expressions: map[string]any{"bucket": map[string]any{"references": []any{"aws_s3_bucket.logs.id", "aws_s3_bucket.logs"}}}},
+			{Address: "aws_s3_bucket_versioning.logs", Expressions: map[string]any{"bucket": map[string]any{"references": []any{"aws_s3_bucket.logs.id", "aws_s3_bucket.logs"}}}},
+			{Address: "aws_s3_bucket_server_side_encryption_configuration.logs", Expressions: map[string]any{"bucket": map[string]any{"references": []any{"aws_s3_bucket.logs.id", "aws_s3_bucket.logs"}}}},
+		}},
+	}
+	result := NewRunner(registry).Evaluate(context.Background(), RuleInput{
+		Plan:  plan,
+		Graph: graph.Build(plan),
+	}, Selection{})
+	for _, finding := range result.Findings {
+		switch finding.RuleID {
+		case "AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS",
+			"AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED",
+			"AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED":
+			t.Fatalf("validation-safe fixture triggered %s: %#v", finding.RuleID, finding)
+		}
+	}
+}
+
 func findingEvidencePath(finding model.Finding, path string) bool {
 	for _, evidence := range finding.Evidence {
 		if evidence.Path == path {

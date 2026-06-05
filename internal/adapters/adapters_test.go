@@ -82,6 +82,82 @@ func TestImportAdaptersNormalizeFindings(t *testing.T) {
 	}
 }
 
+func TestCheckovImportRejectsUnrelatedJSON(t *testing.T) {
+	t.Parallel()
+
+	result := Import(SourceCheckov, strings.NewReader(`{"totally":"not checkov"}`))
+	if len(result.Diagnostics) != 1 {
+		t.Fatalf("diagnostics = %#v, want one parse diagnostic", result.Diagnostics)
+	}
+	if len(result.Findings) != 0 {
+		t.Fatalf("findings = %d, want none", len(result.Findings))
+	}
+}
+
+func TestImportAdaptersRejectUnrelatedJSON(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		source Source
+		body   string
+	}{
+		{name: "sarif", source: SourceSARIF, body: `{"totally":"not sarif"}`},
+		{name: "generic", source: SourceGeneric, body: `{"totally":"not generic findings"}`},
+		{name: "trivy", source: SourceTrivy, body: `{"totally":"not trivy"}`},
+		{name: "kics", source: SourceKICS, body: `{"totally":"not kics"}`},
+		{name: "grype", source: SourceGrype, body: `{"totally":"not grype"}`},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := Import(tt.source, strings.NewReader(tt.body))
+			if len(result.Diagnostics) != 1 {
+				t.Fatalf("diagnostics = %#v, want one parse diagnostic", result.Diagnostics)
+			}
+			if len(result.Findings) != 0 {
+				t.Fatalf("findings = %d, want none", len(result.Findings))
+			}
+		})
+	}
+}
+
+func TestImportAdaptersAcceptValidEmptyOutputs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		source Source
+		body   string
+	}{
+		{name: "sarif", source: SourceSARIF, body: `{"version":"2.1.0","runs":[]}`},
+		{name: "generic-array", source: SourceGeneric, body: `[]`},
+		{name: "generic-envelope", source: SourceGeneric, body: `{"findings":[]}`},
+		{name: "checkov", source: SourceCheckov, body: `{"results":{"failed_checks":[]}}`},
+		{name: "trivy", source: SourceTrivy, body: `{"Results":[]}`},
+		{name: "kics", source: SourceKICS, body: `{"queries":[]}`},
+		{name: "grype", source: SourceGrype, body: `{"matches":[]}`},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := Import(tt.source, strings.NewReader(tt.body))
+			if len(result.Diagnostics) != 0 {
+				t.Fatalf("diagnostics = %#v, want none", result.Diagnostics)
+			}
+			if len(result.Findings) != 0 {
+				t.Fatalf("findings = %d, want none", len(result.Findings))
+			}
+		})
+	}
+}
+
 func TestImportAdaptersParseRealScannerOutputs(t *testing.T) {
 	t.Parallel()
 

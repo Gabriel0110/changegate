@@ -31,6 +31,15 @@ type genericFinding struct {
 func parseGeneric(body []byte) ([]model.Finding, error) {
 	var items []genericFinding
 	if err := json.Unmarshal(body, &items); err != nil {
+		var raw map[string]json.RawMessage
+		if err := json.Unmarshal(body, &raw); err != nil {
+			return nil, fmt.Errorf("parse generic JSON findings: %w", err)
+		}
+		hasFindings := raw["findings"] != nil
+		hasResults := raw["results"] != nil
+		if !hasFindings && !hasResults {
+			return nil, fmt.Errorf("parse generic JSON findings: missing findings or results")
+		}
 		var envelope genericEnvelope
 		if err := json.Unmarshal(body, &envelope); err != nil {
 			return nil, fmt.Errorf("parse generic JSON findings: %w", err)

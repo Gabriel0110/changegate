@@ -60,6 +60,9 @@ func parseSARIF(body []byte) ([]model.Finding, error) {
 	if err := json.Unmarshal(body, &log); err != nil {
 		return nil, fmt.Errorf("parse SARIF: %w", err)
 	}
+	if log.Version == "" && log.Runs == nil {
+		return nil, fmt.Errorf("parse SARIF: missing version or runs")
+	}
 	if log.Version != "" && log.Version != "2.1.0" {
 		return nil, fmt.Errorf("unsupported SARIF version %q", log.Version)
 	}

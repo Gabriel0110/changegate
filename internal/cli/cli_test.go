@@ -1134,6 +1134,18 @@ func TestScanImportFailureIsOptional(t *testing.T) {
 	}
 }
 
+func TestUnknownFlagIsUsageError(t *testing.T) {
+	t.Parallel()
+
+	stdout, stderr, code := runCLI("--format", "json", "scan", "--definitely-not-real")
+	if code != exitUsage {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitUsage, stdout, stderr)
+	}
+	if !strings.Contains(stderr, `"type": "usage"`) || !strings.Contains(stderr, "unknown flag") {
+		t.Fatalf("unknown flag did not render usage error:\n%s", stderr)
+	}
+}
+
 func TestImportedFindingCanBeWaived(t *testing.T) {
 	t.Parallel()
 

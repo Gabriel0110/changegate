@@ -8,7 +8,7 @@ import (
 )
 
 type trivyOutput struct {
-	Results []trivyResult `json:"Results"`
+	Results *[]trivyResult `json:"Results"`
 }
 
 type trivyResult struct {
@@ -65,8 +65,11 @@ func parseTrivy(body []byte) ([]model.Finding, error) {
 	if err := json.Unmarshal(body, &output); err != nil {
 		return nil, fmt.Errorf("parse Trivy JSON: %w", err)
 	}
+	if output.Results == nil {
+		return nil, fmt.Errorf("parse Trivy JSON: missing Results")
+	}
 	findings := make([]model.Finding, 0)
-	for _, result := range output.Results {
+	for _, result := range *output.Results {
 		for _, item := range result.Misconfigurations {
 			resource := firstNonEmpty(item.CauseMetadata.Resource, result.Target)
 			path := result.Target

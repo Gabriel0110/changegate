@@ -253,7 +253,24 @@ func RenderConsole(report Report) string {
 
 // RenderJSON renders the canonical report JSON.
 func RenderJSON(report Report) ([]byte, error) {
+	report = normalizeReportSlices(report)
 	return json.MarshalIndent(report, "", "  ")
+}
+
+func normalizeReportSlices(report Report) Report {
+	if report.Findings == nil {
+		report.Findings = []model.Finding{}
+	}
+	if report.Reasons == nil {
+		report.Reasons = []model.DecisionReason{}
+	}
+	if report.ReasonCodes == nil {
+		report.ReasonCodes = []model.DecisionReasonCode{}
+	}
+	if report.RiskClusters == nil {
+		report.RiskClusters = []RiskCluster{}
+	}
+	return report
 }
 
 // RenderMarkdown renders PR-comment-friendly Markdown.

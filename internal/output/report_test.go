@@ -92,6 +92,30 @@ func TestAuditBundle(t *testing.T) {
 	assertGolden(t, "audit-bundle.txt", strings.Join(names, "\n")+"\n")
 }
 
+func TestRenderJSONUsesEmptyArraysForEmptyReportSlices(t *testing.T) {
+	t.Parallel()
+
+	body, err := RenderJSON(Report{
+		SchemaVersion: ReportSchemaVersion,
+		Decision:      model.DecisionAllow,
+		RiskSummary:   model.RiskSummary{},
+	})
+	if err != nil {
+		t.Fatalf("render json: %v", err)
+	}
+	var report struct {
+		Findings    []any `json:"findings"`
+		ReasonCodes []any `json:"reason_codes"`
+		Reasons     []any `json:"reasons"`
+	}
+	if err := json.Unmarshal(body, &report); err != nil {
+		t.Fatalf("unmarshal json: %v", err)
+	}
+	if report.Findings == nil || report.ReasonCodes == nil || report.Reasons == nil {
+		t.Fatalf("expected empty arrays, got %s", string(body))
+	}
+}
+
 func sampleReport() Report {
 	finding := model.NormalizeFinding(model.Finding{
 		RuleID:          "AWS_SG_WORLD_OPEN_ADMIN_PORT",

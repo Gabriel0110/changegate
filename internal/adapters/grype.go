@@ -8,7 +8,7 @@ import (
 )
 
 type grypeOutput struct {
-	Matches []grypeMatch `json:"matches"`
+	Matches *[]grypeMatch `json:"matches"`
 }
 
 type grypeMatch struct {
@@ -34,8 +34,11 @@ func parseGrype(body []byte) ([]model.Finding, error) {
 	if err := json.Unmarshal(body, &output); err != nil {
 		return nil, fmt.Errorf("parse Grype JSON: %w", err)
 	}
-	findings := make([]model.Finding, 0, len(output.Matches))
-	for _, match := range output.Matches {
+	if output.Matches == nil {
+		return nil, fmt.Errorf("parse Grype JSON: missing matches")
+	}
+	findings := make([]model.Finding, 0, len(*output.Matches))
+	for _, match := range *output.Matches {
 		resource := match.Artifact.Name
 		path := ""
 		if len(match.Artifact.Locations) > 0 {

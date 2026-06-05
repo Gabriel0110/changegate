@@ -64,6 +64,9 @@ func newRootCommand(ctx context.Context, opts *options, stdin io.Reader, stdout 
 			return nil
 		},
 	}
+	root.SetFlagErrorFunc(func(_ *cobra.Command, err error) error {
+		return usageError(err.Error(), "Run changegate --help or changegate <command> --help to see supported flags.")
+	})
 
 	root.SetOut(stdout)
 	root.SetErr(stderr)

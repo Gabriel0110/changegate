@@ -160,13 +160,19 @@ func evalWorldOpenAllPorts(_ context.Context, input RuleInput, meta Metadata) ([
 		if !publicCIDRInChange(change) {
 			continue
 		}
-		if intValue(change.After["from_port"]) == 0 && (intValue(change.After["to_port"]) == 0 || intValue(change.After["to_port"]) == 65535 || asString(change.After["protocol"]) == "-1") {
+		if change.Type == "aws_vpc_security_group_ingress_rule" && allPortsRule(change.After) {
 			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "ingress", "0.0.0.0/0 all ports", "security group opens all ports or protocols to the internet")}, "Restrict ingress to the exact required ports and trusted sources."))
 			continue
 		}
-		text := asJSON(change.After["ingress"])
-		if strings.Contains(text, "0.0.0.0/0") && (strings.Contains(text, `"protocol":"-1"`) || strings.Contains(text, `"to_port":0`) || strings.Contains(text, `"to_port":65535`)) {
-			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "ingress", "(all ports)", "security group ingress includes world-open all-port access")}, "Replace all-port public ingress with explicit service ports and trusted sources."))
+		if change.Type == "aws_security_group" {
+			for _, ingress := range asList(change.After["ingress"]) {
+				rule, ok := ingress.(map[string]any)
+				if !ok || !rulePublicCIDR(rule) || !allPortsRule(rule) {
+					continue
+				}
+				out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "ingress", "(all ports)", "security group ingress includes world-open all-port access")}, "Replace all-port public ingress with explicit service ports and trusted sources."))
+				break
+			}
 		}
 	}
 	return out, nil
@@ -677,15 +683,22 @@ func evalDynamoDBPITRDisabledProd(_ context.Context, input RuleInput, meta Metad
 }
 
 func evalS3SensitiveLoggingDisabled(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
-	hasLogging := make(map[string]bool)
-	for _, change := range sortedChanges(input.Plan) {
-		if change.Type == "aws_s3_bucket_logging" {
-			hasLogging[asString(change.After["bucket"])] = true
-		}
-	}
+	buckets := newS3BucketIndex(input.Plan)
 	out := make([]model.Finding, 0)
 	for _, change := range sortedChanges(input.Plan) {
-		if change.Type == "aws_s3_bucket" && isSensitiveBucket(change) && !hasLogging[asString(change.After["bucket"])] && !hasLogging[change.Name] {
+		if change.Type != "aws_s3_bucket" || !isSensitiveBucket(change) {
+			continue
+		}
+		if hasAnyBucketKey(buckets.logging, buckets.bucketKeys(input.Plan, change)) {
+			continue
+		}
+		if hasEquivalentObjectAudit(change) {
+			continue
+		}
+		if hasStrictPublicAccessBlock(change, buckets, input.Plan) && bucketHasVersioningEnabled(change, buckets, input.Plan) && bucketHasEncryption(change, buckets, input.Plan) {
+			continue
+		}
+		{
 			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "logging", "missing", "sensitive bucket has no access logging resource in plan")}, "Enable S3 server access logging or equivalent object access audit logging."))
 		}
 	}
@@ -693,6 +706,7 @@ func evalS3SensitiveLoggingDisabled(_ context.Context, input RuleInput, meta Met
 }
 
 func evalS3SensitiveVersioningDisabled(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	buckets := newS3BucketIndex(input.Plan)
 	out := make([]model.Finding, 0)
 	for _, change := range sortedChanges(input.Plan) {
 		switch change.Type {
@@ -702,6 +716,9 @@ func evalS3SensitiveVersioningDisabled(_ context.Context, input RuleInput, meta 
 				out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "versioning_configuration.status", status, "sensitive bucket versioning is disabled or suspended")}, "Enable S3 versioning for sensitive buckets."))
 			}
 		case "aws_s3_bucket":
+			if bucketHasVersioningEnabled(change, buckets, input.Plan) {
+				continue
+			}
 			if isSensitiveBucket(change) && falsey(change.After["versioning"]) {
 				out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "versioning", change.After["versioning"], "sensitive bucket versioning is disabled")}, "Enable S3 versioning for sensitive buckets."))
 			}
@@ -778,7 +795,12 @@ func evalPrivateWorkloadExposedByNATOrSG(_ context.Context, input RuleInput, met
 	out := make([]model.Finding, 0)
 	for _, change := range sortedChanges(input.Plan) {
 		text := strings.ToLower(change.Address + " " + fmt.Sprint(change.Tags) + " " + asJSON(change.After["tags"]))
-		privateContext := strings.Contains(text, "private") || strings.Contains(text, "internal") || strings.Contains(text, "prod")
+		privateContext := strings.Contains(text, "private") ||
+			strings.Contains(text, "internal") ||
+			strings.Contains(text, "sensitive") ||
+			strings.Contains(text, "confidential") ||
+			strings.Contains(text, "backoffice") ||
+			strings.Contains(text, "admin")
 		if !privateContext {
 			continue
 		}

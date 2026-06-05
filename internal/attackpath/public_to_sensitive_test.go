@@ -178,6 +178,30 @@ func TestDetectPublicToSensitiveWarnsOnPublicWorkloadWithoutSensitiveContext(t *
 	}
 }
 
+func TestDetectPublicToSensitiveSkipsDirectPublicDatastoreWorkloadWarning(t *testing.T) {
+	t.Parallel()
+	g := graphForPublicWorkload(false)
+	g.Nodes["aws_db_instance.customer"] = &graph.Node{
+		ID:      "aws_db_instance.customer",
+		Address: "aws_db_instance.customer",
+		Type:    "aws_db_instance",
+		Kind:    graph.NodeDataStore,
+		Name:    "customer",
+		Values:  map[string]any{"publicly_accessible": true},
+	}
+	g.Edges = append(g.Edges,
+		edge(graph.InternetNodeID, "aws_db_instance.customer", graph.EdgeHasPublicAccess),
+		edge("aws_db_instance.customer", "aws_ecs_service.web", graph.EdgeAllowsEgress),
+	)
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	for _, path := range paths {
+		if path.Entrypoint == "aws_db_instance.customer" {
+			t.Fatalf("direct public datastore should not produce workload warning attack path: %#v", path)
+		}
+	}
+}
+
 func graphForPublicAdminToSensitive(target graph.ResourceID, targetKind graph.NodeKind) *graph.Graph {
 	nodes := basePublicNodes("aws_ecs_service.admin")
 	nodes[target] = &graph.Node{

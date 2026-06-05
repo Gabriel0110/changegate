@@ -8,7 +8,7 @@ import (
 )
 
 type checkovOutput struct {
-	Results struct {
+	Results *struct {
 		FailedChecks []checkovCheck `json:"failed_checks"`
 	} `json:"results"`
 }
@@ -28,6 +28,12 @@ func parseCheckov(body []byte) ([]model.Finding, error) {
 	var output checkovOutput
 	if err := json.Unmarshal(body, &output); err != nil {
 		return nil, fmt.Errorf("parse Checkov JSON: %w", err)
+	}
+	if output.Results == nil {
+		return nil, fmt.Errorf("parse Checkov JSON: missing results.failed_checks")
+	}
+	if output.Results.FailedChecks == nil {
+		return nil, fmt.Errorf("parse Checkov JSON: missing results.failed_checks")
 	}
 	findings := make([]model.Finding, 0, len(output.Results.FailedChecks))
 	for _, check := range output.Results.FailedChecks {

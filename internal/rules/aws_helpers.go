@@ -176,6 +176,69 @@ func publicCIDRInChange(change model.Change) bool {
 	return strings.Contains(text, "0.0.0.0/0") || strings.Contains(text, "::/0")
 }
 
+func rulePublicCIDR(rule map[string]any) bool {
+	if cidrIsPublicValue(rule["cidr_ipv4"]) || cidrIsPublicValue(rule["cidr_ipv6"]) {
+		return true
+	}
+	for _, key := range []string{"cidr_blocks", "ipv6_cidr_blocks"} {
+		for _, value := range asList(rule[key]) {
+			if cidrIsPublicValue(value) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func cidrIsPublicValue(value any) bool {
+	text := asString(value)
+	return text == "0.0.0.0/0" || text == "::/0"
+}
+
+func allPortsRule(rule map[string]any) bool {
+	protocol := strings.ToLower(asString(firstNonEmpty(rule["protocol"], rule["ip_protocol"])))
+	if protocol == "-1" || protocol == "all" {
+		return true
+	}
+	from, hasFrom := optionalInt(rule["from_port"])
+	to, hasTo := optionalInt(rule["to_port"])
+	if !hasFrom || !hasTo {
+		return false
+	}
+	return from <= 0 && (to == 0 || to >= 65535)
+}
+
+func firstNonEmpty(values ...any) any {
+	for _, value := range values {
+		if asString(value) != "" {
+			return value
+		}
+	}
+	return nil
+}
+
+func optionalInt(value any) (int, bool) {
+	switch typed := value.(type) {
+	case int:
+		return typed, true
+	case int64:
+		return int(typed), true
+	case float64:
+		return int(typed), true
+	case json.Number:
+		out, err := typed.Int64()
+		return int(out), err == nil
+	case string:
+		if typed == "" {
+			return 0, false
+		}
+		out, err := strconv.Atoi(typed)
+		return out, err == nil
+	default:
+		return 0, false
+	}
+}
+
 func portsTouched(change model.Change, ports map[int]bool) bool {
 	for _, key := range []string{"from_port", "to_port"} {
 		if ports[intValue(change.After[key])] {
@@ -336,6 +399,199 @@ func hasProductionOrSensitiveContext(change model.Change) bool {
 		}
 	}
 	return false
+}
+
+type s3BucketContext struct {
+	Address string
+	Name    string
+	Bucket  string
+	Keys    []string
+}
+
+type s3BucketIndex struct {
+	buckets                    map[string]s3BucketContext
+	logging                    map[string]bool
+	versioningEnabled          map[string]bool
+	strictPublicAccessBlock    map[string]bool
+	serverSideEncryptionConfig map[string]bool
+}
+
+func newS3BucketIndex(plan *model.Plan) s3BucketIndex {
+	index := s3BucketIndex{
+		buckets:                    make(map[string]s3BucketContext),
+		logging:                    make(map[string]bool),
+		versioningEnabled:          make(map[string]bool),
+		strictPublicAccessBlock:    make(map[string]bool),
+		serverSideEncryptionConfig: make(map[string]bool),
+	}
+	if plan == nil {
+		return index
+	}
+	for _, change := range sortedChanges(plan) {
+		switch change.Type {
+		case "aws_s3_bucket":
+			ctx := s3BucketContext{
+				Address: change.Address,
+				Name:    change.Name,
+				Bucket:  asString(change.After["bucket"]),
+			}
+			ctx.Keys = dedupeStrings([]string{ctx.Address, ctx.Name, ctx.Bucket, asString(change.After["id"])})
+			for _, key := range ctx.Keys {
+				if key != "" {
+					index.buckets[key] = ctx
+				}
+			}
+		}
+	}
+	for _, change := range sortedChanges(plan) {
+		keys := index.bucketKeys(plan, change)
+		switch change.Type {
+		case "aws_s3_bucket_logging":
+			index.mark(index.logging, keys)
+		case "aws_s3_bucket_versioning":
+			status := strings.ToLower(asString(firstNestedValue(change.After["versioning_configuration"], "status")))
+			if status == "enabled" {
+				index.mark(index.versioningEnabled, keys)
+			}
+		case "aws_s3_bucket_public_access_block":
+			if truthy(change.After["block_public_acls"]) &&
+				truthy(change.After["block_public_policy"]) &&
+				truthy(change.After["ignore_public_acls"]) &&
+				truthy(change.After["restrict_public_buckets"]) {
+				index.mark(index.strictPublicAccessBlock, keys)
+			}
+		case "aws_s3_bucket_server_side_encryption_configuration":
+			index.mark(index.serverSideEncryptionConfig, keys)
+		}
+	}
+	return index
+}
+
+func (index s3BucketIndex) bucketKeys(plan *model.Plan, change model.Change) []string {
+	keys := []string{
+		change.Address,
+		change.Name,
+		asString(change.After["bucket"]),
+		asString(change.After["id"]),
+	}
+	for _, ref := range configuredResourceReferences(plan, change.Address, "bucket") {
+		keys = append(keys, ref)
+		if bucket, ok := index.buckets[ref]; ok {
+			keys = append(keys, bucket.Keys...)
+		}
+	}
+	return dedupeStrings(keys)
+}
+
+func (index s3BucketIndex) mark(target map[string]bool, keys []string) {
+	for _, key := range keys {
+		if key != "" {
+			target[key] = true
+		}
+	}
+}
+
+func hasAnyBucketKey(index map[string]bool, keys []string) bool {
+	for _, key := range keys {
+		if index[key] {
+			return true
+		}
+	}
+	return false
+}
+
+func bucketHasVersioningEnabled(bucket model.Change, index s3BucketIndex, plan *model.Plan) bool {
+	return hasAnyBucketKey(index.versioningEnabled, index.bucketKeys(plan, bucket))
+}
+
+func hasStrictPublicAccessBlock(bucket model.Change, index s3BucketIndex, plan *model.Plan) bool {
+	return hasAnyBucketKey(index.strictPublicAccessBlock, index.bucketKeys(plan, bucket))
+}
+
+func bucketHasEncryption(bucket model.Change, index s3BucketIndex, plan *model.Plan) bool {
+	if !encryptionDisabled(bucket.After) {
+		return true
+	}
+	return hasAnyBucketKey(index.serverSideEncryptionConfig, index.bucketKeys(plan, bucket))
+}
+
+func hasEquivalentObjectAudit(change model.Change) bool {
+	text := normalizedChangeText(change)
+	return strings.Contains(text, "cloudtrail") && strings.Contains(text, "data")
+}
+
+func configuredResourceReferences(plan *model.Plan, address string, expressionPath ...string) []string {
+	if plan == nil || plan.Configuration == nil {
+		return nil
+	}
+	var rawConfig map[string]any
+	for _, resource := range plan.Configuration.Resources {
+		if resource.Address == address {
+			rawConfig = resource.Expressions
+			break
+		}
+	}
+	if len(rawConfig) == 0 {
+		return nil
+	}
+	var current any = rawConfig
+	for _, key := range expressionPath {
+		obj, ok := current.(map[string]any)
+		if !ok {
+			return nil
+		}
+		current = obj[key]
+	}
+	return resourceAddressesFromReferences(referencesInExpression(current))
+}
+
+func referencesInExpression(value any) []string {
+	out := make([]string, 0)
+	switch typed := value.(type) {
+	case map[string]any:
+		out = append(out, stringList(typed["references"])...)
+		for key, nested := range typed {
+			if key == "references" {
+				continue
+			}
+			out = append(out, referencesInExpression(nested)...)
+		}
+	case []any:
+		for _, item := range typed {
+			out = append(out, referencesInExpression(item)...)
+		}
+	}
+	return dedupeStrings(out)
+}
+
+func resourceAddressesFromReferences(references []string) []string {
+	out := make([]string, 0, len(references))
+	for _, ref := range references {
+		parts := strings.Split(ref, ".")
+		if len(parts) < 2 {
+			continue
+		}
+		addressParts := parts[:2]
+		if parts[0] == "module" && len(parts) >= 4 {
+			addressParts = parts[:4]
+		}
+		out = append(out, strings.Join(addressParts, "."))
+	}
+	return dedupeStrings(out)
+}
+
+func dedupeStrings(values []string) []string {
+	seen := make(map[string]bool, len(values))
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func policyAllowsPublicPrincipal(text string) bool {

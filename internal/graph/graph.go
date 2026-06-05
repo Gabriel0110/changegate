@@ -209,6 +209,7 @@ func BuildWithOptions(plan *model.Plan, opts BuildOptions) *Graph {
 	g.applySensitivity(opts.SensitiveAssets)
 	inferExplicitDependencies(g, plan)
 	inferGenericReferences(g)
+	inferConfigurationReferences(g, plan)
 	inferAWSNetwork(g)
 	inferAWSLoadBalancing(g)
 	inferAWSECS(g)

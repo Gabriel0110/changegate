@@ -8,7 +8,7 @@ import (
 )
 
 type kicsOutput struct {
-	Queries []kicsQuery `json:"queries"`
+	Queries *[]kicsQuery `json:"queries"`
 }
 
 type kicsQuery struct {
@@ -35,8 +35,11 @@ func parseKICS(body []byte) ([]model.Finding, error) {
 	if err := json.Unmarshal(body, &output); err != nil {
 		return nil, fmt.Errorf("parse KICS JSON: %w", err)
 	}
+	if output.Queries == nil {
+		return nil, fmt.Errorf("parse KICS JSON: missing queries")
+	}
 	findings := make([]model.Finding, 0)
-	for _, query := range output.Queries {
+	for _, query := range *output.Queries {
 		for _, file := range query.Files {
 			resource := firstNonEmpty(file.ResourceID, file.SearchKey, file.FileName)
 			path := file.FileName

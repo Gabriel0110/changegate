@@ -85,6 +85,29 @@ func TestEvidenceFingerprintInvalidatesWaiver(t *testing.T) {
 	}
 }
 
+func TestApplyReportsUnusedWaiverWithEmptyApplicationArray(t *testing.T) {
+	t.Parallel()
+
+	now := time.Date(2026, 5, 29, 0, 0, 0, 0, time.UTC)
+	file := File{Version: Version, Waivers: []Record{{
+		ID:        "WVR-001",
+		RuleID:    "AWS_PUBLIC_RDS_INSTANCE",
+		Resource:  "aws_db_instance.unused",
+		Owner:     "platform@example.com",
+		Reason:    "Temporary.",
+		CreatedAt: "2026-05-01",
+		ExpiresAt: "2026-06-30",
+	}}}
+
+	_, report := Apply(file, []model.Finding{testFinding("AWS_PUBLIC_RDS_INSTANCE", "aws_db_instance.analytics", "prod")}, now, false)
+	if report.Summary.Unused != 1 {
+		t.Fatalf("unused = %d, want 1", report.Summary.Unused)
+	}
+	if report.Applications == nil {
+		t.Fatal("applications should be an empty array, not nil")
+	}
+}
+
 func TestWriteLoadDoesNotStoreEvidence(t *testing.T) {
 	t.Parallel()
 

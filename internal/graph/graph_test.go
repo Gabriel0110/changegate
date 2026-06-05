@@ -193,6 +193,60 @@ func TestBuildWithOptionsClassifiesSensitiveAssetsConservatively(t *testing.T) {
 	}
 }
 
+func TestGraphInfersCreateTimeConfigurationReferenceEdges(t *testing.T) {
+	t.Parallel()
+
+	plan := &model.Plan{
+		Resources: []model.Resource{
+			resource("aws_security_group.public", "aws_security_group", "public", map[string]any{
+				"ingress": []any{map[string]any{"cidr_blocks": []any{"0.0.0.0/0"}, "from_port": 80, "to_port": 80}},
+			}),
+			resource("aws_lb.admin", "aws_lb", "admin", map[string]any{"internal": false, "load_balancer_type": "application"}),
+			resource("aws_lb_listener.admin", "aws_lb_listener", "admin", map[string]any{"protocol": "HTTP"}),
+			resource("aws_lb_target_group.admin", "aws_lb_target_group", "admin", map[string]any{}),
+			resource("aws_ecs_service.admin", "aws_ecs_service", "admin", map[string]any{"tags": map[string]any{"service": "admin"}}),
+			resource("aws_db_instance.customer", "aws_db_instance", "customer", map[string]any{"publicly_accessible": true, "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		},
+		Changes: []model.Change{
+			change("aws_security_group.public", "aws_security_group", "public", []model.Action{model.ActionCreate}),
+			change("aws_lb.admin", "aws_lb", "admin", []model.Action{model.ActionCreate}),
+			change("aws_lb_listener.admin", "aws_lb_listener", "admin", []model.Action{model.ActionCreate}),
+			change("aws_lb_target_group.admin", "aws_lb_target_group", "admin", []model.Action{model.ActionCreate}),
+			change("aws_ecs_service.admin", "aws_ecs_service", "admin", []model.Action{model.ActionCreate}),
+			change("aws_db_instance.customer", "aws_db_instance", "customer", []model.Action{model.ActionCreate}),
+		},
+		Configuration: &model.Configuration{Resources: []model.ConfiguredResource{
+			{Address: "aws_lb.admin", Expressions: map[string]any{"security_groups": map[string]any{"references": []any{"aws_security_group.public.id", "aws_security_group.public"}}}},
+			{Address: "aws_lb_listener.admin", Expressions: map[string]any{
+				"load_balancer_arn": map[string]any{"references": []any{"aws_lb.admin.arn", "aws_lb.admin"}},
+				"default_action": []any{map[string]any{
+					"target_group_arn": map[string]any{"references": []any{"aws_lb_target_group.admin.arn", "aws_lb_target_group.admin"}},
+				}},
+			}},
+			{Address: "aws_ecs_service.admin", Expressions: map[string]any{
+				"load_balancer": []any{map[string]any{
+					"target_group_arn": map[string]any{"references": []any{"aws_lb_target_group.admin.arn", "aws_lb_target_group.admin"}},
+				}},
+				"network_configuration": []any{map[string]any{
+					"security_groups": map[string]any{"references": []any{"aws_security_group.public.id", "aws_security_group.public"}},
+				}},
+			}},
+			{Address: "aws_db_instance.customer", Expressions: map[string]any{
+				"vpc_security_group_ids": map[string]any{"references": []any{"aws_security_group.public.id", "aws_security_group.public"}},
+			}},
+		}},
+	}
+
+	g := Build(plan)
+	paths := g.Paths("aws_lb.admin", "aws_db_instance.customer", PathOptions{MaxDepth: 8, MaxPaths: 1, AllowedEdges: reachabilityEdges()})
+	if len(paths) != 1 {
+		t.Fatalf("expected create-time config references to produce LB to DB path, got %#v", paths)
+	}
+	if got := stringifyPath(paths[0]); got != "aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer" {
+		t.Fatalf("path = %s", got)
+	}
+}
+
 func TestGraphV2PathsBlastRadiusAndBoundaryCrossings(t *testing.T) {
 	t.Parallel()
 

@@ -203,7 +203,10 @@ func Apply(file File, findings []model.Finding, now time.Time, failExpired bool)
 	}
 	out := make([]model.Finding, len(findings))
 	copy(out, findings)
-	report := ReviewReport{}
+	report := ReviewReport{
+		Applications: []Application{},
+		Diagnostics:  []model.Diagnostic{},
+	}
 	used := make(map[string]bool, len(file.Waivers))
 	for index := range out {
 		finding := model.NormalizeFinding(out[index])

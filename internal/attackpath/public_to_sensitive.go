@@ -29,6 +29,9 @@ func DetectPublicToSensitive(g *graph.Graph, opts DetectionOptions) []AttackPath
 			paths = append(paths, sensitivePaths...)
 			continue
 		}
+		if node := g.Nodes[entrypoint]; node != nil && isSensitiveNodeKind(node.Kind) {
+			continue
+		}
 		if opts.DisableWorkloadWarnings || expectedPublicNode(g.Nodes[entrypoint]) {
 			continue
 		}
@@ -277,11 +280,18 @@ func expectedPublicNode(node *graph.Node) bool {
 	if node == nil {
 		return false
 	}
+	for _, key := range []string{"service", "tier", "exposure", "visibility"} {
+		value := strings.ToLower(tagValue(node.Tags, key) + " " + asString(node.Values[key]))
+		if strings.Contains(value, "public-web") || value == "edge" || value == "public" || value == "internet" {
+			return true
+		}
+	}
 	for _, key := range []string{"expected_public", "public_expected"} {
 		if boolValue(node.Values, key) {
 			return true
 		}
-		if strings.EqualFold(node.Tags[key], "true") || strings.EqualFold(node.Tags[key], "yes") {
+		value := tagValue(node.Tags, key)
+		if strings.EqualFold(value, "true") || strings.EqualFold(value, "yes") {
 			return true
 		}
 	}
@@ -291,6 +301,15 @@ func expectedPublicNode(node *graph.Node) bool {
 		}
 	}
 	return false
+}
+
+func tagValue(tags map[string]string, key string) string {
+	for candidate, value := range tags {
+		if strings.EqualFold(candidate, key) {
+			return value
+		}
+	}
+	return ""
 }
 
 func expectedPublicControl(value any) bool {
