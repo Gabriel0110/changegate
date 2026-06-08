@@ -4,6 +4,29 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v0.3.0 - 2026-06-08
+
+### Added
+
+- Expanded graph-aware AWS deployment-risk coverage for public API Gateway/Lambda paths, public workload access to sensitive data services, production resilience guardrails, IAM trust risks, KMS/S3 exposure, and network contradiction cases.
+- Added AWS cloud-context snapshot v2 collection for richer read-only network, edge, compute, data, and IAM evidence while keeping default scans offline and credential-free.
+- Added attack-path detection for public API Gateway and Lambda Function URL access to sensitive assets, public EKS endpoint to cluster-admin risk, IAM policy mutation escalation, broad `NotAction` escalation, and multi-hop role assumption chains.
+- Added new stable attack-path rule IDs, rule reference pages, and default compliance mappings.
+
+### Changed
+
+- Improved attack-path confidence explanations so JSON, Markdown, review, and audit output explain why confidence is high, medium, or low.
+- Tightened IAM policy parsing so `NotAction` and `NotResource` are handled as broad/ambiguous semantics instead of exact action/resource grants.
+- Updated generated AWS rule documentation for the expanded stable ruleset.
+
+### Fixed
+
+- Reduced false-positive risk in IAM policy-mutation paths by requiring self, privileged, or sensitive target evidence instead of emitting broad wildcard target paths.
+
+### Breaking changes
+
+- None.
+
 ## v0.2.0 - 2026-06-02
 
 ### Added
