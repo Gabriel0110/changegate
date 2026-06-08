@@ -106,6 +106,18 @@ func newRulesDescribeCommand() *cobra.Command {
 				r.printf("Status: %s\n", meta.Status)
 				r.printf("Version: %s\n", meta.Version)
 				r.printf("Resources: %s\n", strings.Join(meta.Resources, ", "))
+				if len(meta.Documentation.Remediation) > 0 {
+					r.printf("\nRemediation:\n")
+					for _, step := range meta.Documentation.Remediation {
+						r.printf("  - %s\n", step)
+					}
+				}
+				if len(meta.Documentation.References) > 0 {
+					r.printf("\nReferences:\n")
+					for _, ref := range meta.Documentation.References {
+						r.printf("  - %s\n", ref)
+					}
+				}
 			})
 		},
 	}

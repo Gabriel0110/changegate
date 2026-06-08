@@ -4,6 +4,8 @@
 .env.*
 bin
 dist
+.private
+test-results
 profiles
 changegate-implementation-plan.md
 *.test
