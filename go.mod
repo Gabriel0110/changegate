@@ -3,7 +3,7 @@ module github.com/Gabriel0110/changegate
 go 1.25.0
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.41.12
+	github.com/aws/aws-sdk-go-v2 v1.42.0
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
 	github.com/aws/aws-sdk-go-v2/service/apigatewayv2 v1.35.2
 	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.64.2
