@@ -25,15 +25,13 @@ jobs:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Publish npm package
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           VERSION: ${{ inputs.version }}
         run: |
-          if [[ -z "${NODE_AUTH_TOKEN}" ]]; then
-            echo "NPM_TOKEN is required to publish the npm package."
-            exit 1
-          fi
           if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid version: ${VERSION}"
             exit 1
@@ -41,4 +39,4 @@ jobs:
           cd npm/changegate
           npm version "${VERSION}" --no-git-tag-version
           npm test
-          CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --provenance --access public
+          CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --access public
