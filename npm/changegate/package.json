@@ -1,0 +1,39 @@
+{
+  "name": "changegate",
+  "version": "0.0.0-development",
+  "description": "npm installer and CLI shim for ChangeGate, a graph-aware Terraform/OpenTofu deployment risk gate.",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/Gabriel0110/changegate#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gabriel0110/changegate.git",
+    "directory": "npm/changegate"
+  },
+  "bugs": {
+    "url": "https://github.com/Gabriel0110/changegate/issues"
+  },
+  "bin": {
+    "changegate": "bin/changegate.js"
+  },
+  "scripts": {
+    "postinstall": "node scripts/install.js",
+    "test": "node --test",
+    "pack:dry-run": "npm pack --dry-run"
+  },
+  "files": [
+    "bin/",
+    "scripts/",
+    "README.md"
+  ],
+  "keywords": [
+    "terraform",
+    "opentofu",
+    "iac",
+    "security",
+    "ci",
+    "changegate"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

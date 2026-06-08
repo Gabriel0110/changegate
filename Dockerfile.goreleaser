@@ -1,4 +1,5 @@
 FROM scratch
 ARG TARGETPLATFORM
 COPY $TARGETPLATFORM/changegate /changegate
+USER 65532:65532
 ENTRYPOINT ["/changegate"]

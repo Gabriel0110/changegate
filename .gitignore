@@ -46,6 +46,7 @@ override.tf.json
 changegate-audit.zip
 changegate*.sarif
 /changegate*.json
+npm/changegate/vendor/
 
 # Local implementation planning
 changegate-implementation-plan.md
