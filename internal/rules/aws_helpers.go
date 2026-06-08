@@ -83,6 +83,40 @@ func firstHighConfidencePath(g *graph.Graph, from graph.ResourceID, to graph.Res
 	return paths[0], true
 }
 
+func firstHighConfidenceSensitiveCapabilityPath(g *graph.Graph, from graph.ResourceID, to graph.ResourceID) (graph.Path, bool) {
+	if g == nil {
+		return graph.Path{}, false
+	}
+	if from == to {
+		return graph.Path{Nodes: []graph.ResourceID{from}}, true
+	}
+	paths := g.Paths(from, to, graph.PathOptions{
+		MaxDepth: 14,
+		MaxPaths: 1,
+		AllowedEdges: []graph.EdgeType{
+			graph.EdgeRoutesTo,
+			graph.EdgeInvokes,
+			graph.EdgeAllowsIngress,
+			graph.EdgeAllowsEgress,
+			graph.EdgeAttachedTo,
+			graph.EdgeContainedIn,
+			graph.EdgeDependsOn,
+			graph.EdgeCanAssume,
+			graph.EdgeCanPassRole,
+			graph.EdgeGrantsPermission,
+			graph.EdgeCanReadData,
+			graph.EdgeCanWriteData,
+			graph.EdgeReadsSecret,
+			graph.EdgeEncryptsWith,
+			graph.EdgeWritesTo,
+		},
+	})
+	if len(paths) == 0 || !highConfidencePath(paths[0]) {
+		return graph.Path{}, false
+	}
+	return paths[0], true
+}
+
 func highConfidencePath(path graph.Path) bool {
 	for _, edge := range path.Edges {
 		if edge.Confidence != "" && edge.Confidence != graph.ConfidenceHigh {
@@ -98,6 +132,19 @@ func pathHasWorkload(g *graph.Graph, path graph.Path) bool {
 	}
 	for _, id := range path.Nodes {
 		if node := g.Nodes[id]; node != nil && node.Kind == graph.NodeWorkload {
+			return true
+		}
+	}
+	return false
+}
+
+func pathContainsEdge(path graph.Path, types ...graph.EdgeType) bool {
+	allowed := make(map[graph.EdgeType]bool, len(types))
+	for _, typ := range types {
+		allowed[typ] = true
+	}
+	for _, edge := range path.Edges {
+		if allowed[edge.Type] {
 			return true
 		}
 	}
@@ -122,6 +169,190 @@ func graphPathEvidence(resource string, target string, path graph.Path) []model.
 		}
 	}
 	return out
+}
+
+func sensitiveGraphPathEvidence(resource string, target string, path graph.Path, message string) []model.Evidence {
+	nodes := make([]string, 0, len(path.Nodes))
+	for _, node := range path.Nodes {
+		nodes = append(nodes, string(node))
+	}
+	out := []model.Evidence{
+		ev(resource, "graph.path", nodes, message),
+		ev(target, "graph.target", target, "sensitive graph target is reachable from public infrastructure"),
+	}
+	for _, edge := range path.Edges {
+		for _, evidence := range edge.Evidence {
+			if evidence.Message != "" {
+				out = append(out, ev(resource, "graph.edge", []string{string(edge.From), string(edge.To), string(edge.Type)}, evidence.Message))
+				break
+			}
+		}
+	}
+	return out
+}
+
+func publicEntrypointToSensitiveDataFindings(input RuleInput, meta Metadata, entrypointTypes map[string]bool, include func(graph.ResourceID, *graph.Node) bool, message string, remediation string) []model.Finding {
+	if input.Graph == nil {
+		return nil
+	}
+	out := make([]model.Finding, 0)
+	seen := make(map[string]bool)
+	for entryID, entrypoint := range sortedNodes(input.Graph) {
+		if entrypoint == nil || !entrypointTypes[entrypoint.Type] {
+			continue
+		}
+		if include != nil && !include(entryID, entrypoint) {
+			continue
+		}
+		if entrypoint.Kind != graph.NodePublicEntrypoint && !input.Graph.IsInternetExposed(entryID) {
+			continue
+		}
+		for targetID, target := range sortedNodes(input.Graph) {
+			if entryID == targetID || !isSensitiveNode(target) {
+				continue
+			}
+			path, ok := firstHighConfidenceSensitiveCapabilityPath(input.Graph, entryID, targetID)
+			if !ok || !pathHasWorkload(input.Graph, path) {
+				continue
+			}
+			key := string(entryID) + "=>" + string(targetID)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, finding(meta, entrypoint.Address, entrypoint.Provider, entrypoint.Environment, sensitiveGraphPathEvidence(entrypoint.Address, target.Address, path, message), remediation))
+		}
+	}
+	return out
+}
+
+func unauthenticatedAPIGatewayKeys(plan *model.Plan) map[string]bool {
+	out := make(map[string]bool)
+	record := func(resourceType string, values map[string]any, address string, name string) {
+		switch resourceType {
+		case "aws_apigatewayv2_route":
+			auth := strings.ToLower(asString(values["authorization_type"]))
+			if auth != "" && auth != "none" {
+				return
+			}
+			addNonEmptyKeys(out, asString(values["api_id"]), address, name)
+		case "aws_api_gateway_method":
+			auth := strings.ToLower(asString(values["authorization"]))
+			if auth != "" && auth != "none" {
+				return
+			}
+			addNonEmptyKeys(out, asString(values["rest_api_id"]), address, name)
+		}
+	}
+	for _, change := range sortedChanges(plan) {
+		record(change.Type, change.After, change.Address, change.Name)
+	}
+	if plan != nil {
+		for _, resource := range plan.Resources {
+			record(resource.Type, resource.Values, resource.Address, resource.Name)
+		}
+	}
+	return out
+}
+
+func matchesGraphNodeKey(node *graph.Node, keys map[string]bool) bool {
+	if node == nil {
+		return false
+	}
+	return keys[string(node.ID)] || keys[node.Address] || keys[node.Name] || keys[asString(node.Values["id"])] || keys[asString(node.Values["name"])]
+}
+
+func addNonEmptyKeys(keys map[string]bool, values ...string) {
+	for _, value := range values {
+		if value != "" {
+			keys[value] = true
+		}
+	}
+}
+
+func publicWorkloadSensitiveFindings(input RuleInput, meta Metadata, match func(workload *graph.Node, target *graph.Node, path graph.Path) bool, message string, remediation string) []model.Finding {
+	if input.Graph == nil {
+		return nil
+	}
+	out := make([]model.Finding, 0)
+	seen := make(map[string]bool)
+	for workloadID, workload := range sortedNodes(input.Graph) {
+		if workload == nil || workload.Kind != graph.NodeWorkload || !hasHighConfidencePublicWorkloadExposure(input, workloadID) {
+			continue
+		}
+		for targetID, target := range sortedNodes(input.Graph) {
+			if workloadID == targetID || target == nil {
+				continue
+			}
+			path, ok := firstHighConfidenceSensitiveCapabilityPath(input.Graph, workloadID, targetID)
+			if !ok || !match(workload, target, path) {
+				continue
+			}
+			key := string(workloadID) + "=>" + string(targetID)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+			out = append(out, finding(meta, workload.Address, workload.Provider, workload.Environment, sensitiveGraphPathEvidence(workload.Address, target.Address, path, message), remediation))
+		}
+	}
+	return out
+}
+
+func hasHighConfidencePublicWorkloadExposure(input RuleInput, workloadID graph.ResourceID) bool {
+	if input.Graph == nil {
+		return false
+	}
+	paths := input.Graph.Paths(graph.InternetNodeID, workloadID, graph.PathOptions{
+		MaxDepth: 10,
+		MaxPaths: 5,
+		AllowedEdges: []graph.EdgeType{
+			graph.EdgeRoutesTo,
+			graph.EdgeInvokes,
+			graph.EdgeAllowsIngress,
+			graph.EdgeAttachedTo,
+			graph.EdgeContainedIn,
+		},
+	})
+	if len(paths) == 0 {
+		return false
+	}
+	unauthenticatedAPIs := unauthenticatedAPIGatewayKeys(input.Plan)
+	for _, path := range paths {
+		if !highConfidencePath(path) {
+			continue
+		}
+		if pathRequiresAuthenticatedAPI(input.Graph, path, unauthenticatedAPIs) {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+func pathRequiresAuthenticatedAPI(g *graph.Graph, path graph.Path, unauthenticatedAPIs map[string]bool) bool {
+	if g == nil {
+		return false
+	}
+	for _, nodeID := range path.Nodes {
+		node := g.Nodes[nodeID]
+		if node == nil || !apiGatewayNodeType(node.Type) {
+			continue
+		}
+		if !matchesGraphNodeKey(node, unauthenticatedAPIs) {
+			return true
+		}
+	}
+	return false
+}
+
+func apiGatewayNodeType(resourceType string) bool {
+	switch resourceType {
+	case "aws_api_gateway_rest_api", "aws_apigatewayv2_api", "aws_api_gateway_stage", "aws_apigatewayv2_stage":
+		return true
+	default:
+		return false
+	}
 }
 
 func looksAdmin(node *graph.Node) bool {

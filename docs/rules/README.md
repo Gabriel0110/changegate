@@ -32,12 +32,17 @@ This reference lists the stable AWS rules included with ChangeGate.
 | [`AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG`](AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG.md)               | `network_blast_radius` | `high`     | `high`     |
 | [`AWS_PUBLIC_ADMIN_SERVICE`](AWS_PUBLIC_ADMIN_SERVICE.md)                                                 | `public_exposure`      | `high`     | `high`     |
 | [`AWS_PUBLIC_ADMIN_SERVICE_PATH`](AWS_PUBLIC_ADMIN_SERVICE_PATH.md)                                       | `public_exposure`      | `medium`   | `medium`   |
+| [`AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA`](AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA.md)                 | `sensitive_data`       | `critical` | `high`     |
 | [`AWS_PUBLIC_EKS_ENDPOINT_PROD`](AWS_PUBLIC_EKS_ENDPOINT_PROD.md)                                         | `public_exposure`      | `high`     | `high`     |
 | [`AWS_PUBLIC_INTERNAL_SERVICE`](AWS_PUBLIC_INTERNAL_SERVICE.md)                                           | `public_exposure`      | `high`     | `high`     |
+| [`AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA`](AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA.md)                   | `sensitive_data`       | `critical` | `high`     |
 | [`AWS_PUBLIC_OPENSEARCH_DOMAIN`](AWS_PUBLIC_OPENSEARCH_DOMAIN.md)                                         | `public_exposure`      | `high`     | `high`     |
 | [`AWS_PUBLIC_RDS_INSTANCE`](AWS_PUBLIC_RDS_INSTANCE.md)                                                   | `public_exposure`      | `high`     | `high`     |
 | [`AWS_PUBLIC_TO_SENSITIVE_DATASTORE`](AWS_PUBLIC_TO_SENSITIVE_DATASTORE.md)                               | `sensitive_data`       | `high`     | `high`     |
 | [`AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`](AWS_PUBLIC_TO_SENSITIVE_DATA_PATH.md)                               | `sensitive_data`       | `critical` | `high`     |
+| [`AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS`](AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS.md)                             | `sensitive_data`       | `high`     | `high`     |
+| [`AWS_PUBLIC_WORKLOAD_READS_SECRET`](AWS_PUBLIC_WORKLOAD_READS_SECRET.md)                                 | `sensitive_data`       | `critical` | `high`     |
+| [`AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS`](AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS.md)                             | `sensitive_data`       | `high`     | `high`     |
 | [`AWS_RDS_BACKUP_RETENTION_DISABLED_PROD`](AWS_RDS_BACKUP_RETENTION_DISABLED_PROD.md)                     | `availability`         | `high`     | `high`     |
 | [`AWS_RDS_BACKUP_RETENTION_REDUCED_PROD`](AWS_RDS_BACKUP_RETENTION_REDUCED_PROD.md)                       | `availability`         | `high`     | `high`     |
 | [`AWS_RDS_DELETION_PROTECTION_DISABLED_PROD`](AWS_RDS_DELETION_PROTECTION_DISABLED_PROD.md)               | `availability`         | `high`     | `high`     |

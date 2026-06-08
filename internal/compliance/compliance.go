@@ -99,6 +99,12 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"soc2":        {"CC6.6", "CC7.1"},
 			"iso_27001":   {"A.8.20", "A.8.22"},
 		}),
+		"AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA": mapping(map[string][]string{
+			"nist_800_53": {"AC-4", "SC-7", "SC-28"},
+			"pci_dss":     {"1.2", "3.5", "7.2"},
+			"soc2":        {"CC6.6", "CC6.7", "CC7.1"},
+			"iso_27001":   {"A.8.20", "A.8.22", "A.8.24"},
+		}),
 		"AWS_SG_WORLD_OPEN_ADMIN_PORT": mapping(map[string][]string{
 			"cis_aws":     {"4.1"},
 			"nist_800_53": {"AC-4", "SC-7"},
@@ -149,6 +155,12 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"nist_800_53": {"AC-4", "SC-7"},
 			"soc2":        {"CC6.6", "CC7.1"},
 			"iso_27001":   {"A.8.20", "A.8.22"},
+		}),
+		"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA": mapping(map[string][]string{
+			"nist_800_53": {"AC-4", "SC-7", "SC-28"},
+			"pci_dss":     {"1.2", "3.5", "7.2"},
+			"soc2":        {"CC6.6", "CC6.7", "CC7.1"},
+			"iso_27001":   {"A.8.20", "A.8.22", "A.8.24"},
 		}),
 		"AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP": mapping(map[string][]string{
 			"nist_800_53": {"SC-8", "SC-13"},
@@ -356,6 +368,24 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"pci_dss":     {"1.2", "3.5"},
 			"soc2":        {"CC6.6", "CC6.7", "CC7.1"},
 			"iso_27001":   {"A.8.20", "A.8.22", "A.8.24"},
+		}),
+		"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS": mapping(map[string][]string{
+			"nist_800_53": {"AC-4", "AC-6", "SC-12", "SC-28"},
+			"pci_dss":     {"3.5", "3.6", "7.2"},
+			"soc2":        {"CC6.1", "CC6.7", "CC7.1"},
+			"iso_27001":   {"A.5.15", "A.8.20", "A.8.24"},
+		}),
+		"AWS_PUBLIC_WORKLOAD_READS_SECRET": mapping(map[string][]string{
+			"nist_800_53": {"AC-4", "AC-6", "IA-5", "SC-28"},
+			"pci_dss":     {"3.5", "7.2", "8.2"},
+			"soc2":        {"CC6.1", "CC6.3", "CC6.7", "CC7.1"},
+			"iso_27001":   {"A.5.15", "A.5.17", "A.8.20", "A.8.24"},
+		}),
+		"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS": mapping(map[string][]string{
+			"nist_800_53": {"AC-4", "AC-6", "SC-7", "SC-28"},
+			"pci_dss":     {"1.2", "3.5", "7.2"},
+			"soc2":        {"CC6.1", "CC6.6", "CC6.7", "CC7.1"},
+			"iso_27001":   {"A.5.15", "A.8.20", "A.8.22", "A.8.24"},
 		}),
 		"AWS_PRIVATE_SUBNET_ROUTE_TO_IGW": mapping(map[string][]string{
 			"nist_800_53": {"AC-4", "SC-7"},

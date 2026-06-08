@@ -135,6 +135,11 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 	plan := &model.Plan{Resources: []model.Resource{
 		res("aws_lb.internal", "aws_lb", "internal", map[string]any{"arn": "internal-alb-arn", "scheme": "internal", "tags": map[string]any{"env": "prod"}}),
 		res("aws_lb_listener.internal", "aws_lb_listener", "internal", map[string]any{"load_balancer_arn": "internal-alb-arn", "protocol": "HTTP"}),
+		res("aws_apigatewayv2_api.authenticated", "aws_apigatewayv2_api", "authenticated", map[string]any{"id": "api-authenticated", "name": "authenticated-api", "tags": map[string]any{"env": "prod"}}),
+		res("aws_apigatewayv2_route.authenticated", "aws_apigatewayv2_route", "authenticated", map[string]any{"api_id": "api-authenticated", "route_key": "GET /customers", "authorization_type": "JWT"}),
+		res("aws_apigatewayv2_integration.authenticated", "aws_apigatewayv2_integration", "authenticated", map[string]any{"api_id": "api-authenticated", "integration_uri": "arn:aws:lambda:us-east-1:123456789012:function:authenticated-handler", "integration_type": "AWS_PROXY"}),
+		res("aws_lambda_function.authenticated", "aws_lambda_function", "authenticated", map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:authenticated-handler", "function_name": "authenticated-handler", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:authenticated-customer"}}}, "tags": map[string]any{"env": "prod", "service": "authenticated-api"}}),
+		res("aws_secretsmanager_secret.authenticated_customer", "aws_secretsmanager_secret", "authenticated_customer", map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:authenticated-customer", "name": "authenticated-customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
 		res("aws_lambda_function_url.private", "aws_lambda_function_url", "private", map[string]any{"authorization_type": "AWS_IAM"}),
 		res("aws_apigatewayv2_route.admin", "aws_apigatewayv2_route", "admin", map[string]any{"route_key": "ANY /admin", "authorization_type": "JWT"}),
 		res("aws_s3_bucket_policy.private", "aws_s3_bucket_policy", "private", map[string]any{"bucket": "private", "policy": `{"Statement":[{"Principal":{"AWS":"arn:aws:iam::123456789012:role/app"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::private/*"}]}`}),
@@ -144,6 +149,11 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 	}, Changes: []model.Change{
 		{Address: "aws_lb.internal", Type: "aws_lb", Name: "internal", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"arn": "internal-alb-arn", "scheme": "internal", "tags": map[string]any{"env": "prod"}}, Tags: map[string]string{"env": "prod"}},
 		{Address: "aws_lb_listener.internal", Type: "aws_lb_listener", Name: "internal", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"load_balancer_arn": "internal-alb-arn", "protocol": "HTTP"}},
+		{Address: "aws_apigatewayv2_api.authenticated", Type: "aws_apigatewayv2_api", Name: "authenticated", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"id": "api-authenticated", "name": "authenticated-api", "tags": map[string]any{"env": "prod"}}, Tags: map[string]string{"env": "prod"}},
+		{Address: "aws_apigatewayv2_route.authenticated", Type: "aws_apigatewayv2_route", Name: "authenticated", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"api_id": "api-authenticated", "route_key": "GET /customers", "authorization_type": "JWT"}},
+		{Address: "aws_apigatewayv2_integration.authenticated", Type: "aws_apigatewayv2_integration", Name: "authenticated", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"api_id": "api-authenticated", "integration_uri": "arn:aws:lambda:us-east-1:123456789012:function:authenticated-handler", "integration_type": "AWS_PROXY"}},
+		{Address: "aws_lambda_function.authenticated", Type: "aws_lambda_function", Name: "authenticated", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:authenticated-handler", "function_name": "authenticated-handler", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:authenticated-customer"}}}, "tags": map[string]any{"env": "prod", "service": "authenticated-api"}}, Tags: map[string]string{"env": "prod", "service": "authenticated-api"}},
+		{Address: "aws_secretsmanager_secret.authenticated_customer", Type: "aws_secretsmanager_secret", Name: "authenticated_customer", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:authenticated-customer", "name": "authenticated-customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}, Tags: map[string]string{"env": "prod", "data": "sensitive"}},
 		{Address: "aws_lambda_function_url.private", Type: "aws_lambda_function_url", Name: "private", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"authorization_type": "AWS_IAM"}},
 		{Address: "aws_apigatewayv2_route.admin", Type: "aws_apigatewayv2_route", Name: "admin", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"route_key": "ANY /admin", "authorization_type": "JWT"}},
 		{Address: "aws_s3_bucket_policy.private", Type: "aws_s3_bucket_policy", Name: "private", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"bucket": "private", "policy": `{"Statement":[{"Principal":{"AWS":"arn:aws:iam::123456789012:role/app"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::private/*"}]}`}},
@@ -161,6 +171,11 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 		case "AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP",
 			"AWS_LAMBDA_PUBLIC_FUNCTION_URL",
 			"AWS_API_GATEWAY_PUBLIC_ADMIN_ROUTE",
+			"AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA",
+			"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA",
+			"AWS_PUBLIC_WORKLOAD_READS_SECRET",
+			"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
+			"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS",
 			"AWS_S3_BUCKET_PUBLIC_POLICY",
 			"AWS_CLOUDTRAIL_LOGGING_DISABLED_PROD",
 			"AWS_CLOUDTRAIL_LOG_FILE_VALIDATION_DISABLED_PROD",
@@ -227,8 +242,88 @@ func TestAWSRulesAvoidValidationFalsePositives(t *testing.T) {
 		switch finding.RuleID {
 		case "AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS",
 			"AWS_S3_SENSITIVE_BUCKET_LOGGING_DISABLED",
-			"AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED":
+			"AWS_S3_SENSITIVE_BUCKET_VERSIONING_DISABLED",
+			"AWS_PUBLIC_WORKLOAD_READS_SECRET",
+			"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
+			"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS",
+			"AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA",
+			"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA":
 			t.Fatalf("validation-safe fixture triggered %s: %#v", finding.RuleID, finding)
+		}
+	}
+}
+
+func TestAWSGraphAwareSensitivePathRules(t *testing.T) {
+	t.Parallel()
+
+	registry, err := DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	plan := &model.Plan{Resources: []model.Resource{
+		res("aws_apigatewayv2_api.public", "aws_apigatewayv2_api", "public", map[string]any{"id": "api-public", "name": "public-api", "tags": map[string]any{"env": "prod"}}),
+		res("aws_apigatewayv2_route.public", "aws_apigatewayv2_route", "public", map[string]any{"api_id": "api-public", "route_key": "GET /customers", "authorization_type": "NONE"}),
+		res("aws_apigatewayv2_integration.public_handler", "aws_apigatewayv2_integration", "public_handler", map[string]any{"api_id": "api-public", "integration_uri": "arn:aws:lambda:us-east-1:123456789012:function:public-handler", "integration_type": "AWS_PROXY"}),
+		res("aws_lambda_function.public_handler", "aws_lambda_function", "public_handler", map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:public-handler", "function_name": "public-handler", "role": "arn:aws:iam::123456789012:role/public-handler", "kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer"}}}, "tags": map[string]any{"env": "prod", "service": "public-api"}}),
+		res("aws_lambda_function_url.public_handler", "aws_lambda_function_url", "public_handler", map[string]any{"function_name": "public-handler", "authorization_type": "NONE"}),
+		res("aws_iam_role.public_handler", "aws_iam_role", "public_handler", map[string]any{"arn": "arn:aws:iam::123456789012:role/public-handler", "name": "public-handler"}),
+		res("aws_iam_policy.public_handler_data", "aws_iam_policy", "public_handler_data", map[string]any{"arn": "arn:aws:iam::123456789012:policy/public-handler-data", "policy": `{"Statement":[{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject"],"Resource":"arn:aws:s3:::customer-data/*"}]}`}),
+		res("aws_iam_role_policy_attachment.public_handler_data", "aws_iam_role_policy_attachment", "public_handler_data", map[string]any{"role": "public-handler", "policy_arn": "arn:aws:iam::123456789012:policy/public-handler-data"}),
+		res("aws_secretsmanager_secret.customer", "aws_secretsmanager_secret", "customer", map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer", "name": "customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_kms_key.customer", "aws_kms_key", "customer", map[string]any{"arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_s3_bucket.customer_data", "aws_s3_bucket", "customer_data", map[string]any{"bucket": "customer-data", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+	}}
+	for _, resource := range plan.Resources {
+		plan.Changes = append(plan.Changes, changeFromResource(resource, []model.Action{model.ActionCreate}))
+	}
+
+	result := NewRunner(registry).Evaluate(context.Background(), RuleInput{
+		Plan:  plan,
+		Graph: graph.Build(plan),
+	}, Selection{})
+	for _, id := range []string{
+		"AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA",
+		"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA",
+		"AWS_PUBLIC_WORKLOAD_READS_SECRET",
+		"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
+		"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS",
+	} {
+		if !hasFinding(result.Findings, id) {
+			t.Fatalf("missing %s in findings: %#v", id, result.Findings)
+		}
+	}
+}
+
+func TestAWSGraphAwareSensitivePathRulesRequireConcretePath(t *testing.T) {
+	t.Parallel()
+
+	registry, err := DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	plan := &model.Plan{Resources: []model.Resource{
+		res("aws_lambda_function.public_handler", "aws_lambda_function", "public_handler", map[string]any{"function_name": "public-handler", "tags": map[string]any{"env": "prod"}}),
+		res("aws_lambda_function_url.public_handler", "aws_lambda_function_url", "public_handler", map[string]any{"function_name": "public-handler", "authorization_type": "NONE"}),
+		res("aws_secretsmanager_secret.customer", "aws_secretsmanager_secret", "customer", map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer", "name": "customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_kms_key.customer", "aws_kms_key", "customer", map[string]any{"arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_s3_bucket.customer_data", "aws_s3_bucket", "customer_data", map[string]any{"bucket": "customer-data", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+	}}
+	for _, resource := range plan.Resources {
+		plan.Changes = append(plan.Changes, changeFromResource(resource, []model.Action{model.ActionCreate}))
+	}
+
+	result := NewRunner(registry).Evaluate(context.Background(), RuleInput{
+		Plan:  plan,
+		Graph: graph.Build(plan),
+	}, Selection{})
+	for _, id := range []string{
+		"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA",
+		"AWS_PUBLIC_WORKLOAD_READS_SECRET",
+		"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
+		"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS",
+	} {
+		if hasFinding(result.Findings, id) {
+			t.Fatalf("ambiguous fixture triggered %s: %#v", id, result.Findings)
 		}
 	}
 }
@@ -236,6 +331,15 @@ func TestAWSRulesAvoidValidationFalsePositives(t *testing.T) {
 func findingEvidencePath(finding model.Finding, path string) bool {
 	for _, evidence := range finding.Evidence {
 		if evidence.Path == path {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFinding(findings []model.Finding, ruleID string) bool {
+	for _, finding := range findings {
+		if finding.RuleID == ruleID {
 			return true
 		}
 	}
@@ -273,8 +377,12 @@ func awsFailingPlan() *model.Plan {
 		res("aws_s3_bucket_acl.logs", "aws_s3_bucket_acl", "logs", map[string]any{"bucket": "logs", "acl": "public-read", "tags": map[string]any{"env": "prod"}}),
 		res("aws_s3_bucket_versioning.logs", "aws_s3_bucket_versioning", "logs", map[string]any{"bucket": "logs", "versioning_configuration": []any{map[string]any{"status": "Suspended"}}, "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
 		res("aws_s3_bucket_policy.logs", "aws_s3_bucket_policy", "logs", map[string]any{"bucket": "logs", "policy": `{"Statement":[{"Principal":"*","Action":"s3:GetObject"}]}`}),
-		res("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{"role": "worker-role-arn"}),
+		res("aws_secretsmanager_secret.customer", "aws_secretsmanager_secret", "customer", map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer", "name": "customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_kms_key.customer", "aws_kms_key", "customer", map[string]any{"arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:worker", "function_name": "worker", "role": "worker-role-arn", "kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer"}}}, "tags": map[string]any{"env": "prod", "service": "public-api"}}),
 		res("aws_lambda_function_url.worker", "aws_lambda_function_url", "worker", map[string]any{"function_name": "worker", "authorization_type": "NONE"}),
+		res("aws_apigatewayv2_api.public", "aws_apigatewayv2_api", "public", map[string]any{"id": "api-public", "name": "public-api", "tags": map[string]any{"env": "prod"}}),
+		res("aws_apigatewayv2_integration.worker", "aws_apigatewayv2_integration", "worker", map[string]any{"api_id": "api-public", "integration_uri": "arn:aws:lambda:us-east-1:123456789012:function:worker", "integration_type": "AWS_PROXY"}),
 		res("aws_apigatewayv2_route.admin", "aws_apigatewayv2_route", "admin", map[string]any{"api_id": "api-public", "route_key": "ANY /admin", "authorization_type": "NONE"}),
 		res("aws_iam_role.worker", "aws_iam_role", "worker", map[string]any{"arn": "worker-role-arn", "name": "worker", "assume_role_policy": `{"Statement":[{"Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::999999999999:root"}}]}`}),
 		res("aws_iam_role.admin", "aws_iam_role", "admin", map[string]any{"arn": "admin-role-arn", "name": "admin"}),

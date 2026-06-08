@@ -1790,7 +1790,7 @@ func TestPolicyCommands(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 	assertValidJSON(t, stdout)
-	if !strings.Contains(stdout, `"enabled_rules": 27`) {
+	if !strings.Contains(stdout, `"enabled_rules": 32`) {
 		t.Fatalf("policy test output missing enabled count:\n%s", stdout)
 	}
 }

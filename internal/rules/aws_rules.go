@@ -45,6 +45,11 @@ func awsRules() []Rule {
 		newAWSRule("AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH", "CloudFront and S3 public exposure mismatch", "Detects S3 buckets exposed publicly while also fronted by CloudFront.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_cloudfront_distribution", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalCloudFrontS3PublicMismatch),
 		newAWSRule("AWS_LAMBDA_PUBLIC_FUNCTION_URL", "Lambda function URL is public", "Detects Lambda function URLs that allow unauthenticated public access.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function_url"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalLambdaPublicFunctionURL),
 		newAWSRule("AWS_API_GATEWAY_PUBLIC_ADMIN_ROUTE", "Public API Gateway exposes admin route", "Detects public API Gateway routes or resources that appear to expose admin surfaces without authorization.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_apigatewayv2_route", "aws_api_gateway_method"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalAPIGatewayPublicAdminRoute),
+		newAWSRule("AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA", "Public API Gateway reaches sensitive data", "Detects unauthenticated public API Gateway paths that invoke a workload with graph-backed access to sensitive data.", model.RiskCategorySensitiveData, model.SeverityCritical, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_apigatewayv2_api", "aws_api_gateway_rest_api", "aws_apigatewayv2_integration", "aws_api_gateway_integration", "aws_lambda_function", "aws_secretsmanager_secret", "aws_kms_key", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalPublicAPIGatewayToSensitiveData),
+		newAWSRule("AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA", "Public Lambda URL reaches sensitive data", "Detects unauthenticated Lambda function URLs that invoke a function with graph-backed access to sensitive data.", model.RiskCategorySensitiveData, model.SeverityCritical, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function_url", "aws_lambda_function", "aws_secretsmanager_secret", "aws_kms_key", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalPublicLambdaURLToSensitiveData),
+		newAWSRule("AWS_PUBLIC_WORKLOAD_READS_SECRET", "Public workload can read secret", "Detects internet-exposed workloads with graph-backed access to Secrets Manager secrets.", model.RiskCategorySensitiveData, model.SeverityCritical, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function", "aws_ecs_service", "aws_instance", "aws_secretsmanager_secret"}, []Capability{CapabilityGraph}, evalPublicWorkloadReadsSecret),
+		newAWSRule("AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS", "Public workload can use sensitive KMS key", "Detects internet-exposed workloads with graph-backed access to sensitive KMS keys.", model.RiskCategorySensitiveData, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function", "aws_ecs_service", "aws_instance", "aws_kms_key"}, []Capability{CapabilityGraph}, evalPublicWorkloadKMSKeyAccess),
+		newAWSRule("AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS", "Public workload can access sensitive S3 data", "Detects internet-exposed workloads with graph-backed read or write access to sensitive S3 buckets.", model.RiskCategorySensitiveData, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function", "aws_ecs_service", "aws_instance", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalPublicWorkloadS3DataAccess),
 		newAWSRule("AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP", "Public load balancer uses weak TLS or plaintext HTTP", "Detects internet-facing load balancer listeners that use plaintext HTTP or legacy TLS policies.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lb", "aws_lb_listener"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalLoadBalancerWeakTLSOrHTTP),
 		newAWSRule("AWS_PASSROLE_WITH_COMPUTE_MUTATION", "iam:PassRole with compute mutation", "Detects IAM principals that can pass roles and mutate compute resources.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_lambda_function", "aws_ecs_service", "aws_instance"}, []Capability{CapabilityGraph}, evalPassRoleWithComputeMutation),
 		newAWSRule("AWS_IAM_WILDCARD_ADMIN", "Wildcard IAM administration", "Detects IAM policies with broad iam:* or Action:* grants.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_iam_role_policy"}, []Capability{CapabilityResourceChanges}, evalIAMWildcardAdmin),
@@ -370,6 +375,45 @@ func evalAPIGatewayPublicAdminRoute(_ context.Context, input RuleInput, meta Met
 		}
 	}
 	return out, nil
+}
+
+func evalPublicAPIGatewayToSensitiveData(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	unauthenticatedAPIs := unauthenticatedAPIGatewayKeys(input.Plan)
+	if len(unauthenticatedAPIs) == 0 {
+		return nil, nil
+	}
+	return publicEntrypointToSensitiveDataFindings(input, meta, map[string]bool{
+		"aws_api_gateway_rest_api": true,
+		"aws_apigatewayv2_api":     true,
+		"aws_api_gateway_stage":    true,
+		"aws_apigatewayv2_stage":   true,
+	}, func(_ graph.ResourceID, node *graph.Node) bool {
+		return node != nil && matchesGraphNodeKey(node, unauthenticatedAPIs)
+	}, "unauthenticated public API Gateway invokes a workload with a high-confidence path to sensitive data", "Require authorization for the API path or remove the downstream sensitive data capability."), nil
+}
+
+func evalPublicLambdaURLToSensitiveData(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	return publicEntrypointToSensitiveDataFindings(input, meta, map[string]bool{
+		"aws_lambda_function_url": true,
+	}, nil, "public Lambda function URL invokes a workload with a high-confidence path to sensitive data", "Use AWS_IAM authorization or remove the downstream sensitive data capability."), nil
+}
+
+func evalPublicWorkloadReadsSecret(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	return publicWorkloadSensitiveFindings(input, meta, func(_ *graph.Node, target *graph.Node, path graph.Path) bool {
+		return target != nil && target.Type == "aws_secretsmanager_secret" && pathContainsEdge(path, graph.EdgeReadsSecret, graph.EdgeCanReadData)
+	}, "internet-exposed workload has a high-confidence graph path to a secret", "Remove public exposure from the workload or scope secret access to a private workload path."), nil
+}
+
+func evalPublicWorkloadKMSKeyAccess(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	return publicWorkloadSensitiveFindings(input, meta, func(_ *graph.Node, target *graph.Node, path graph.Path) bool {
+		return target != nil && target.Type == "aws_kms_key" && hasSensitiveGraphContext(target) && pathContainsEdge(path, graph.EdgeEncryptsWith, graph.EdgeCanReadData)
+	}, "internet-exposed workload has a high-confidence graph path to a sensitive KMS key", "Remove public exposure from the workload or scope KMS access to the exact private workload that requires it."), nil
+}
+
+func evalPublicWorkloadS3DataAccess(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
+	return publicWorkloadSensitiveFindings(input, meta, func(_ *graph.Node, target *graph.Node, path graph.Path) bool {
+		return target != nil && target.Type == "aws_s3_bucket" && hasSensitiveGraphContext(target) && pathContainsEdge(path, graph.EdgeCanReadData, graph.EdgeCanWriteData, graph.EdgeWritesTo)
+	}, "internet-exposed workload has a high-confidence graph path to sensitive S3 data", "Remove public exposure from the workload or scope S3 data access to private service roles and exact bucket prefixes."), nil
 }
 
 func evalLoadBalancerWeakTLSOrHTTP(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {

@@ -42,6 +42,8 @@ tests:
       decision: block
       findings:
         include:
+          - AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA
+          - AWS_PUBLIC_WORKLOAD_READS_SECRET
           - AWS_PUBLIC_TO_SENSITIVE_DATA_PATH
       attack_paths:
         include:
