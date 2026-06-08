@@ -85,7 +85,7 @@ See the [rule reference](docs/rules/README.md) for the full list.
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=v0.3.0
+export CHANGEGATE_VERSION=v0.4.0
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
@@ -94,8 +94,8 @@ The installer verifies `checksums.txt` and refuses checksum mismatches. Set `CHA
 Docker:
 
 ```bash
-docker run --rm ghcr.io/gabriel0110/changegate:v0.3.0 version
-docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.3.0 scan --plan /work/tfplan.json
+docker run --rm ghcr.io/gabriel0110/changegate:v0.4.0 version
+docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.4.0 scan --plan /work/tfplan.json
 ```
 
 Published image tags include `vX.Y.Z`, `X.Y.Z`, `X.Y`, `X`, and `latest`.
@@ -114,7 +114,7 @@ See [Install Options](docs/distribution.md) for Docker tags and npm installer be
 To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
 
 ```bash
-export CHANGEGATE_VERSION=v0.3.0
+export CHANGEGATE_VERSION=v0.4.0
 export CHANGEGATE_VERIFY_SIG=true
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```

@@ -4,6 +4,27 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v0.4.0 - 2026-06-08
+
+### Added
+
+- Added official Docker distribution with non-root images, GHCR publishing, multi-architecture release support, OCI metadata, and Docker smoke tests.
+- Added the `changegate` npm installer package with platform-specific binary resolution, checksum verification, a `changegate` CLI shim, and npm package smoke tests.
+- Added user-facing install documentation for Docker and npm distribution paths.
+
+### Changed
+
+- Updated the release workflow so tagged releases can publish the npm package when `NPM_TOKEN` is configured.
+- Updated CI to validate Docker image runtime behavior and npm package installation behavior before release.
+
+### Fixed
+
+- Kept generated npm vendor binaries out of git and Docker build contexts.
+
+### Breaking changes
+
+- None.
+
 ## v0.3.0 - 2026-06-08
 
 ### Added
