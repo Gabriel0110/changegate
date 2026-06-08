@@ -103,4 +103,4 @@ jobs:
           cd npm/changegate
           npm version "${version}" --no-git-tag-version
           npm test
-          CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --provenance
+          CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --provenance --access public
