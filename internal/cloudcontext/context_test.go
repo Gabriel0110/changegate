@@ -91,6 +91,45 @@ func TestIdentitySnapshotAndPermissionValidation(t *testing.T) {
 	}
 }
 
+func TestValidatePermissionsAcceptsFullV2Coverage(t *testing.T) {
+	t.Parallel()
+
+	snapshot := Snapshot{Capabilities: Capabilities{
+		Identity:                true,
+		Network:                 true,
+		RouteTables:             true,
+		SecurityGroups:          true,
+		NetworkInterfaces:       true,
+		TransitGateways:         true,
+		Edge:                    true,
+		ELBv2:                   true,
+		CloudFront:              true,
+		APIGateway:              true,
+		LambdaFunctionURLs:      true,
+		IAM:                     true,
+		IAMPermissionBoundaries: true,
+		Compute:                 true,
+		EC2:                     true,
+		ECS:                     true,
+		Lambda:                  true,
+		S3:                      true,
+		S3Protection:            true,
+		RDS:                     true,
+		RDSSubnetGroups:         true,
+		KMS:                     true,
+		KMSPolicies:             true,
+		SecretsManager:          true,
+		SecretsPolicies:         true,
+		EKS:                     true,
+		OpenSearch:              true,
+		ElastiCache:             true,
+		EFS:                     true,
+	}}
+	if diagnostics := ValidatePermissions(snapshot); len(diagnostics) != 0 {
+		t.Fatalf("full v2 coverage produced diagnostics: %+v", diagnostics)
+	}
+}
+
 func TestReadOnlyPolicyTemplateMatchesExample(t *testing.T) {
 	t.Parallel()
 

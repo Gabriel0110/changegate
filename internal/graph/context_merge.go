@@ -331,7 +331,7 @@ func contextEdgeType(relationshipType string) EdgeType {
 	switch strings.ToLower(strings.TrimSpace(relationshipType)) {
 	case "routes_to", "has_listener", "target_health":
 		return EdgeRoutesTo
-	case "attached_to", "associated_with", "uses_instance_profile", "inline_policy", "attached_policy":
+	case "attached_to", "associated_with", "uses_instance_profile", "inline_policy", "attached_policy", "permission_boundary":
 		return EdgeAttachedTo
 	case "contains", "contains_role":
 		return EdgeContainedIn
@@ -371,7 +371,7 @@ func contextConfidence(value string) EdgeConfidence {
 
 func attachmentRelationship(relationshipType string) bool {
 	switch strings.ToLower(strings.TrimSpace(relationshipType)) {
-	case "attached_to", "associated_with", "uses_instance_profile", "protects", "allows_security_group", "contains", "contains_role":
+	case "attached_to", "associated_with", "uses_instance_profile", "protects", "allows_security_group", "contains", "contains_role", "permission_boundary":
 		return true
 	default:
 		return false

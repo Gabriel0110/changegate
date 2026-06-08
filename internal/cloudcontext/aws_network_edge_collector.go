@@ -17,6 +17,7 @@ import (
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
 )
 
 const (
@@ -42,6 +43,9 @@ func (c *sdkAWSClientSet) NetworkInventory(ctx context.Context, region string, a
 	if err := c.collectNATGateways(ctx, ec2Client, region, accountID, &inventory); err != nil {
 		return AWSInventory{}, err
 	}
+	if err := c.collectTransitGateways(ctx, ec2Client, region, accountID, &inventory); err != nil {
+		return AWSInventory{}, err
+	}
 	if err := c.collectRouteTables(ctx, ec2Client, region, accountID, &inventory); err != nil {
 		return AWSInventory{}, err
 	}
@@ -60,6 +64,9 @@ func (c *sdkAWSClientSet) EdgeInventory(ctx context.Context, region string, acco
 		return AWSInventory{}, err
 	}
 	if err := c.collectAPIGatewayV2(ctx, c.apigwV2ForRegion(region), region, accountID, &inventory); err != nil {
+		return AWSInventory{}, err
+	}
+	if err := c.collectLambdaFunctionURLs(ctx, c.lambdaForRegion(region), region, accountID, &inventory); err != nil {
 		return AWSInventory{}, err
 	}
 	if region == "us-east-1" {
@@ -179,6 +186,28 @@ func (c *sdkAWSClientSet) collectNATGateways(ctx context.Context, client *ec2.Cl
 			}
 			inventory.Network.Resources[id] = awsResource(id, ec2ARN(region, accountID, "natgateway", id), id, accountID, "aws_nat_gateway", region, ec2Tags(gateway.Tags), attrs)
 			addRelationship(inventory, aws.ToString(gateway.SubnetId), id, "contains", relationshipSourceEC2, "high")
+		}
+	}
+	return nil
+}
+
+func (c *sdkAWSClientSet) collectTransitGateways(ctx context.Context, client *ec2.Client, region string, accountID string, inventory *AWSInventory) error {
+	paginator := ec2.NewDescribeTransitGatewaysPaginator(client, &ec2.DescribeTransitGatewaysInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describe transit gateways: %w", err)
+		}
+		for _, gateway := range page.TransitGateways {
+			id := aws.ToString(gateway.TransitGatewayId)
+			if id == "" {
+				continue
+			}
+			inventory.Network.Resources[id] = awsResource(id, aws.ToString(gateway.TransitGatewayArn), id, accountID, "aws_ec2_transit_gateway", region, ec2Tags(gateway.Tags), map[string]string{
+				"description": aws.ToString(gateway.Description),
+				"state":       string(gateway.State),
+				"owner_id":    aws.ToString(gateway.OwnerId),
+			})
 		}
 	}
 	return nil
@@ -444,11 +473,34 @@ func (c *sdkAWSClientSet) collectAPIGatewayV2(ctx context.Context, client *apiga
 			if public {
 				addRelationship(inventory, internetResourceID, id, "routes_to", relationshipSourceAPIGWV2, "high")
 			}
+			integrations, err := collectAPIGatewayIntegrations(ctx, client, id)
+			if err != nil {
+				return err
+			}
+			for _, integration := range integrations {
+				integrationID := id + "/integrations/" + aws.ToString(integration.IntegrationId)
+				integrationResource := awsResource(integrationID, arn+"/integrations/"+aws.ToString(integration.IntegrationId), integrationID, accountID, "aws_apigatewayv2_integration", region, nil, map[string]string{
+					"integration_type":    string(integration.IntegrationType),
+					"integration_uri":     apiIntegrationTarget(aws.ToString(integration.IntegrationUri)),
+					"integration_subtype": aws.ToString(integration.IntegrationSubtype),
+					"connection_type":     string(integration.ConnectionType),
+					"connection_id":       aws.ToString(integration.ConnectionId),
+				})
+				inventory.Edge.Resources[integrationID] = integrationResource
+				addRelationship(inventory, id, integrationID, "routes_to", relationshipSourceAPIGWV2, "high")
+				if target := apiIntegrationTarget(aws.ToString(integration.IntegrationUri)); target != "" {
+					addRelationship(inventory, integrationID, target, "routes_to", relationshipSourceAPIGWV2, confidenceForAPIIntegration(integration))
+				}
+				if role := aws.ToString(integration.CredentialsArn); role != "" {
+					addRelationship(inventory, integrationID, role, "uses_role", relationshipSourceAPIGWV2, "high")
+				}
+			}
 			routes, err := collectAPIGatewayRoutes(ctx, client, id)
 			if err != nil {
 				return err
 			}
 			for _, route := range routes {
+				integrationID := apiRouteIntegrationID(id, aws.ToString(route.Target))
 				routeID := id + "/routes/" + aws.ToString(route.RouteId)
 				routeResource := awsResource(routeID, arn+"/routes/"+aws.ToString(route.RouteId), routeID, accountID, "aws_apigatewayv2_route", region, nil, map[string]string{
 					"route_key": aws.ToString(route.RouteKey),
@@ -457,6 +509,7 @@ func (c *sdkAWSClientSet) collectAPIGatewayV2(ctx context.Context, client *apiga
 				routeResource.Public = boolPtr(public)
 				inventory.Edge.Resources[routeID] = routeResource
 				addRelationship(inventory, id, routeID, "routes_to", relationshipSourceAPIGWV2, "high")
+				addRelationship(inventory, routeID, integrationID, "routes_to", relationshipSourceAPIGWV2, "high")
 			}
 		}
 		if page.NextToken == nil || aws.ToString(page.NextToken) == "" {
@@ -465,6 +518,102 @@ func (c *sdkAWSClientSet) collectAPIGatewayV2(ctx context.Context, client *apiga
 		nextToken = page.NextToken
 	}
 	return nil
+}
+
+func (c *sdkAWSClientSet) collectLambdaFunctionURLs(ctx context.Context, client *lambda.Client, region string, accountID string, inventory *AWSInventory) error {
+	paginator := lambda.NewListFunctionsPaginator(client, &lambda.ListFunctionsInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("list Lambda functions for URLs: %w", err)
+		}
+		for _, fn := range page.Functions {
+			fnARN := aws.ToString(fn.FunctionArn)
+			fnName := aws.ToString(fn.FunctionName)
+			if fnName == "" {
+				continue
+			}
+			var marker *string
+			for {
+				out, err := client.ListFunctionUrlConfigs(ctx, &lambda.ListFunctionUrlConfigsInput{FunctionName: aws.String(fnName), Marker: marker})
+				if err != nil {
+					return fmt.Errorf("list Lambda function URLs for %s: %w", fnName, err)
+				}
+				for _, cfg := range out.FunctionUrlConfigs {
+					url := aws.ToString(cfg.FunctionUrl)
+					if url == "" {
+						continue
+					}
+					public := string(cfg.AuthType) == "NONE"
+					resource := awsResource(url, "", url, accountID, "aws_lambda_function_url", region, nil, map[string]string{
+						"function_arn": firstNonEmpty(aws.ToString(cfg.FunctionArn), fnARN),
+						"auth_type":    string(cfg.AuthType),
+						"invoke_mode":  string(cfg.InvokeMode),
+					})
+					resource.Public = boolPtr(public)
+					inventory.Edge.Resources[url] = resource
+					if public {
+						addRelationship(inventory, internetResourceID, url, "routes_to", relationshipSourceLambda, "high")
+					}
+					addRelationship(inventory, url, firstNonEmpty(aws.ToString(cfg.FunctionArn), fnARN), "routes_to", relationshipSourceLambda, "high")
+				}
+				if out.NextMarker == nil || aws.ToString(out.NextMarker) == "" {
+					break
+				}
+				marker = out.NextMarker
+			}
+		}
+	}
+	return nil
+}
+
+func collectAPIGatewayIntegrations(ctx context.Context, client *apigatewayv2.Client, apiID string) ([]apigwv2types.Integration, error) {
+	var integrations []apigwv2types.Integration
+	var nextToken *string
+	for {
+		page, err := client.GetIntegrations(ctx, &apigatewayv2.GetIntegrationsInput{ApiId: aws.String(apiID), NextToken: nextToken})
+		if err != nil {
+			return nil, fmt.Errorf("get API Gateway v2 integrations for %s: %w", apiID, err)
+		}
+		integrations = append(integrations, page.Items...)
+		if page.NextToken == nil || aws.ToString(page.NextToken) == "" {
+			break
+		}
+		nextToken = page.NextToken
+	}
+	return integrations, nil
+}
+
+func apiRouteIntegrationID(apiID string, target string) string {
+	target = strings.TrimPrefix(strings.TrimSpace(target), "integrations/")
+	if target == "" {
+		return ""
+	}
+	return apiID + "/integrations/" + target
+}
+
+func apiIntegrationTarget(uri string) string {
+	uri = strings.TrimSpace(uri)
+	if uri == "" {
+		return ""
+	}
+	if strings.Contains(uri, ":function:") {
+		parts := strings.Split(uri, "/functions/")
+		if len(parts) > 1 {
+			return strings.TrimSuffix(parts[1], "/invocations")
+		}
+	}
+	return uri
+}
+
+func confidenceForAPIIntegration(integration apigwv2types.Integration) string {
+	if integration.ConnectionType == apigwv2types.ConnectionTypeVpcLink {
+		return "high"
+	}
+	if strings.Contains(aws.ToString(integration.IntegrationUri), ":lambda:") {
+		return "high"
+	}
+	return "medium"
 }
 
 func collectAPIGatewayRoutes(ctx context.Context, client *apigatewayv2.Client, apiID string) ([]apigwv2types.Route, error) {

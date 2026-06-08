@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	elbtypes "github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2/types"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 )
 
 func TestAWSCollectorCollectsIdentityAndRegions(t *testing.T) {
@@ -50,6 +51,9 @@ func TestAWSCollectorCollectsIdentityAndRegions(t *testing.T) {
 	}
 	if !snapshot.Capabilities.Network || !snapshot.Capabilities.SecurityGroups {
 		t.Fatalf("network capabilities were not set: %+v", snapshot.Capabilities)
+	}
+	if !snapshot.Capabilities.RouteTables || !snapshot.Capabilities.NetworkInterfaces || !snapshot.Capabilities.TransitGateways {
+		t.Fatalf("v2 network capabilities were not set: %+v", snapshot.Capabilities)
 	}
 	if snapshot.Network.Resources["subnet-public"].Public == nil || !*snapshot.Network.Resources["subnet-public"].Public {
 		t.Fatalf("network inventory was not merged: %+v", snapshot.Network.Resources)
@@ -158,6 +162,9 @@ func TestAWSCollectorMergesEdgeInventory(t *testing.T) {
 	if !snapshot.Capabilities.Edge || !snapshot.Capabilities.ELBv2 || !snapshot.Capabilities.CloudFront || !snapshot.Capabilities.APIGateway {
 		t.Fatalf("edge capabilities were not set: %+v", snapshot.Capabilities)
 	}
+	if !snapshot.Capabilities.LambdaFunctionURLs {
+		t.Fatalf("lambda function URL capability was not set: %+v", snapshot.Capabilities)
+	}
 	if len(snapshot.Relationships) != 1 || snapshot.Relationships[0].Source != relationshipSourceELBV2 {
 		t.Fatalf("edge relationships were not merged: %+v", snapshot.Relationships)
 	}
@@ -219,6 +226,9 @@ func TestAWSCollectorMergesIAMComputeAndDataInventory(t *testing.T) {
 	}
 	if !snapshot.Capabilities.IAM || !snapshot.Capabilities.Compute || !snapshot.Capabilities.EC2 || !snapshot.Capabilities.ECS || !snapshot.Capabilities.Lambda || !snapshot.Capabilities.RDS || !snapshot.Capabilities.S3 || !snapshot.Capabilities.KMS || !snapshot.Capabilities.SecretsManager || !snapshot.Capabilities.EKS {
 		t.Fatalf("capabilities not set: %+v", snapshot.Capabilities)
+	}
+	if !snapshot.Capabilities.IAMPermissionBoundaries || !snapshot.Capabilities.S3Protection || !snapshot.Capabilities.RDSSubnetGroups || !snapshot.Capabilities.KMSPolicies || !snapshot.Capabilities.SecretsPolicies || !snapshot.Capabilities.OpenSearch || !snapshot.Capabilities.ElastiCache || !snapshot.Capabilities.EFS {
+		t.Fatalf("v2 capabilities not set: %+v", snapshot.Capabilities)
 	}
 	if snapshot.IAM.Resources[roleARN].ARN == "" || snapshot.Compute.Resources[functionARN].ARN == "" || !snapshot.Data.Resources[dbARN].Sensitivity.Data {
 		t.Fatalf("inventory was not merged: iam=%+v compute=%+v data=%+v", snapshot.IAM.Resources, snapshot.Compute.Resources, snapshot.Data.Resources)
@@ -365,6 +375,61 @@ func TestEdgeTargetResourceIDs(t *testing.T) {
 	ipTarget := targetResourceID(elbtypes.TargetTypeEnumIp, "us-east-1", "123456789012", elbtypes.TargetHealthDescription{Target: &elbtypes.TargetDescription{Id: aws.String("10.0.1.10"), Port: aws.Int32(8080)}})
 	if ipTarget != "10.0.1.10:8080" {
 		t.Fatalf("ip target = %q", ipTarget)
+	}
+}
+
+func TestAPIGatewayAndS3EnrichmentHelpers(t *testing.T) {
+	t.Parallel()
+
+	uri := "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123456789012:function:admin/invocations"
+	target := apiIntegrationTarget(uri)
+	if target != "arn:aws:lambda:us-east-1:123456789012:function:admin" {
+		t.Fatalf("api integration target = %q", target)
+	}
+	if got := apiRouteIntegrationID("api-123", "integrations/int-456"); got != "api-123/integrations/int-456" {
+		t.Fatalf("api route integration id = %q", got)
+	}
+	enabled, algorithm, kmsKey := s3EncryptionSummary(&s3types.ServerSideEncryptionConfiguration{
+		Rules: []s3types.ServerSideEncryptionRule{{
+			ApplyServerSideEncryptionByDefault: &s3types.ServerSideEncryptionByDefault{
+				SSEAlgorithm:   s3types.ServerSideEncryptionAwsKms,
+				KMSMasterKeyID: aws.String("arn:aws:kms:us-east-1:123456789012:key/abc"),
+			},
+		}},
+	})
+	if !enabled || algorithm != string(s3types.ServerSideEncryptionAwsKms) || kmsKey == "" {
+		t.Fatalf("s3 encryption summary = %v %q %q", enabled, algorithm, kmsKey)
+	}
+}
+
+func TestRicherCloudContextNormalizationRedactsPolicyMetadata(t *testing.T) {
+	t.Parallel()
+
+	snapshot := Snapshot{
+		Version:  Version,
+		Provider: ProviderAWS,
+		Data: ResourceSet{Resources: map[string]Resource{
+			"arn:aws:secretsmanager:us-east-1:123456789012:secret/customer": {
+				Type:                  "aws_secretsmanager_secret",
+				Attributes:            map[string]string{"resource_policy": "contains private token material"},
+				ObservedPolicyActions: []string{"secretsmanager:GetSecretValue"},
+				Sensitivity:           Sensitivity{Data: true, Reason: "private customer secret"},
+			},
+		}},
+		Relationships: []Relationship{{
+			From:   "arn:aws:secretsmanager:us-east-1:123456789012:secret/customer",
+			To:     "*",
+			Type:   "grants_resource",
+			Source: "aws_secretsmanager_private_policy",
+		}},
+	}
+	Normalize(&snapshot)
+	resource := snapshot.Data.Resources["arn:aws:secretsmanager:us-east-1:123456789012:secret/customer"]
+	if resource.Attributes["resource_policy"] != "(sensitive)" || resource.Sensitivity.Reason != "(sensitive)" {
+		t.Fatalf("sensitive policy metadata was not redacted: %+v", resource)
+	}
+	if snapshot.Relationships[0].Source != "(sensitive)" {
+		t.Fatalf("relationship source was not redacted: %+v", snapshot.Relationships)
 	}
 }
 

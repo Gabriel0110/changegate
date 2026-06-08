@@ -12,27 +12,38 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
+	efstypes "github.com/aws/aws-sdk-go-v2/service/efs/types"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/elasticache"
+	elasticachetypes "github.com/aws/aws-sdk-go-v2/service/elasticache/types"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/opensearch"
+	opensearchtypes "github.com/aws/aws-sdk-go-v2/service/opensearch/types"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
+	rdstypes "github.com/aws/aws-sdk-go-v2/service/rds/types"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	secretstypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 )
 
 const (
-	relationshipSourceIAM     = "aws_iam"
-	relationshipSourceECS     = "aws_ecs"
-	relationshipSourceLambda  = "aws_lambda"
-	relationshipSourceEC2Role = "aws_ec2_instance_profile"
-	relationshipSourceEKS     = "aws_eks"
-	relationshipSourceRDS     = "aws_rds"
-	relationshipSourceS3      = "aws_s3"
-	relationshipSourceSecrets = "aws_secretsmanager"
-	relationshipSourceKMS     = "aws_kms"
+	relationshipSourceIAM         = "aws_iam"
+	relationshipSourceECS         = "aws_ecs"
+	relationshipSourceLambda      = "aws_lambda"
+	relationshipSourceEC2Role     = "aws_ec2_instance_profile"
+	relationshipSourceEKS         = "aws_eks"
+	relationshipSourceRDS         = "aws_rds"
+	relationshipSourceS3          = "aws_s3"
+	relationshipSourceSecrets     = "aws_secretsmanager"
+	relationshipSourceKMS         = "aws_kms"
+	relationshipSourceOpenSearch  = "aws_opensearch"
+	relationshipSourceElastiCache = "aws_elasticache"
+	relationshipSourceEFS         = "aws_efs"
 )
 
 type policyShape struct {
@@ -97,6 +108,15 @@ func (c *sdkAWSClientSet) DataInventory(ctx context.Context, region string, acco
 	if err := c.collectKMS(ctx, c.kmsForRegion(region), region, accountID, &inventory); err != nil {
 		return AWSInventory{}, err
 	}
+	if err := c.collectOpenSearch(ctx, c.opensearchForRegion(region), region, accountID, &inventory); err != nil {
+		return AWSInventory{}, err
+	}
+	if err := c.collectElastiCache(ctx, c.elasticacheForRegion(region), region, accountID, &inventory); err != nil {
+		return AWSInventory{}, err
+	}
+	if err := c.collectEFS(ctx, c.efsForRegion(region), region, accountID, &inventory); err != nil {
+		return AWSInventory{}, err
+	}
 	return inventory, nil
 }
 
@@ -114,13 +134,15 @@ func (c *sdkAWSClientSet) collectIAMRoles(ctx context.Context, accountID string,
 			}
 			shape := parsePolicyDocument(aws.ToString(role.AssumeRolePolicyDocument))
 			resource := awsResource(arn, arn, aws.ToString(role.RoleId), accountID, "aws_iam_role", "global", iamTags(role.Tags), map[string]string{
-				"name":               aws.ToString(role.RoleName),
-				"path":               aws.ToString(role.Path),
-				"trust_broad":        strconv.FormatBool(shape.PrincipalBroad),
-				"trust_external_aws": strings.Join(shape.PrincipalAWS, ","),
+				"name":                aws.ToString(role.RoleName),
+				"path":                aws.ToString(role.Path),
+				"trust_broad":         strconv.FormatBool(shape.PrincipalBroad),
+				"trust_external_aws":  strings.Join(shape.PrincipalAWS, ","),
+				"permission_boundary": permissionBoundaryARN(role.PermissionsBoundary),
 			})
 			resource.ObservedPolicyActions = append(resource.ObservedPolicyActions, shape.Actions...)
 			inventory.IAM.Resources[arn] = resource
+			addRelationship(inventory, arn, permissionBoundaryARN(role.PermissionsBoundary), "permission_boundary", relationshipSourceIAM, "high")
 			addPolicyShapeRelationships(inventory, arn, shape, relationshipSourceIAM)
 			if err := c.collectRolePolicies(ctx, accountID, role, &inventory.IAM, inventory); err != nil {
 				return err
@@ -441,6 +463,12 @@ func (c *sdkAWSClientSet) collectRDS(ctx context.Context, client *rds.Client, re
 			resource.Sensitivity = inferSensitivity("aws_db_instance", aws.ToString(instance.DBInstanceIdentifier), tags)
 			inventory.Data.Resources[arn] = resource
 			addRelationship(inventory, arn, aws.ToString(instance.KmsKeyId), "uses_kms_key", relationshipSourceRDS, "high")
+			if instance.DBSubnetGroup != nil {
+				groupID := rdsSubnetGroupID(region, accountID, aws.ToString(instance.DBSubnetGroup.DBSubnetGroupName))
+				inventory.Data.Resources[groupID] = rdsSubnetGroupResource(groupID, accountID, region, instance.DBSubnetGroup)
+				addRelationship(inventory, arn, groupID, "attached_to", relationshipSourceRDS, "high")
+				addRDSSubnetRelationships(inventory, groupID, instance.DBSubnetGroup)
+			}
 		}
 	}
 	clusters := rds.NewDescribeDBClustersPaginator(client, &rds.DescribeDBClustersInput{})
@@ -465,6 +493,28 @@ func (c *sdkAWSClientSet) collectRDS(ctx context.Context, client *rds.Client, re
 			resource.Sensitivity = inferSensitivity("aws_rds_cluster", aws.ToString(cluster.DBClusterIdentifier), tags)
 			inventory.Data.Resources[arn] = resource
 			addRelationship(inventory, arn, aws.ToString(cluster.KmsKeyId), "uses_kms_key", relationshipSourceRDS, "high")
+		}
+	}
+	if err := c.collectRDSSubnetGroups(ctx, client, region, accountID, inventory); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *sdkAWSClientSet) collectRDSSubnetGroups(ctx context.Context, client *rds.Client, region string, accountID string, inventory *AWSInventory) error {
+	paginator := rds.NewDescribeDBSubnetGroupsPaginator(client, &rds.DescribeDBSubnetGroupsInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describe RDS subnet groups: %w", err)
+		}
+		for _, group := range page.DBSubnetGroups {
+			id := rdsSubnetGroupID(region, accountID, aws.ToString(group.DBSubnetGroupName))
+			if id == "" {
+				continue
+			}
+			inventory.Data.Resources[id] = rdsSubnetGroupResource(id, accountID, region, &group)
+			addRDSSubnetRelationships(inventory, id, &group)
 		}
 	}
 	return nil
@@ -497,10 +547,20 @@ func (c *sdkAWSClientSet) collectS3(ctx context.Context, client *s3.Client, regi
 		arn := "arn:aws:s3:::" + name
 		tags := c.s3Tags(ctx, client, name)
 		publicAccessBlocked := c.s3PublicAccessBlocked(ctx, client, name)
-		resource := awsResource(name, arn, name, accountID, "aws_s3_bucket", region, tags, map[string]string{"name": name})
+		protection := c.s3Protection(ctx, client, name)
+		attrs := map[string]string{"name": name}
+		for key, value := range protection.Attributes {
+			attrs[key] = value
+		}
+		resource := awsResource(name, arn, name, accountID, "aws_s3_bucket", region, tags, attrs)
 		resource.PublicAccessBlocked = publicAccessBlocked
+		resource.EncryptionEnabled = protection.EncryptionEnabled
 		resource.Sensitivity = inferSensitivity("aws_s3_bucket", name, tags)
+		if protection.PolicyShape.AdminAccess || protection.PolicyShape.BroadAllow || protection.PolicyShape.PrincipalBroad {
+			resource.Public = boolPtr(true)
+		}
 		inventory.Data.Resources[name] = resource
+		addPolicyShapeRelationships(inventory, arn+"/policy", protection.PolicyShape, relationshipSourceS3)
 	}
 	return nil
 }
@@ -527,6 +587,36 @@ func (c *sdkAWSClientSet) s3PublicAccessBlocked(ctx context.Context, client *s3.
 	return boolPtr(blocked)
 }
 
+type s3Protection struct {
+	Attributes        map[string]string
+	EncryptionEnabled *bool
+	PolicyShape       policyShape
+}
+
+func (c *sdkAWSClientSet) s3Protection(ctx context.Context, client *s3.Client, bucket string) s3Protection {
+	out := s3Protection{Attributes: map[string]string{}}
+	if encryption, err := client.GetBucketEncryption(ctx, &s3.GetBucketEncryptionInput{Bucket: aws.String(bucket)}); err == nil {
+		enabled, algorithm, kmsKey := s3EncryptionSummary(encryption.ServerSideEncryptionConfiguration)
+		out.EncryptionEnabled = boolPtr(enabled)
+		out.Attributes["encryption_algorithm"] = algorithm
+		out.Attributes["kms_key_id"] = kmsKey
+	} else {
+		out.Attributes["encryption_observed"] = "unknown"
+	}
+	if logging, err := client.GetBucketLogging(ctx, &s3.GetBucketLoggingInput{Bucket: aws.String(bucket)}); err == nil {
+		out.Attributes["logging_enabled"] = strconv.FormatBool(logging.LoggingEnabled != nil)
+	}
+	if versioning, err := client.GetBucketVersioning(ctx, &s3.GetBucketVersioningInput{Bucket: aws.String(bucket)}); err == nil {
+		out.Attributes["versioning_status"] = string(versioning.Status)
+	}
+	if policy, err := client.GetBucketPolicy(ctx, &s3.GetBucketPolicyInput{Bucket: aws.String(bucket)}); err == nil {
+		out.PolicyShape = parsePolicyDocument(aws.ToString(policy.Policy))
+		out.Attributes["policy_broad_allow"] = strconv.FormatBool(out.PolicyShape.BroadAllow || out.PolicyShape.PrincipalBroad)
+	}
+	out.Attributes = compactMap(out.Attributes)
+	return out
+}
+
 func (c *sdkAWSClientSet) collectSecrets(ctx context.Context, client *secretsmanager.Client, region string, accountID string, inventory *AWSInventory) error {
 	paginator := secretsmanager.NewListSecretsPaginator(client, &secretsmanager.ListSecretsInput{})
 	for paginator.HasMorePages() {
@@ -543,11 +633,25 @@ func (c *sdkAWSClientSet) collectSecrets(ctx context.Context, client *secretsman
 			resource := awsResource(arn, arn, aws.ToString(secret.Name), accountID, "aws_secretsmanager_secret", region, tags, map[string]string{"name": aws.ToString(secret.Name)})
 			resource.Sensitivity = Sensitivity{Data: true, Reason: "secretsmanager metadata"}
 			resource.SensitiveData = true
+			shape := c.secretResourcePolicyShape(ctx, client, arn)
+			resource.ObservedPolicyActions = shape.Actions
+			if shape.BroadAllow || shape.PrincipalBroad {
+				resource.Public = boolPtr(true)
+			}
 			inventory.Data.Resources[arn] = resource
 			addRelationship(inventory, arn, aws.ToString(secret.KmsKeyId), "uses_kms_key", relationshipSourceSecrets, "high")
+			addPolicyShapeRelationships(inventory, arn+"/resource-policy", shape, relationshipSourceSecrets)
 		}
 	}
 	return nil
+}
+
+func (c *sdkAWSClientSet) secretResourcePolicyShape(ctx context.Context, client *secretsmanager.Client, secretARN string) policyShape {
+	out, err := client.GetResourcePolicy(ctx, &secretsmanager.GetResourcePolicyInput{SecretId: aws.String(secretARN)})
+	if err != nil {
+		return policyShape{}
+	}
+	return parsePolicyDocument(aws.ToString(out.ResourcePolicy))
 }
 
 func (c *sdkAWSClientSet) collectKMS(ctx context.Context, client *kms.Client, region string, accountID string, inventory *AWSInventory) error {
@@ -575,10 +679,270 @@ func (c *sdkAWSClientSet) collectKMS(ctx context.Context, client *kms.Client, re
 				"key_manager": string(meta.KeyMetadata.KeyManager),
 				"key_state":   string(meta.KeyMetadata.KeyState),
 			})
+			shape := c.kmsPolicyShape(ctx, client, keyID)
+			resource.ObservedPolicyActions = shape.Actions
+			if shape.AdminAccess || shape.BroadAllow || shape.PrincipalBroad {
+				resource.Public = boolPtr(true)
+			}
 			inventory.Data.Resources[arn] = resource
+			addPolicyShapeRelationships(inventory, arn+"/key-policy", shape, relationshipSourceKMS)
 		}
 	}
 	return nil
+}
+
+func (c *sdkAWSClientSet) kmsPolicyShape(ctx context.Context, client *kms.Client, keyID string) policyShape {
+	out, err := client.GetKeyPolicy(ctx, &kms.GetKeyPolicyInput{KeyId: aws.String(keyID), PolicyName: aws.String("default")})
+	if err != nil {
+		return policyShape{}
+	}
+	return parsePolicyDocument(aws.ToString(out.Policy))
+}
+
+func (c *sdkAWSClientSet) collectOpenSearch(ctx context.Context, client *opensearch.Client, region string, accountID string, inventory *AWSInventory) error {
+	out, err := client.ListDomainNames(ctx, &opensearch.ListDomainNamesInput{})
+	if err != nil {
+		return fmt.Errorf("list OpenSearch domains: %w", err)
+	}
+	for _, domain := range out.DomainNames {
+		name := aws.ToString(domain.DomainName)
+		if name == "" {
+			continue
+		}
+		status, err := client.DescribeDomain(ctx, &opensearch.DescribeDomainInput{DomainName: aws.String(name)})
+		if err != nil {
+			return fmt.Errorf("describe OpenSearch domain %s: %w", name, err)
+		}
+		if status.DomainStatus == nil {
+			continue
+		}
+		domainStatus := status.DomainStatus
+		arn := aws.ToString(domainStatus.ARN)
+		public := domainStatus.VPCOptions == nil || len(domainStatus.VPCOptions.SubnetIds) == 0
+		resource := awsResource(arn, arn, aws.ToString(domainStatus.DomainId), accountID, "aws_opensearch_domain", region, nil, map[string]string{
+			"name":               name,
+			"engine_version":     aws.ToString(domainStatus.EngineVersion),
+			"endpoint":           aws.ToString(domainStatus.Endpoint),
+			"vpc_enabled":        strconv.FormatBool(!public),
+			"enforce_https":      strconv.FormatBool(openSearchHTTPS(domainStatus)),
+			"node_to_node_enc":   strconv.FormatBool(openSearchNodeEncryption(domainStatus)),
+			"access_broad_allow": strconv.FormatBool(parsePolicyDocument(aws.ToString(domainStatus.AccessPolicies)).BroadAllow),
+		})
+		resource.Public = boolPtr(public)
+		resource.EncryptionEnabled = boolPtr(openSearchAtRestEncryption(domainStatus))
+		resource.Sensitivity = inferSensitivity("aws_opensearch_domain", name, nil)
+		inventory.Data.Resources[arn] = resource
+		if domainStatus.VPCOptions != nil {
+			for _, subnet := range domainStatus.VPCOptions.SubnetIds {
+				addRelationship(inventory, arn, subnet, "attached_to", relationshipSourceOpenSearch, "high")
+			}
+			for _, sg := range domainStatus.VPCOptions.SecurityGroupIds {
+				addRelationship(inventory, sg, arn, "protects", relationshipSourceOpenSearch, "high")
+			}
+		}
+	}
+	return nil
+}
+
+func (c *sdkAWSClientSet) collectElastiCache(ctx context.Context, client *elasticache.Client, region string, accountID string, inventory *AWSInventory) error {
+	clusterPaginator := elasticache.NewDescribeCacheClustersPaginator(client, &elasticache.DescribeCacheClustersInput{ShowCacheNodeInfo: aws.Bool(true)})
+	for clusterPaginator.HasMorePages() {
+		page, err := clusterPaginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describe ElastiCache clusters: %w", err)
+		}
+		for _, cluster := range page.CacheClusters {
+			arn := aws.ToString(cluster.ARN)
+			if arn == "" {
+				continue
+			}
+			resource := elasticacheClusterResource(cluster, accountID, region)
+			inventory.Data.Resources[arn] = resource
+			for _, sg := range cluster.SecurityGroups {
+				addRelationship(inventory, aws.ToString(sg.SecurityGroupId), arn, "protects", relationshipSourceElastiCache, "high")
+			}
+		}
+	}
+	replicationPaginator := elasticache.NewDescribeReplicationGroupsPaginator(client, &elasticache.DescribeReplicationGroupsInput{})
+	for replicationPaginator.HasMorePages() {
+		page, err := replicationPaginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describe ElastiCache replication groups: %w", err)
+		}
+		for _, group := range page.ReplicationGroups {
+			arn := aws.ToString(group.ARN)
+			if arn == "" {
+				continue
+			}
+			resource := elasticacheReplicationGroupResource(group, accountID, region)
+			inventory.Data.Resources[arn] = resource
+			addRelationship(inventory, arn, aws.ToString(group.KmsKeyId), "uses_kms_key", relationshipSourceElastiCache, "high")
+			for _, clusterID := range group.MemberClusters {
+				addRelationship(inventory, arn, clusterID, "contains", relationshipSourceElastiCache, "high")
+			}
+		}
+	}
+	return nil
+}
+
+func (c *sdkAWSClientSet) collectEFS(ctx context.Context, client *efs.Client, region string, accountID string, inventory *AWSInventory) error {
+	paginator := efs.NewDescribeFileSystemsPaginator(client, &efs.DescribeFileSystemsInput{})
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return fmt.Errorf("describe EFS file systems: %w", err)
+		}
+		for _, fs := range page.FileSystems {
+			arn := aws.ToString(fs.FileSystemArn)
+			if arn == "" {
+				continue
+			}
+			resource := efsResource(fs, accountID, region)
+			inventory.Data.Resources[arn] = resource
+			addRelationship(inventory, arn, aws.ToString(fs.KmsKeyId), "uses_kms_key", relationshipSourceEFS, "high")
+			targetPaginator := efs.NewDescribeMountTargetsPaginator(client, &efs.DescribeMountTargetsInput{FileSystemId: fs.FileSystemId})
+			for targetPaginator.HasMorePages() {
+				targetPage, err := targetPaginator.NextPage(ctx)
+				if err != nil {
+					return fmt.Errorf("describe EFS mount targets for %s: %w", arn, err)
+				}
+				for _, target := range targetPage.MountTargets {
+					targetID := aws.ToString(target.MountTargetId)
+					inventory.Data.Resources[targetID] = efsMountTargetResource(target, accountID, region)
+					addRelationship(inventory, arn, targetID, "attached_to", relationshipSourceEFS, "high")
+					addRelationship(inventory, targetID, aws.ToString(target.SubnetId), "attached_to", relationshipSourceEFS, "high")
+					addRelationship(inventory, targetID, aws.ToString(target.NetworkInterfaceId), "attached_to", relationshipSourceEFS, "high")
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func permissionBoundaryARN(boundary *iamtypes.AttachedPermissionsBoundary) string {
+	if boundary == nil {
+		return ""
+	}
+	return aws.ToString(boundary.PermissionsBoundaryArn)
+}
+
+func rdsSubnetGroupID(region string, accountID string, name string) string {
+	if name == "" {
+		return ""
+	}
+	return fmt.Sprintf("arn:aws:rds:%s:%s:subgrp:%s", region, accountID, name)
+}
+
+func rdsSubnetGroupResource(id string, accountID string, region string, group *rdstypes.DBSubnetGroup) Resource {
+	if group == nil {
+		return Resource{}
+	}
+	return awsResource(id, id, aws.ToString(group.DBSubnetGroupName), accountID, "aws_db_subnet_group", region, nil, map[string]string{
+		"name":        aws.ToString(group.DBSubnetGroupName),
+		"vpc_id":      aws.ToString(group.VpcId),
+		"description": aws.ToString(group.DBSubnetGroupDescription),
+	})
+}
+
+func addRDSSubnetRelationships(inventory *AWSInventory, groupID string, group *rdstypes.DBSubnetGroup) {
+	if group == nil {
+		return
+	}
+	for _, subnet := range group.Subnets {
+		addRelationship(inventory, groupID, aws.ToString(subnet.SubnetIdentifier), "attached_to", relationshipSourceRDS, "high")
+	}
+}
+
+func s3EncryptionSummary(cfg *s3types.ServerSideEncryptionConfiguration) (bool, string, string) {
+	if cfg == nil || len(cfg.Rules) == 0 {
+		return false, "", ""
+	}
+	rule := cfg.Rules[0]
+	if rule.ApplyServerSideEncryptionByDefault == nil {
+		return true, "", ""
+	}
+	defaults := rule.ApplyServerSideEncryptionByDefault
+	return true, string(defaults.SSEAlgorithm), aws.ToString(defaults.KMSMasterKeyID)
+}
+
+func openSearchHTTPS(domain *opensearchtypes.DomainStatus) bool {
+	return domain != nil && domain.DomainEndpointOptions != nil && aws.ToBool(domain.DomainEndpointOptions.EnforceHTTPS)
+}
+
+func openSearchNodeEncryption(domain *opensearchtypes.DomainStatus) bool {
+	return domain != nil && domain.NodeToNodeEncryptionOptions != nil && aws.ToBool(domain.NodeToNodeEncryptionOptions.Enabled)
+}
+
+func openSearchAtRestEncryption(domain *opensearchtypes.DomainStatus) bool {
+	return domain != nil && domain.EncryptionAtRestOptions != nil && aws.ToBool(domain.EncryptionAtRestOptions.Enabled)
+}
+
+func elasticacheClusterResource(cluster elasticachetypes.CacheCluster, accountID string, region string) Resource {
+	arn := aws.ToString(cluster.ARN)
+	resource := awsResource(arn, arn, aws.ToString(cluster.CacheClusterId), accountID, "aws_elasticache_cluster", region, nil, map[string]string{
+		"name":                    aws.ToString(cluster.CacheClusterId),
+		"engine":                  aws.ToString(cluster.Engine),
+		"engine_version":          aws.ToString(cluster.EngineVersion),
+		"status":                  aws.ToString(cluster.CacheClusterStatus),
+		"subnet_group":            aws.ToString(cluster.CacheSubnetGroupName),
+		"snapshot_retention_days": strconv.Itoa(int(aws.ToInt32(cluster.SnapshotRetentionLimit))),
+		"transit_encryption":      strconv.FormatBool(aws.ToBool(cluster.TransitEncryptionEnabled)),
+		"auth_token_enabled":      strconv.FormatBool(aws.ToBool(cluster.AuthTokenEnabled)),
+	})
+	resource.EncryptionEnabled = cluster.AtRestEncryptionEnabled
+	resource.Sensitivity = inferSensitivity("aws_elasticache_cluster", aws.ToString(cluster.CacheClusterId), nil)
+	return resource
+}
+
+func elasticacheReplicationGroupResource(group elasticachetypes.ReplicationGroup, accountID string, region string) Resource {
+	arn := aws.ToString(group.ARN)
+	resource := awsResource(arn, arn, aws.ToString(group.ReplicationGroupId), accountID, "aws_elasticache_replication_group", region, nil, map[string]string{
+		"name":                    aws.ToString(group.ReplicationGroupId),
+		"engine":                  aws.ToString(group.Engine),
+		"status":                  aws.ToString(group.Status),
+		"snapshot_retention_days": strconv.Itoa(int(aws.ToInt32(group.SnapshotRetentionLimit))),
+		"multi_az":                string(group.MultiAZ),
+		"automatic_failover":      string(group.AutomaticFailover),
+		"transit_encryption":      strconv.FormatBool(aws.ToBool(group.TransitEncryptionEnabled)),
+		"auth_token_enabled":      strconv.FormatBool(aws.ToBool(group.AuthTokenEnabled)),
+		"kms_key_id":              aws.ToString(group.KmsKeyId),
+	})
+	resource.EncryptionEnabled = group.AtRestEncryptionEnabled
+	resource.Sensitivity = inferSensitivity("aws_elasticache_replication_group", aws.ToString(group.ReplicationGroupId), nil)
+	return resource
+}
+
+func efsResource(fs efstypes.FileSystemDescription, accountID string, region string) Resource {
+	arn := aws.ToString(fs.FileSystemArn)
+	resource := awsResource(arn, arn, aws.ToString(fs.FileSystemId), accountID, "aws_efs_file_system", region, efsTags(fs.Tags), map[string]string{
+		"name":           aws.ToString(fs.Name),
+		"file_system_id": aws.ToString(fs.FileSystemId),
+		"lifecycle":      string(fs.LifeCycleState),
+		"mount_targets":  strconv.Itoa(int(fs.NumberOfMountTargets)),
+		"kms_key_id":     aws.ToString(fs.KmsKeyId),
+	})
+	resource.EncryptionEnabled = fs.Encrypted
+	resource.Sensitivity = inferSensitivity("aws_efs_file_system", firstNonEmpty(aws.ToString(fs.Name), aws.ToString(fs.FileSystemId)), resource.Tags)
+	return resource
+}
+
+func efsMountTargetResource(target efstypes.MountTargetDescription, accountID string, region string) Resource {
+	id := aws.ToString(target.MountTargetId)
+	return awsResource(id, "", id, accountID, "aws_efs_mount_target", region, nil, map[string]string{
+		"file_system_id":       aws.ToString(target.FileSystemId),
+		"subnet_id":            aws.ToString(target.SubnetId),
+		"network_interface_id": aws.ToString(target.NetworkInterfaceId),
+		"vpc_id":               aws.ToString(target.VpcId),
+		"lifecycle":            string(target.LifeCycleState),
+	})
+}
+
+func efsTags(tags []efstypes.Tag) map[string]string {
+	out := make(map[string]string, len(tags))
+	for _, tag := range tags {
+		out[aws.ToString(tag.Key)] = aws.ToString(tag.Value)
+	}
+	return compactMap(out)
 }
 
 func listAllECSClusters(ctx context.Context, client *ecs.Client) ([]string, error) {

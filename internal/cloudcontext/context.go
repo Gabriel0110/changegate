@@ -99,23 +99,35 @@ type Region struct {
 
 // Capabilities records read-only permissions represented in a snapshot.
 type Capabilities struct {
-	Identity       bool `json:"identity"`
-	Network        bool `json:"network"`
-	SecurityGroups bool `json:"security_groups"`
-	Edge           bool `json:"edge"`
-	ELBv2          bool `json:"elbv2"`
-	CloudFront     bool `json:"cloudfront"`
-	APIGateway     bool `json:"api_gateway"`
-	IAM            bool `json:"iam"`
-	Compute        bool `json:"compute"`
-	EC2            bool `json:"ec2"`
-	ECS            bool `json:"ecs"`
-	Lambda         bool `json:"lambda"`
-	S3             bool `json:"s3"`
-	RDS            bool `json:"rds"`
-	KMS            bool `json:"kms"`
-	SecretsManager bool `json:"secrets_manager"`
-	EKS            bool `json:"eks"`
+	Identity                bool `json:"identity"`
+	Network                 bool `json:"network"`
+	RouteTables             bool `json:"route_tables"`
+	SecurityGroups          bool `json:"security_groups"`
+	NetworkInterfaces       bool `json:"network_interfaces"`
+	TransitGateways         bool `json:"transit_gateways"`
+	Edge                    bool `json:"edge"`
+	ELBv2                   bool `json:"elbv2"`
+	CloudFront              bool `json:"cloudfront"`
+	APIGateway              bool `json:"api_gateway"`
+	LambdaFunctionURLs      bool `json:"lambda_function_urls"`
+	IAM                     bool `json:"iam"`
+	IAMPermissionBoundaries bool `json:"iam_permission_boundaries"`
+	Compute                 bool `json:"compute"`
+	EC2                     bool `json:"ec2"`
+	ECS                     bool `json:"ecs"`
+	Lambda                  bool `json:"lambda"`
+	S3                      bool `json:"s3"`
+	S3Protection            bool `json:"s3_protection"`
+	RDS                     bool `json:"rds"`
+	RDSSubnetGroups         bool `json:"rds_subnet_groups"`
+	KMS                     bool `json:"kms"`
+	KMSPolicies             bool `json:"kms_policies"`
+	SecretsManager          bool `json:"secrets_manager"`
+	SecretsPolicies         bool `json:"secrets_policies"`
+	EKS                     bool `json:"eks"`
+	OpenSearch              bool `json:"opensearch"`
+	ElastiCache             bool `json:"elasticache"`
+	EFS                     bool `json:"efs"`
 }
 
 // Resource contains v2 provider resource identity and context.
@@ -323,23 +335,35 @@ func DetectAWSIdentity(env map[string]string) Identity {
 // ValidatePermissions reports missing read-only context capability groups.
 func ValidatePermissions(snapshot Snapshot) []model.Diagnostic {
 	required := map[string]bool{
-		"identity":        snapshot.Capabilities.Identity,
-		"network":         snapshot.Capabilities.Network,
-		"security_groups": snapshot.Capabilities.SecurityGroups,
-		"edge":            snapshot.Capabilities.Edge,
-		"elbv2":           snapshot.Capabilities.ELBv2,
-		"cloudfront":      snapshot.Capabilities.CloudFront,
-		"api_gateway":     snapshot.Capabilities.APIGateway,
-		"iam":             snapshot.Capabilities.IAM,
-		"compute":         snapshot.Capabilities.Compute,
-		"ec2":             snapshot.Capabilities.EC2,
-		"ecs":             snapshot.Capabilities.ECS,
-		"lambda":          snapshot.Capabilities.Lambda,
-		"s3":              snapshot.Capabilities.S3,
-		"rds":             snapshot.Capabilities.RDS,
-		"kms":             snapshot.Capabilities.KMS,
-		"secrets_manager": snapshot.Capabilities.SecretsManager,
-		"eks":             snapshot.Capabilities.EKS,
+		"identity":                  snapshot.Capabilities.Identity,
+		"network":                   snapshot.Capabilities.Network,
+		"route_tables":              snapshot.Capabilities.RouteTables,
+		"security_groups":           snapshot.Capabilities.SecurityGroups,
+		"network_interfaces":        snapshot.Capabilities.NetworkInterfaces,
+		"transit_gateways":          snapshot.Capabilities.TransitGateways,
+		"edge":                      snapshot.Capabilities.Edge,
+		"elbv2":                     snapshot.Capabilities.ELBv2,
+		"cloudfront":                snapshot.Capabilities.CloudFront,
+		"api_gateway":               snapshot.Capabilities.APIGateway,
+		"lambda_function_urls":      snapshot.Capabilities.LambdaFunctionURLs,
+		"iam":                       snapshot.Capabilities.IAM,
+		"iam_permission_boundaries": snapshot.Capabilities.IAMPermissionBoundaries,
+		"compute":                   snapshot.Capabilities.Compute,
+		"ec2":                       snapshot.Capabilities.EC2,
+		"ecs":                       snapshot.Capabilities.ECS,
+		"lambda":                    snapshot.Capabilities.Lambda,
+		"s3":                        snapshot.Capabilities.S3,
+		"s3_protection":             snapshot.Capabilities.S3Protection,
+		"rds":                       snapshot.Capabilities.RDS,
+		"rds_subnet_groups":         snapshot.Capabilities.RDSSubnetGroups,
+		"kms":                       snapshot.Capabilities.KMS,
+		"kms_policies":              snapshot.Capabilities.KMSPolicies,
+		"secrets_manager":           snapshot.Capabilities.SecretsManager,
+		"secrets_policies":          snapshot.Capabilities.SecretsPolicies,
+		"eks":                       snapshot.Capabilities.EKS,
+		"opensearch":                snapshot.Capabilities.OpenSearch,
+		"elasticache":               snapshot.Capabilities.ElastiCache,
+		"efs":                       snapshot.Capabilities.EFS,
 	}
 	keys := make([]string, 0, len(required))
 	for key := range required {
@@ -436,21 +460,33 @@ func addResourceIndex(index map[string]Resource, key string, resource Resource) 
 func capabilitiesEmpty(capabilities Capabilities) bool {
 	return !capabilities.Identity &&
 		!capabilities.Network &&
+		!capabilities.RouteTables &&
 		!capabilities.SecurityGroups &&
+		!capabilities.NetworkInterfaces &&
+		!capabilities.TransitGateways &&
 		!capabilities.Edge &&
 		!capabilities.ELBv2 &&
 		!capabilities.CloudFront &&
 		!capabilities.APIGateway &&
+		!capabilities.LambdaFunctionURLs &&
 		!capabilities.IAM &&
+		!capabilities.IAMPermissionBoundaries &&
 		!capabilities.Compute &&
 		!capabilities.EC2 &&
 		!capabilities.ECS &&
 		!capabilities.Lambda &&
 		!capabilities.S3 &&
+		!capabilities.S3Protection &&
 		!capabilities.RDS &&
+		!capabilities.RDSSubnetGroups &&
 		!capabilities.KMS &&
+		!capabilities.KMSPolicies &&
 		!capabilities.SecretsManager &&
-		!capabilities.EKS
+		!capabilities.SecretsPolicies &&
+		!capabilities.EKS &&
+		!capabilities.OpenSearch &&
+		!capabilities.ElastiCache &&
+		!capabilities.EFS
 }
 
 func resourceSetEmpty(set ResourceSet) bool {
@@ -477,6 +513,7 @@ func ReadOnlyPolicyTemplate() string {
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeNatGateways",
+        "ec2:DescribeTransitGateways",
         "elasticloadbalancing:DescribeLoadBalancers",
         "elasticloadbalancing:DescribeListeners",
         "elasticloadbalancing:DescribeRules",
@@ -498,21 +535,35 @@ func ReadOnlyPolicyTemplate() string {
         "ecs:DescribeServices",
         "ecs:DescribeTaskDefinition",
         "lambda:ListFunctions",
+        "lambda:ListFunctionUrlConfigs",
         "ec2:DescribeInstances",
+        "s3:GetBucketEncryption",
+        "s3:GetBucketLogging",
+        "s3:GetBucketPolicy",
         "s3:GetBucketPublicAccessBlock",
         "s3:GetBucketTagging",
+        "s3:GetBucketVersioning",
         "s3:ListAllMyBuckets",
+        "rds:DescribeDBSubnetGroups",
         "rds:DescribeDBInstances",
         "rds:DescribeDBClusters",
         "rds:ListTagsForResource",
         "kms:DescribeKey",
+        "kms:GetKeyPolicy",
         "kms:ListKeys",
+        "secretsmanager:GetResourcePolicy",
         "secretsmanager:DescribeSecret",
         "secretsmanager:ListSecrets",
         "eks:ListClusters",
         "eks:ListNodegroups",
         "eks:DescribeNodegroup",
-        "eks:DescribeCluster"
+        "eks:DescribeCluster",
+        "es:ListDomainNames",
+        "es:DescribeDomain",
+        "elasticache:DescribeCacheClusters",
+        "elasticache:DescribeReplicationGroups",
+        "elasticfilesystem:DescribeFileSystems",
+        "elasticfilesystem:DescribeMountTargets"
       ],
       "Resource": "*"
     }

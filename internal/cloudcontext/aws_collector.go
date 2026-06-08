@@ -14,10 +14,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/aws/aws-sdk-go-v2/service/ecs"
+	"github.com/aws/aws-sdk-go-v2/service/efs"
 	"github.com/aws/aws-sdk-go-v2/service/eks"
+	"github.com/aws/aws-sdk-go-v2/service/elasticache"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"github.com/aws/aws-sdk-go-v2/service/kms"
 	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/opensearch"
 	"github.com/aws/aws-sdk-go-v2/service/rds"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -198,6 +201,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			mergeResourceSet(&snapshot.IAM, inventory.IAM)
 			snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 			snapshot.Capabilities.IAM = true
+			snapshot.Capabilities.IAMPermissionBoundaries = true
 		}
 	}
 	for _, region := range enabledRegionNames(snapshot.Regions) {
@@ -209,7 +213,10 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 				mergeResourceSet(&snapshot.Network, inventory.Network)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.Network = true
+				snapshot.Capabilities.RouteTables = true
 				snapshot.Capabilities.SecurityGroups = true
+				snapshot.Capabilities.NetworkInterfaces = true
+				snapshot.Capabilities.TransitGateways = true
 			}
 		}
 		if hasGroup(groups, CollectEdge) {
@@ -224,6 +231,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 				snapshot.Capabilities.ELBv2 = true
 				snapshot.Capabilities.CloudFront = true
 				snapshot.Capabilities.APIGateway = true
+				snapshot.Capabilities.LambdaFunctionURLs = true
 			}
 		}
 		if hasGroup(groups, CollectCompute) {
@@ -250,7 +258,14 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 				snapshot.Capabilities.S3 = true
 				snapshot.Capabilities.RDS = true
 				snapshot.Capabilities.KMS = true
+				snapshot.Capabilities.KMSPolicies = true
 				snapshot.Capabilities.SecretsManager = true
+				snapshot.Capabilities.SecretsPolicies = true
+				snapshot.Capabilities.S3Protection = true
+				snapshot.Capabilities.RDSSubnetGroups = true
+				snapshot.Capabilities.OpenSearch = true
+				snapshot.Capabilities.ElastiCache = true
+				snapshot.Capabilities.EFS = true
 			}
 		}
 	}
@@ -289,6 +304,24 @@ func (c *sdkAWSClientSet) eksForRegion(region string) *eks.Client {
 	cfg := c.cfg.Copy()
 	cfg.Region = region
 	return eks.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) elasticacheForRegion(region string) *elasticache.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return elasticache.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) efsForRegion(region string) *efs.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return efs.NewFromConfig(cfg)
+}
+
+func (c *sdkAWSClientSet) opensearchForRegion(region string) *opensearch.Client {
+	cfg := c.cfg.Copy()
+	cfg.Region = region
+	return opensearch.NewFromConfig(cfg)
 }
 
 func (c *sdkAWSClientSet) lambdaForRegion(region string) *lambda.Client {

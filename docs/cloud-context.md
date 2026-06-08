@@ -46,7 +46,11 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 `identity` reads non-secret AWS metadata from environment variables such as `AWS_ACCOUNT_ID`, `AWS_REGION`, and `AWS_PROFILE`. It does not call AWS APIs.
 
-`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect caller identity, enabled regions, network inventory, edge inventory, IAM metadata, compute metadata, and data-service metadata. Network collection covers VPCs, subnets, route tables, internet gateways, NAT gateways, security groups, and network interfaces. Edge collection covers ALB/NLB listener and target-group routing, CloudFront distributions, and API Gateway v2 APIs/routes. IAM collection covers roles, trust policy shapes, attached and inline policy action/resource shapes, instance profiles, and OIDC providers. Compute collection covers EC2 instances, Lambda functions, ECS services/task definitions, and EKS clusters/node groups. Data collection covers RDS instances/clusters, S3 bucket public-access-block metadata, Secrets Manager secret metadata, and KMS key metadata. Partial AWS permission failures are written as snapshot diagnostics instead of crashing the command.
+`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect caller identity, enabled regions, network inventory, edge inventory, IAM metadata, compute metadata, and data-service metadata.
+
+Network collection covers VPCs, subnets, route tables and route associations, internet gateways, NAT gateways, transit gateways, security groups, and network interfaces. Edge collection covers ALB/NLB listener and target-group routing, CloudFront distributions, API Gateway v2 APIs/routes/integrations, and Lambda Function URLs. IAM collection covers roles, trust policy shapes, permission boundaries, attached and inline policy action/resource shapes, instance profiles, and OIDC providers. Compute collection covers EC2 instances, Lambda functions, ECS services/task definitions, and EKS clusters/node groups. Data collection covers RDS instances/clusters/subnet groups, S3 public access block/encryption/logging/versioning/policy metadata, Secrets Manager secret metadata and resource policies, KMS key metadata and key policies, OpenSearch domains, ElastiCache clusters/replication groups, and EFS file systems/mount targets.
+
+Partial AWS permission failures are written as snapshot diagnostics instead of crashing the command.
 
 `permissions-template` prints a read-only IAM policy template for context collection.
 
@@ -54,7 +58,7 @@ The same policy is checked in at [`examples/aws-context-readonly-policy.json`](.
 
 For a read-only sandbox walkthrough, see [AWS cloud context sandbox walkthrough](../examples/cloud-context-sandbox).
 
-`validate-permissions` checks the snapshot capability flags and reports missing coverage as warnings. Capability flags are intentionally granular: broad domains such as `network`, `edge`, `compute`, and `data` are supported by service-level flags such as `security_groups`, `elbv2`, `cloudfront`, `api_gateway`, `ec2`, `ecs`, `lambda`, `eks`, `s3`, `rds`, `kms`, and `secrets_manager`. This lets partial-permission snapshots remain useful while making missing context explicit.
+`validate-permissions` checks the snapshot capability flags and reports missing coverage as warnings. Capability flags are intentionally granular: broad domains such as `network`, `edge`, `compute`, and `data` are supported by service-level flags such as `route_tables`, `security_groups`, `network_interfaces`, `transit_gateways`, `elbv2`, `cloudfront`, `api_gateway`, `lambda_function_urls`, `ec2`, `ecs`, `lambda`, `eks`, `s3`, `s3_protection`, `rds`, `rds_subnet_groups`, `kms`, `kms_policies`, `secrets_manager`, `secrets_policies`, `opensearch`, `elasticache`, and `efs`. This lets partial-permission snapshots remain useful while making missing context explicit.
 
 ## Snapshot schema
 
@@ -71,21 +75,33 @@ Cloud context snapshots use schema version 2. The supported JSON Schema is publi
   "capabilities": {
     "identity": true,
     "network": true,
+    "route_tables": true,
     "security_groups": true,
+    "network_interfaces": true,
+    "transit_gateways": true,
     "edge": true,
     "elbv2": true,
     "cloudfront": true,
     "api_gateway": true,
+    "lambda_function_urls": true,
     "iam": true,
+    "iam_permission_boundaries": true,
     "compute": true,
     "ec2": true,
     "ecs": true,
     "lambda": true,
     "s3": true,
+    "s3_protection": true,
     "rds": true,
+    "rds_subnet_groups": true,
     "kms": true,
+    "kms_policies": true,
     "secrets_manager": true,
-    "eks": true
+    "secrets_policies": true,
+    "eks": true,
+    "opensearch": true,
+    "elasticache": true,
+    "efs": true
   },
   "edge": {
     "resources": {
