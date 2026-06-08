@@ -1,14 +1,14 @@
 # Public resource can reach sensitive datastore
 
-| Field       | Value                               |
-| ----------- | ----------------------------------- |
-| Rule ID     | `AWS_PUBLIC_TO_SENSITIVE_DATASTORE` |
-| Category    | `sensitive_data`                    |
-| Severity    | `high`                              |
-| Confidence  | `high`                              |
-| Status      | `stable`                            |
-| Version     | `0.1.0`                             |
-| Policy pack | `aws-public-exposure`               |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_PUBLIC_TO_SENSITIVE_DATASTORE` |
+| Category | `sensitive_data` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 
@@ -23,16 +23,13 @@ Detects public resources that can reach sensitive data stores through the graph.
 
 ## Why It Matters
 
-This is topology risk, not a missing storage control. A public-facing resource can reach a sensitive datastore, which increases the chance that an exposed workload becomes a data exposure path.
+Review the planned infrastructure change before apply.
 
 ## Remediation
 
-- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Remove direct routing from public workloads to sensitive datastores.
-- Allow datastore access only from reviewed private workload security groups.
-- Treat automatic patching as unsafe for this rule; the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.
+- Review the planned change before apply.
+- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
 
 ## References
 
-- [Blast-Radius Graph](../graph.md)
-- [Attack Paths](../attack-paths.md)
+- No external references.

@@ -193,6 +193,18 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"soc2":        {"CC6.1", "CC6.3"},
 			"iso_27001":   {"A.5.15", "A.5.18"},
 		}),
+		"AWS_IAM_NOTACTION_ESCALATION_PATH": mapping(map[string][]string{
+			"nist_800_53": {"AC-2", "AC-6"},
+			"pci_dss":     {"7.2"},
+			"soc2":        {"CC6.1", "CC6.3"},
+			"iso_27001":   {"A.5.15", "A.5.18"},
+		}),
+		"AWS_IAM_POLICY_MUTATION_ESCALATION": mapping(map[string][]string{
+			"nist_800_53": {"AC-2", "AC-6"},
+			"pci_dss":     {"7.2"},
+			"soc2":        {"CC6.1", "CC6.3"},
+			"iso_27001":   {"A.5.15", "A.5.18"},
+		}),
 		"AWS_IAM_SENSITIVE_ACTIONS_RESOURCE_WILDCARD": mapping(map[string][]string{
 			"nist_800_53": {"AC-6", "SC-12", "SC-28"},
 			"pci_dss":     {"3.5", "7.2", "8.2"},
@@ -206,6 +218,12 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"iso_27001":   {"A.5.15", "A.5.18"},
 		}),
 		"AWS_IAM_ASSUME_ADMIN_PATH": mapping(map[string][]string{
+			"nist_800_53": {"AC-2", "AC-6"},
+			"pci_dss":     {"7.2"},
+			"soc2":        {"CC6.1", "CC6.3"},
+			"iso_27001":   {"A.5.15", "A.5.18"},
+		}),
+		"AWS_IAM_ROLE_ASSUMPTION_CHAIN": mapping(map[string][]string{
 			"nist_800_53": {"AC-2", "AC-6"},
 			"pci_dss":     {"7.2"},
 			"soc2":        {"CC6.1", "CC6.3"},
@@ -368,6 +386,12 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"pci_dss":     {"1.2", "3.5"},
 			"soc2":        {"CC6.6", "CC6.7", "CC7.1"},
 			"iso_27001":   {"A.8.20", "A.8.22", "A.8.24"},
+		}),
+		"AWS_PUBLIC_EKS_CLUSTER_ADMIN_PATH": mapping(map[string][]string{
+			"nist_800_53": {"AC-2", "AC-4", "AC-6", "SC-7"},
+			"pci_dss":     {"1.2", "7.2"},
+			"soc2":        {"CC6.1", "CC6.3", "CC6.6"},
+			"iso_27001":   {"A.5.15", "A.5.18", "A.8.20"},
 		}),
 		"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS": mapping(map[string][]string{
 			"nist_800_53": {"AC-4", "AC-6", "SC-12", "SC-28"},

@@ -1,8 +1,8 @@
-# IAM pass-role function escalation path
+# IAM policy mutation escalation path
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
+| Rule ID | `AWS_IAM_POLICY_MUTATION_ESCALATION` |
 | Category | `privilege_escalation` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects iam:PassRole combined with Lambda or ECS compute mutation.
+Detects IAM policy mutation permissions that can create or promote privileged access.
 
 ## Resources
 

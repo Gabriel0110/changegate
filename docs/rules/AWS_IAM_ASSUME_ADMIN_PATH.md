@@ -1,14 +1,14 @@
 # IAM assume admin path
 
-| Field       | Value                       |
-| ----------- | --------------------------- |
-| Rule ID     | `AWS_IAM_ASSUME_ADMIN_PATH` |
-| Category    | `privilege_escalation`      |
-| Severity    | `high`                      |
-| Confidence  | `high`                      |
-| Status      | `stable`                    |
-| Version     | `0.1.0`                     |
-| Policy pack | `aws-iam-escalation`        |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_IAM_ASSUME_ADMIN_PATH` |
+| Category | `privilege_escalation` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 

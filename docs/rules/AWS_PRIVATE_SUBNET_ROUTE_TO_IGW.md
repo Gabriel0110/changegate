@@ -1,14 +1,14 @@
 # Private subnet route to internet gateway
 
-| Field       | Value                             |
-| ----------- | --------------------------------- |
-| Rule ID     | `AWS_PRIVATE_SUBNET_ROUTE_TO_IGW` |
-| Category    | `network_blast_radius`            |
-| Severity    | `high`                            |
-| Confidence  | `high`                            |
-| Status      | `stable`                          |
-| Version     | `0.1.0`                           |
-| Policy pack | `aws-public-exposure`             |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_PRIVATE_SUBNET_ROUTE_TO_IGW` |
+| Category | `network_blast_radius` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 

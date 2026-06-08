@@ -1,8 +1,8 @@
-# IAM pass-role function escalation path
+# Public EKS cluster-admin attack path
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
+| Rule ID | `AWS_PUBLIC_EKS_CLUSTER_ADMIN_PATH` |
 | Category | `privilege_escalation` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects iam:PassRole combined with Lambda or ECS compute mutation.
+Detects public EKS control-plane exposure with graph evidence of cluster-admin or privileged role access.
 
 ## Resources
 

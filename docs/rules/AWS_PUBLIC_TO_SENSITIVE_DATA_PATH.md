@@ -1,14 +1,14 @@
 # Public path reaches sensitive data
 
-| Field       | Value                               |
-| ----------- | ----------------------------------- |
-| Rule ID     | `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH` |
-| Category    | `sensitive_data`                    |
-| Severity    | `critical`                          |
-| Confidence  | `high`                              |
-| Status      | `stable`                            |
-| Version     | `0.1.0`                             |
-| Policy pack | `aws-public-exposure`               |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH` |
+| Category | `sensitive_data` |
+| Severity | `critical` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 

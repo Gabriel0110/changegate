@@ -1,14 +1,14 @@
 # EC2 instance has public IP and admin ingress
 
-| Field       | Value                             |
-| ----------- | --------------------------------- |
-| Rule ID     | `AWS_EC2_PUBLIC_IP_ADMIN_INGRESS` |
-| Category    | `public_exposure`                 |
-| Severity    | `high`                            |
-| Confidence  | `high`                            |
-| Status      | `stable`                          |
-| Version     | `0.1.0`                           |
-| Policy pack | `aws-public-exposure`             |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_EC2_PUBLIC_IP_ADMIN_INGRESS` |
+| Category | `public_exposure` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 

@@ -85,7 +85,7 @@ func TestDetectIAMPassRoleAndLambdaCreateFunctionBlocks(t *testing.T) {
 	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
 	  "Statement": [{
 	    "Effect": "Allow",
-	    "Action": ["iam:PassRole", "lambda:CreateFunction"],
+	    "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
 	    "Resource": "*"
 	  }]
 	}`)
@@ -97,6 +97,28 @@ func TestDetectIAMPassRoleAndLambdaCreateFunctionBlocks(t *testing.T) {
 		t.Fatalf("missing lambda create function path: %#v", paths)
 	}
 	if path.Decision != model.DecisionBlock || path.Target != "aws_iam_role.admin_execution" {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+}
+
+func TestDetectIAMPassRoleAndLambdaCreateFunctionWithoutInvokeWarns(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "lambda:CreateFunction"],
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	path := findIAMPath(paths, "lambda:CreateFunction")
+	if path == nil {
+		t.Fatalf("missing lambda create warning path: %#v", paths)
+	}
+	if path.Decision != model.DecisionWarn || path.Confidence != model.ConfidenceMedium {
 		t.Fatalf("unexpected path: %#v", path)
 	}
 }
@@ -208,6 +230,101 @@ func TestDetectIAMExplicitDenyAvoidsHighConfidenceBlock(t *testing.T) {
 	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
 	if path := findIAMPath(paths, "iam:PassRole"); path != nil {
 		t.Fatalf("explicit deny should avoid default high-confidence path, got %#v", path)
+	}
+}
+
+func TestParsePolicyStatementsSeparatesNotAction(t *testing.T) {
+	t.Parallel()
+	statements, ok := parsePolicyStatements(`{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "NotAction": "iam:DeleteRole",
+	    "NotResource": "arn:aws:iam::*:role/breakglass-*"
+	  }]
+	}`)
+	if !ok || len(statements) != 1 {
+		t.Fatalf("parse ok=%v len=%d", ok, len(statements))
+	}
+	if len(statements[0].Actions) != 0 || len(statements[0].NotActions) != 1 {
+		t.Fatalf("actions=%#v not_actions=%#v", statements[0].Actions, statements[0].NotActions)
+	}
+	if len(statements[0].Resources) != 0 || len(statements[0].NotResources) != 1 {
+		t.Fatalf("resources=%#v not_resources=%#v", statements[0].Resources, statements[0].NotResources)
+	}
+}
+
+func TestDetectIAMBroadNotActionWarns(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "NotAction": "iam:DeleteRole",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	path := findIAMPath(paths, "iam:PassRole")
+	if path == nil {
+		t.Fatalf("missing broad NotAction path: %#v", paths)
+	}
+	if path.Decision != model.DecisionWarn || path.Confidence != model.ConfidenceMedium {
+		t.Fatalf("unexpected decision/confidence: %#v", path)
+	}
+	if len(path.FindingRuleIDs) == 0 || path.FindingRuleIDs[0] != RuleIAMBroadNotActionEscalation {
+		t.Fatalf("finding rule ids = %#v", path.FindingRuleIDs)
+	}
+}
+
+func TestDetectIAMPolicyMutationEscalationBlocks(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": "iam:PutRolePolicy",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	path := findIAMPath(paths, "iam:PutRolePolicy")
+	if path == nil {
+		t.Fatalf("missing policy mutation path: %#v", paths)
+	}
+	if path.Decision != model.DecisionBlock || path.Target != "aws_iam_role.admin_execution" {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+	if len(path.FindingRuleIDs) == 0 || path.FindingRuleIDs[0] != RuleIAMPolicyMutationEscalation {
+		t.Fatalf("finding rule ids = %#v", path.FindingRuleIDs)
+	}
+}
+
+func TestDetectIAMRoleAssumptionChainBlocks(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_role.intermediate"] = principalNode("aws_iam_role.intermediate", "intermediate")
+	g.Edges = append(g.Edges,
+		edge("aws_iam_role.github_actions", "aws_iam_role.intermediate", graph.EdgeCanAssume),
+		edge("aws_iam_role.intermediate", "aws_iam_role.admin_execution", graph.EdgeCanAssume),
+	)
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	var chain *AttackPath
+	for i := range paths {
+		if paths[i].Metadata["attack_pattern"] == "role_assumption_chain" {
+			chain = &paths[i]
+			break
+		}
+	}
+	if chain == nil {
+		t.Fatalf("missing role assumption chain: %#v", paths)
+	}
+	if chain.Decision != model.DecisionBlock || len(chain.Steps) != 2 {
+		t.Fatalf("unexpected chain: %#v", chain)
 	}
 }
 

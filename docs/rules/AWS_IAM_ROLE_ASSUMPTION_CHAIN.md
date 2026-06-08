@@ -1,8 +1,8 @@
-# IAM pass-role function escalation path
+# IAM role assumption chain
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
+| Rule ID | `AWS_IAM_ROLE_ASSUMPTION_CHAIN` |
 | Category | `privilege_escalation` |
 | Severity | `high` |
 | Confidence | `high` |
@@ -12,7 +12,7 @@
 
 ## What It Detects
 
-Detects iam:PassRole combined with Lambda or ECS compute mutation.
+Detects multi-hop role assumption paths to administrator or sensitive roles.
 
 ## Resources
 

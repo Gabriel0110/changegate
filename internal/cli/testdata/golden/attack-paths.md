@@ -8,7 +8,7 @@
 - Decision: `block`
 - Severity: `critical`
 - Confidence: `high`
-- Confidence reason: path confidence is based on plan graph evidence
+- Confidence reason: high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence
 - Source: `plan`
 - Finding rules: `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`
 - Entrypoint: `aws_lb.admin`

@@ -1,14 +1,14 @@
 # Security group opens all ports to the world
 
-| Field       | Value                                     |
-| ----------- | ----------------------------------------- |
-| Rule ID     | `AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS` |
-| Category    | `public_exposure`                         |
-| Severity    | `high`                                    |
-| Confidence  | `high`                                    |
-| Status      | `stable`                                  |
-| Version     | `0.1.0`                                   |
-| Policy pack | `aws-public-exposure`                     |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS` |
+| Category | `public_exposure` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-public-exposure` |
 
 ## What It Detects
 

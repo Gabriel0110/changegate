@@ -16,13 +16,16 @@ type IAMDetectionOptions struct {
 }
 
 type iamGrant struct {
-	Principal  graph.ResourceID
-	Source     graph.ResourceID
-	Actions    []string
-	Resources  []string
-	Confidence model.Confidence
-	HasDeny    bool
-	Complex    bool
+	Principal      graph.ResourceID
+	Source         graph.ResourceID
+	Actions        []string
+	NotActions     []string
+	Resources      []string
+	NotResources   []string
+	Confidence     model.Confidence
+	HasDeny        bool
+	Complex        bool
+	BroadNotAction bool
 }
 
 type iamDocument struct {
@@ -30,10 +33,12 @@ type iamDocument struct {
 }
 
 type iamStatement struct {
-	Effect    string
-	Actions   []string
-	Resources []string
-	Condition map[string]any
+	Effect       string
+	Actions      []string
+	NotActions   []string
+	Resources    []string
+	NotResources []string
+	Condition    map[string]any
 }
 
 // ActionMatches reports whether an IAM action pattern covers an action.
@@ -61,8 +66,10 @@ func DetectIAMPrivilegeEscalation(g *graph.Graph, opts IAMDetectionOptions) []At
 	paths := make([]AttackPath, 0)
 	paths = append(paths, detectPassRoleComputeMutation(g, grants, opts)...)
 	paths = append(paths, detectAssumeAdminRole(g, grants, opts)...)
+	paths = append(paths, detectRoleAssumptionChains(g, opts)...)
 	paths = append(paths, detectFunctionUpdateRoleAccess(g, grants, opts)...)
 	paths = append(paths, detectECSUpdateServiceRoleAccess(g, grants, opts)...)
+	paths = append(paths, detectIAMPolicyMutationEscalation(g, grants, opts)...)
 	return Normalize(paths)
 }
 
@@ -76,26 +83,36 @@ func detectPassRoleComputeMutation(g *graph.Graph, grants []iamGrant, opts IAMDe
 		if mutation == "" {
 			continue
 		}
+		mutationConfidenceAdjustment := model.Confidence("")
+		if strings.EqualFold(mutation, "lambda:CreateFunction") && !grantAllows(grant, "lambda:InvokeFunction") {
+			mutationConfidenceAdjustment = model.ConfidenceMedium
+		}
 		for _, role := range passableRoles(g, grant) {
 			decision, severity, confidence := iamDecisionForTarget(g.Nodes[role], grant)
+			if mutationConfidenceAdjustment != "" && confidenceRank(mutationConfidenceAdjustment) < confidenceRank(confidence) {
+				confidence = mutationConfidenceAdjustment
+				decision, severity = iamDecision(confidence, g.Nodes[role])
+			}
 			if decision == model.DecisionWarn && !opts.IncludeWarnings {
 				continue
 			}
 			out = append(out, AttackPath{
-				Type:       TypeIAMPrivilegeEscalation,
-				Title:      fmt.Sprintf("Principal %s can pass %s and run %s", grant.Principal, role, mutation),
-				Severity:   severity,
-				Confidence: confidence,
-				Decision:   decision,
-				Principal:  string(grant.Principal),
-				Target:     string(role),
+				Type:             TypeIAMPrivilegeEscalation,
+				Title:            fmt.Sprintf("Principal %s can pass %s and run %s", grant.Principal, role, mutation),
+				Severity:         severity,
+				Confidence:       confidence,
+				ConfidenceReason: iamConfidenceReason(confidence, grant, "iam:PassRole plus compute mutation can execute code with the target role"),
+				Decision:         decision,
+				Principal:        string(grant.Principal),
+				Target:           string(role),
 				Steps: []Step{
-					iamStep(grant.Principal, role, "iam:PassRole", graph.EdgeCanPassRole, "principal can pass a privileged or sensitive execution role"),
-					iamStep(grant.Principal, mutationTarget(mutation), mutation, graph.EdgeGrantsPermission, "principal can mutate or launch compute that can use the passed role"),
+					iamStep(grant.Principal, role, "iam:PassRole", graph.EdgeCanPassRole, "principal can pass a privileged or sensitive execution role", confidence),
+					iamStep(grant.Principal, mutationTarget(mutation), mutation, graph.EdgeGrantsPermission, "principal can mutate or launch compute that can use the passed role", confidence),
 				},
 				Evidence:    iamEvidence(grant, role, mutation),
 				Mitigations: []string{"Scope iam:PassRole to non-privileged execution roles and exact services.", "Separate compute mutation permissions from pass-role permissions."},
 				References:  []string{"docs/attack-paths.md"},
+				Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "passrole_compute_mutation"}),
 			})
 		}
 	}
@@ -117,14 +134,15 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 			continue
 		}
 		out = append(out, AttackPath{
-			Type:       TypeIAMPrivilegeEscalation,
-			Title:      fmt.Sprintf("Principal %s can assume privileged role %s", edge.From, edge.To),
-			Severity:   severity,
-			Confidence: confidence,
-			Decision:   decision,
-			Principal:  string(edge.From),
-			Target:     string(edge.To),
-			Steps:      []Step{iamStep(edge.From, edge.To, "sts:AssumeRole", graph.EdgeCanAssume, edgeExplanationFromGraph(edge))},
+			Type:             TypeIAMPrivilegeEscalation,
+			Title:            fmt.Sprintf("Principal %s can assume privileged role %s", edge.From, edge.To),
+			Severity:         severity,
+			Confidence:       confidence,
+			Decision:         decision,
+			Principal:        string(edge.From),
+			Target:           string(edge.To),
+			ConfidenceReason: iamGraphConfidenceReason(confidence, "explicit role assumption edge reaches a privileged or sensitive role"),
+			Steps:            []Step{iamGraphStep(edge.From, edge.To, "sts:AssumeRole", graph.EdgeCanAssume, edgeExplanationFromGraph(edge), edge)},
 			Evidence: []model.Evidence{{
 				Type:     "attack_path.iam",
 				Resource: string(edge.To),
@@ -150,17 +168,59 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 				continue
 			}
 			out = append(out, AttackPath{
-				Type:        TypeIAMPrivilegeEscalation,
-				Title:       fmt.Sprintf("Principal %s can assume privileged role %s", grant.Principal, role),
-				Severity:    severity,
-				Confidence:  confidence,
-				Decision:    decision,
-				Principal:   string(grant.Principal),
-				Target:      string(role),
-				Steps:       []Step{iamStep(grant.Principal, role, "sts:AssumeRole", graph.EdgeCanAssume, "policy allows role assumption")},
-				Evidence:    iamEvidence(grant, role, "sts:AssumeRole"),
-				Mitigations: []string{"Scope sts:AssumeRole to exact non-admin roles and require restrictive trust conditions."},
+				Type:             TypeIAMPrivilegeEscalation,
+				Title:            fmt.Sprintf("Principal %s can assume privileged role %s", grant.Principal, role),
+				Severity:         severity,
+				Confidence:       confidence,
+				ConfidenceReason: iamConfidenceReason(confidence, grant, "policy allows role assumption to a privileged or sensitive role"),
+				Decision:         decision,
+				Principal:        string(grant.Principal),
+				Target:           string(role),
+				Steps:            []Step{iamStep(grant.Principal, role, "sts:AssumeRole", graph.EdgeCanAssume, "policy allows role assumption", confidence)},
+				Evidence:         iamEvidence(grant, role, "sts:AssumeRole"),
+				Mitigations:      []string{"Scope sts:AssumeRole to exact non-admin roles and require restrictive trust conditions."},
+				References:       []string{"docs/attack-paths.md"},
+				Metadata:         iamMetadata(grant, map[string]string{"attack_pattern": "assume_privileged_role"}),
+			})
+		}
+	}
+	return out
+}
+
+func detectRoleAssumptionChains(g *graph.Graph, opts IAMDetectionOptions) []AttackPath {
+	out := make([]AttackPath, 0)
+	for _, start := range sortedNodesByKind(g, graph.NodePrincipal) {
+		paths := roleAssumptionGraphPaths(g, start, 4)
+		for _, path := range paths {
+			target := pathTarget(path)
+			if len(path.Edges) < 2 || !privilegedOrSensitiveRole(g, target) {
+				continue
+			}
+			confidence := confidenceForPath(path)
+			decision, severity := iamDecision(confidence, g.Nodes[target])
+			if decision == model.DecisionWarn && !opts.IncludeWarnings {
+				continue
+			}
+			out = append(out, AttackPath{
+				Type:             TypeIAMPrivilegeEscalation,
+				Title:            fmt.Sprintf("Principal %s can reach privileged role %s through role assumption chain", start, target),
+				Severity:         severity,
+				Confidence:       confidence,
+				ConfidenceReason: iamGraphConfidenceReason(confidence, "multiple explicit role assumption edges connect the principal to a privileged or sensitive role"),
+				Decision:         decision,
+				Principal:        string(start),
+				Target:           string(target),
+				Steps:            stepsFromGraphPath(path),
+				Evidence: []model.Evidence{{
+					Type:     "attack_path.iam",
+					Resource: string(target),
+					Path:     "graph.assume_role_chain",
+					Value:    graphPathNodes(path),
+					Message:  "principal can reach a privileged or sensitive role through chained role assumptions",
+				}},
+				Mitigations: []string{"Break chained trust by removing unnecessary intermediate role assumptions.", "Require restrictive external IDs, audience, subject, or principal conditions on each role trust edge."},
 				References:  []string{"docs/attack-paths.md"},
+				Metadata:    map[string]string{"attack_pattern": "role_assumption_chain", "chain_length": fmt.Sprint(len(path.Edges))},
 			})
 		}
 	}
@@ -186,20 +246,22 @@ func detectFunctionUpdateRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMD
 					continue
 				}
 				out = append(out, AttackPath{
-					Type:       TypeIAMPrivilegeEscalation,
-					Title:      fmt.Sprintf("Principal %s can update Lambda %s with privileged execution role", grant.Principal, fn),
-					Severity:   severity,
-					Confidence: confidence,
-					Decision:   decision,
-					Principal:  string(grant.Principal),
-					Target:     string(role),
+					Type:             TypeIAMPrivilegeEscalation,
+					Title:            fmt.Sprintf("Principal %s can update Lambda %s with privileged execution role", grant.Principal, fn),
+					Severity:         severity,
+					Confidence:       confidence,
+					ConfidenceReason: iamConfidenceReason(confidence, grant, "policy allows updating executable Lambda code on a function that uses privileged or sensitive role access"),
+					Decision:         decision,
+					Principal:        string(grant.Principal),
+					Target:           string(role),
 					Steps: []Step{
-						iamStep(grant.Principal, fn, "lambda:UpdateFunctionCode", graph.EdgeGrantsPermission, "principal can update executable Lambda code"),
-						iamStep(fn, role, "uses execution role", graph.EdgeCanAssume, "function executes with privileged or sensitive role access"),
+						iamStep(grant.Principal, fn, "lambda:UpdateFunctionCode", graph.EdgeGrantsPermission, "principal can update executable Lambda code", confidence),
+						iamStep(fn, role, "uses execution role", graph.EdgeCanAssume, "function executes with privileged or sensitive role access", confidence),
 					},
 					Evidence:    iamEvidence(grant, role, "lambda:UpdateFunctionCode"),
 					Mitigations: []string{"Remove function update access or move the function to a least-privilege execution role."},
 					References:  []string{"docs/attack-paths.md"},
+					Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "lambda_update_execution_role"}),
 				})
 			}
 		}
@@ -226,20 +288,112 @@ func detectECSUpdateServiceRoleAccess(g *graph.Graph, grants []iamGrant, opts IA
 					continue
 				}
 				out = append(out, AttackPath{
-					Type:       TypeIAMPrivilegeEscalation,
-					Title:      fmt.Sprintf("Principal %s can update ECS service %s with sensitive task role", grant.Principal, service),
-					Severity:   severity,
-					Confidence: confidence,
-					Decision:   decision,
-					Principal:  string(grant.Principal),
-					Target:     string(role),
+					Type:             TypeIAMPrivilegeEscalation,
+					Title:            fmt.Sprintf("Principal %s can update ECS service %s with sensitive task role", grant.Principal, service),
+					Severity:         severity,
+					Confidence:       confidence,
+					ConfidenceReason: iamConfidenceReason(confidence, grant, "policy allows updating ECS service execution that uses sensitive role access"),
+					Decision:         decision,
+					Principal:        string(grant.Principal),
+					Target:           string(role),
 					Steps: []Step{
-						iamStep(grant.Principal, service, "ecs:UpdateService", graph.EdgeGrantsPermission, "principal can update service task execution"),
-						iamStep(service, role, "uses task role", graph.EdgeCanPassRole, "service task role can access sensitive data or secrets"),
+						iamStep(grant.Principal, service, "ecs:UpdateService", graph.EdgeGrantsPermission, "principal can update service task execution", confidence),
+						iamStep(service, role, "uses task role", graph.EdgeCanPassRole, "service task role can access sensitive data or secrets", confidence),
 					},
 					Evidence:    iamEvidence(grant, role, "ecs:UpdateService"),
 					Mitigations: []string{"Remove service update access or use a task role without sensitive data access."},
 					References:  []string{"docs/attack-paths.md"},
+					Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "ecs_update_sensitive_task_role"}),
+				})
+			}
+		}
+	}
+	return out
+}
+
+type iamEscalationPattern struct {
+	ID          string
+	Actions     []string
+	Title       string
+	Explanation string
+	Mitigations []string
+}
+
+var nativeIAMEscalationPatterns = []iamEscalationPattern{
+	{
+		ID:          "iam_policy_inline_role_escalation",
+		Actions:     []string{"iam:PutRolePolicy"},
+		Title:       "Principal %s can attach inline administrator policy to %s",
+		Explanation: "principal can add inline role policy, which can grant administrator or sensitive permissions",
+		Mitigations: []string{"Remove iam:PutRolePolicy from deploy roles or scope it to non-privileged break-glass workflows.", "Require reviewed policy-as-code changes instead of runtime IAM policy mutation."},
+	},
+	{
+		ID:          "iam_policy_attach_admin_escalation",
+		Actions:     []string{"iam:AttachRolePolicy"},
+		Title:       "Principal %s can attach managed administrator policy to %s",
+		Explanation: "principal can attach managed policies to a role that is or can become privileged",
+		Mitigations: []string{"Remove iam:AttachRolePolicy from non-security automation.", "Restrict attachable policy ARNs to approved least-privilege policies."},
+	},
+	{
+		ID:          "iam_policy_version_escalation",
+		Actions:     []string{"iam:CreatePolicyVersion", "iam:SetDefaultPolicyVersion"},
+		Title:       "Principal %s can replace default policy version for %s",
+		Explanation: "principal can create and promote a new policy version with expanded permissions",
+		Mitigations: []string{"Separate policy version creation from default-version promotion.", "Require code review and approval for IAM policy mutation permissions."},
+	},
+	{
+		ID:          "iam_trust_policy_takeover",
+		Actions:     []string{"iam:UpdateAssumeRolePolicy", "sts:AssumeRole"},
+		Title:       "Principal %s can rewrite trust and assume %s",
+		Explanation: "principal can alter role trust and then assume the privileged or sensitive role",
+		Mitigations: []string{"Remove iam:UpdateAssumeRolePolicy from deploy roles.", "Require narrowly scoped trust policy conditions for privileged roles."},
+	},
+	{
+		ID:          "iam_user_access_key_escalation",
+		Actions:     []string{"iam:CreateAccessKey"},
+		Title:       "Principal %s can create credentials for privileged user %s",
+		Explanation: "principal can create long-lived access keys for an IAM user with privileged or sensitive access",
+		Mitigations: []string{"Disallow iam:CreateAccessKey for privileged users.", "Use short-lived federation and monitor credential creation events."},
+	},
+}
+
+func detectIAMPolicyMutationEscalation(g *graph.Graph, grants []iamGrant, opts IAMDetectionOptions) []AttackPath {
+	out := make([]AttackPath, 0)
+	for _, grant := range grants {
+		for _, pattern := range nativeIAMEscalationPatterns {
+			if !grantAllowsAll(grant, pattern.Actions...) {
+				continue
+			}
+			for _, target := range escalationTargets(g, grant, pattern) {
+				decision, severity, confidence := iamDecisionForTarget(g.Nodes[target], grant)
+				if grant.BroadNotAction {
+					confidence = model.ConfidenceMedium
+					decision, severity = iamDecision(confidence, g.Nodes[target])
+				}
+				if decision == model.DecisionWarn && !opts.IncludeWarnings {
+					continue
+				}
+				steps := make([]Step, 0, len(pattern.Actions))
+				for _, action := range pattern.Actions {
+					steps = append(steps, iamStep(grant.Principal, target, action, graph.EdgeGrantsPermission, pattern.Explanation, confidence))
+				}
+				out = append(out, AttackPath{
+					Type:             TypeIAMPrivilegeEscalation,
+					Title:            fmt.Sprintf(pattern.Title, grant.Principal, target),
+					Severity:         severity,
+					Confidence:       confidence,
+					ConfidenceReason: iamConfidenceReason(confidence, grant, pattern.Explanation),
+					Decision:         decision,
+					Principal:        string(grant.Principal),
+					Target:           string(target),
+					Steps:            steps,
+					Evidence:         iamEvidence(grant, target, strings.Join(pattern.Actions, "+")),
+					Mitigations:      pattern.Mitigations,
+					References:       []string{"docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"},
+					Metadata: iamMetadata(grant, map[string]string{
+						"attack_pattern":     pattern.ID,
+						"pathfinding_source": "DataDog/pathfinding.cloud research catalog",
+					}),
 				})
 			}
 		}
@@ -331,7 +485,9 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 		Confidence: model.ConfidenceHigh,
 	}
 	actions := make([]string, 0)
+	notActions := make([]string, 0)
 	resources := make([]string, 0)
+	notResources := make([]string, 0)
 	for _, statement := range statements {
 		effect := strings.ToLower(statement.Effect)
 		if len(statement.Condition) > 0 {
@@ -344,16 +500,33 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 					grant.HasDeny = true
 				}
 			}
+			if len(statement.NotActions) > 0 {
+				grant.Complex = true
+				grant.Confidence = model.ConfidenceMedium
+			}
 			continue
 		}
 		if effect != "allow" {
 			continue
 		}
 		actions = append(actions, statement.Actions...)
+		notActions = append(notActions, statement.NotActions...)
 		resources = append(resources, statement.Resources...)
+		notResources = append(notResources, statement.NotResources...)
+		if len(statement.NotActions) > 0 {
+			grant.BroadNotAction = true
+			grant.Complex = true
+			grant.Confidence = model.ConfidenceMedium
+		}
+		if len(statement.NotResources) > 0 {
+			grant.Complex = true
+			grant.Confidence = model.ConfidenceMedium
+		}
 	}
 	grant.Actions = dedupeSorted(actions)
+	grant.NotActions = dedupeSorted(notActions)
 	grant.Resources = dedupeSorted(resources)
+	grant.NotResources = dedupeSorted(notResources)
 	if len(grant.Resources) == 0 {
 		grant.Resources = []string{"*"}
 	}
@@ -400,10 +573,12 @@ func parsePolicyStatements(policy string) ([]iamStatement, bool) {
 	out := make([]iamStatement, 0, len(statements))
 	for _, statement := range statements {
 		out = append(out, iamStatement{
-			Effect:    asString(statement["Effect"]),
-			Actions:   policyStringList(firstPresent(statement, "Action", "NotAction")),
-			Resources: policyStringList(firstPresent(statement, "Resource", "NotResource")),
-			Condition: policyMap(statement["Condition"]),
+			Effect:       asString(statement["Effect"]),
+			Actions:      policyStringList(statement["Action"]),
+			NotActions:   policyStringList(statement["NotAction"]),
+			Resources:    policyStringList(statement["Resource"]),
+			NotResources: policyStringList(statement["NotResource"]),
+			Condition:    policyMap(statement["Condition"]),
 		})
 	}
 	return out, true
@@ -424,15 +599,6 @@ func rawStatements(value any) []map[string]any {
 	default:
 		return nil
 	}
-}
-
-func firstPresent(values map[string]any, keys ...string) any {
-	for _, key := range keys {
-		if value, ok := values[key]; ok {
-			return value
-		}
-	}
-	return nil
 }
 
 func policyStringList(value any) []string {
@@ -474,7 +640,24 @@ func grantAllows(grant iamGrant, action string) bool {
 			return true
 		}
 	}
+	if grant.BroadNotAction {
+		for _, excluded := range grant.NotActions {
+			if ActionMatches(excluded, action) {
+				return false
+			}
+		}
+		return true
+	}
 	return false
+}
+
+func grantAllowsAll(grant iamGrant, actions ...string) bool {
+	for _, action := range actions {
+		if !grantAllows(grant, action) {
+			return false
+		}
+	}
+	return true
 }
 
 func firstAllowedAction(grant iamGrant, actions ...string) string {
@@ -499,6 +682,20 @@ func matchingRoles(g *graph.Graph, resources []string) []graph.ResourceID {
 	for _, id := range sortedGraphNodeIDs(g) {
 		node := g.Nodes[id]
 		if node == nil || node.Type != "aws_iam_role" {
+			continue
+		}
+		if resourceCovered(resources, node) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func matchingPrincipals(g *graph.Graph, resources []string) []graph.ResourceID {
+	out := make([]graph.ResourceID, 0)
+	for _, id := range sortedGraphNodeIDs(g) {
+		node := g.Nodes[id]
+		if node == nil || node.Kind != graph.NodePrincipal {
 			continue
 		}
 		if resourceCovered(resources, node) {
@@ -576,6 +773,53 @@ func sensitiveRole(g *graph.Graph, role graph.ResourceID) bool {
 	return false
 }
 
+func privilegedOrSensitivePrincipal(g *graph.Graph, id graph.ResourceID) bool {
+	node := g.Nodes[id]
+	if node == nil || node.Kind != graph.NodePrincipal {
+		return false
+	}
+	if node.Type == "aws_iam_role" {
+		return privilegedOrSensitiveRole(g, id)
+	}
+	lower := strings.ToLower(string(id) + " " + node.Address + " " + node.Name + " " + asString(node.Values["arn"]))
+	return strings.Contains(lower, "admin") || strings.Contains(lower, "administrator")
+}
+
+func escalationTargets(g *graph.Graph, grant iamGrant, pattern iamEscalationPattern) []graph.ResourceID {
+	candidates := matchingPrincipals(g, grant.Resources)
+	if len(candidates) == 0 && resourceCovered(grant.Resources, g.Nodes[grant.Principal]) {
+		candidates = append(candidates, grant.Principal)
+	}
+	out := make([]graph.ResourceID, 0, len(candidates))
+	for _, candidate := range candidates {
+		node := g.Nodes[candidate]
+		if node == nil {
+			continue
+		}
+		if strings.Contains(pattern.ID, "access_key") && node.Type != "aws_iam_user" {
+			continue
+		}
+		if privilegedOrSensitivePrincipal(g, candidate) || candidate == grant.Principal {
+			out = append(out, candidate)
+		}
+	}
+	sort.SliceStable(out, func(i int, j int) bool { return out[i] < out[j] })
+	return dedupeResourceIDs(out)
+}
+
+func dedupeResourceIDs(values []graph.ResourceID) []graph.ResourceID {
+	seen := make(map[graph.ResourceID]bool, len(values))
+	out := make([]graph.ResourceID, 0, len(values))
+	for _, value := range values {
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
+	}
+	return out
+}
+
 func rolesUsedBy(g *graph.Graph, workload graph.ResourceID) []graph.ResourceID {
 	out := make([]graph.ResourceID, 0)
 	for _, edge := range g.OutgoingEdges(workload) {
@@ -641,16 +885,72 @@ func confidenceFromGraph(confidence graph.EdgeConfidence, source graph.EdgeSourc
 	}
 }
 
-func iamStep(from graph.ResourceID, to graph.ResourceID, action string, edgeType graph.EdgeType, explanation string) Step {
+func iamStep(from graph.ResourceID, to graph.ResourceID, action string, edgeType graph.EdgeType, explanation string, confidence model.Confidence) Step {
+	edgeConfidence := graph.ConfidenceHigh
+	if confidence == model.ConfidenceMedium {
+		edgeConfidence = graph.ConfidenceMedium
+	}
+	if confidence == model.ConfidenceLow {
+		edgeConfidence = graph.ConfidenceLow
+	}
 	return Step{
 		From:        string(from),
 		To:          string(to),
 		Action:      action,
 		EdgeType:    edgeType,
 		Source:      graph.SourcePlan,
-		Confidence:  graph.ConfidenceHigh,
+		Confidence:  edgeConfidence,
 		Explanation: explanation,
 	}
+}
+
+func iamGraphStep(from graph.ResourceID, to graph.ResourceID, action string, edgeType graph.EdgeType, explanation string, edge graph.Edge) Step {
+	return Step{
+		From:        string(from),
+		To:          string(to),
+		Action:      action,
+		EdgeType:    edgeType,
+		Source:      edge.Source,
+		Confidence:  edge.Confidence,
+		Explanation: explanation,
+		Evidence:    append([]model.Evidence(nil), edge.Evidence...),
+		Metadata:    copyStepMetadata(edge.Metadata),
+	}
+}
+
+func iamConfidenceReason(confidence model.Confidence, grant iamGrant, reason string) string {
+	switch {
+	case grant.BroadNotAction:
+		return "medium confidence: broad IAM NotAction allow implies the required permissions unless excluded, so ChangeGate warns instead of treating it as exact evidence"
+	case grant.Complex || grant.HasDeny || confidence != model.ConfidenceHigh:
+		return "medium confidence: " + reason + ", but policy conditions, deny statements, or broad resource semantics require reviewer confirmation"
+	default:
+		return "high confidence: " + reason + " with explicit IAM policy evidence and no contradicting deny statement"
+	}
+}
+
+func iamGraphConfidenceReason(confidence model.Confidence, reason string) string {
+	if confidence != model.ConfidenceHigh {
+		return "medium confidence: " + reason + ", but at least one graph relationship is inferred or partial"
+	}
+	return "high confidence: " + reason + " with explicit graph evidence for every step"
+}
+
+func iamMetadata(grant iamGrant, metadata map[string]string) map[string]string {
+	out := copyMetadata(metadata)
+	if out == nil {
+		out = make(map[string]string)
+	}
+	if grant.BroadNotAction {
+		out["iam_semantics"] = "not_action_broad_allow"
+	}
+	if grant.Complex {
+		out["iam_complexity"] = "conditions_or_negative_semantics"
+	}
+	if grant.HasDeny {
+		out["iam_deny"] = "present"
+	}
+	return out
 }
 
 func iamEvidence(grant iamGrant, target graph.ResourceID, action string) []model.Evidence {
@@ -689,6 +989,54 @@ func mutationTarget(action string) graph.ResourceID {
 	default:
 		return graph.ResourceID(action)
 	}
+}
+
+func roleAssumptionGraphPaths(g *graph.Graph, start graph.ResourceID, maxDepth int) []graph.Path {
+	if maxDepth <= 0 {
+		maxDepth = 4
+	}
+	type item struct {
+		id    graph.ResourceID
+		path  graph.Path
+		seen  map[graph.ResourceID]bool
+		depth int
+	}
+	queue := []item{{id: start, path: graph.Path{Nodes: []graph.ResourceID{start}}, seen: map[graph.ResourceID]bool{start: true}}}
+	out := make([]graph.Path, 0)
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		if current.depth >= maxDepth {
+			continue
+		}
+		for _, edge := range g.OutgoingEdges(current.id) {
+			if edge.Type != graph.EdgeCanAssume || current.seen[edge.To] {
+				continue
+			}
+			nextPath := graph.Path{
+				Nodes: append(append([]graph.ResourceID(nil), current.path.Nodes...), edge.To),
+				Edges: append(append([]graph.Edge(nil), current.path.Edges...), edge),
+			}
+			nextSeen := make(map[graph.ResourceID]bool, len(current.seen)+1)
+			for key, value := range current.seen {
+				nextSeen[key] = value
+			}
+			nextSeen[edge.To] = true
+			if len(nextPath.Edges) >= 2 {
+				out = append(out, nextPath)
+			}
+			queue = append(queue, item{id: edge.To, path: nextPath, seen: nextSeen, depth: current.depth + 1})
+		}
+	}
+	return out
+}
+
+func graphPathNodes(path graph.Path) []string {
+	out := make([]string, 0, len(path.Nodes))
+	for _, node := range path.Nodes {
+		out = append(out, string(node))
+	}
+	return out
 }
 
 func sortedNodesByKind(g *graph.Graph, kind graph.NodeKind) []graph.ResourceID {

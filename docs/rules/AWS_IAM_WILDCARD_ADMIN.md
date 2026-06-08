@@ -1,18 +1,18 @@
 # Wildcard IAM administration
 
-| Field       | Value                    |
-| ----------- | ------------------------ |
-| Rule ID     | `AWS_IAM_WILDCARD_ADMIN` |
-| Category    | `privilege_escalation`   |
-| Severity    | `high`                   |
-| Confidence  | `high`                   |
-| Status      | `stable`                 |
-| Version     | `0.1.0`                  |
-| Policy pack | `aws-iam-escalation`     |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_IAM_WILDCARD_ADMIN` |
+| Category | `privilege_escalation` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 
-Detects IAM policies with broad iam:_ or Action:_ grants.
+Detects IAM policies with broad iam:* or Action:* grants.
 
 ## Resources
 

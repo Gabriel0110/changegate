@@ -117,8 +117,101 @@ func TestDetectPublicToSensitiveBlocksLambdaURLToSecret(t *testing.T) {
 	if path.Entrypoint != "aws_lambda_function_url.public_handler" || path.Target != "aws_secretsmanager_secret.customer" {
 		t.Fatalf("unexpected endpoints: %#v", path)
 	}
+	if path.Title != "Public Lambda Function URL aws_lambda_function_url.public_handler reaches secret aws_secretsmanager_secret.customer" {
+		t.Fatalf("title = %q", path.Title)
+	}
+	if path.Metadata["attack_pattern"] != "public_lambda_url_to_sensitive_access" {
+		t.Fatalf("attack pattern = %#v", path.Metadata)
+	}
 	if len(path.Steps) != 3 || path.Steps[1].EdgeType != graph.EdgeInvokes || path.Steps[2].EdgeType != graph.EdgeReadsSecret {
 		t.Fatalf("unexpected path steps: %#v", path.Steps)
+	}
+}
+
+func TestDetectPublicToSensitiveBlocksAPIGatewayToSecret(t *testing.T) {
+	t.Parallel()
+	g := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			graph.InternetNodeID: internetNode(),
+			"aws_api_gateway_stage.public": {
+				ID:      "aws_api_gateway_stage.public",
+				Address: "aws_api_gateway_stage.public",
+				Type:    "aws_api_gateway_stage",
+				Kind:    graph.NodePublicEntrypoint,
+				Name:    "public",
+			},
+			"aws_lambda_function.admin": workloadNode("aws_lambda_function.admin", "aws_lambda_function"),
+			"aws_secretsmanager_secret.customer": {
+				ID:          "aws_secretsmanager_secret.customer",
+				Address:     "aws_secretsmanager_secret.customer",
+				Type:        "aws_secretsmanager_secret",
+				Kind:        graph.NodeSecret,
+				Name:        "customer",
+				Environment: "production",
+			},
+		},
+		Edges: []graph.Edge{
+			edge(graph.InternetNodeID, "aws_api_gateway_stage.public", graph.EdgeRoutesTo),
+			edge("aws_api_gateway_stage.public", "aws_lambda_function.admin", graph.EdgeInvokes),
+			edge("aws_lambda_function.admin", "aws_secretsmanager_secret.customer", graph.EdgeReadsSecret),
+		},
+	}
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	if len(paths) != 1 {
+		t.Fatalf("paths len = %d, want 1: %#v", len(paths), paths)
+	}
+	if paths[0].Title != "Public API Gateway route aws_api_gateway_stage.public reaches secret aws_secretsmanager_secret.customer" {
+		t.Fatalf("title = %q", paths[0].Title)
+	}
+	if paths[0].Decision != model.DecisionBlock || paths[0].Metadata["attack_pattern"] != "public_api_gateway_to_sensitive_access" {
+		t.Fatalf("unexpected path: %#v", paths[0])
+	}
+}
+
+func TestDetectPublicEKSClusterAdminRiskBlocks(t *testing.T) {
+	t.Parallel()
+	g := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			graph.InternetNodeID: internetNode(),
+			"aws_eks_cluster.prod": {
+				ID:          "aws_eks_cluster.prod",
+				Address:     "aws_eks_cluster.prod",
+				Type:        "aws_eks_cluster",
+				Kind:        graph.NodePublicEntrypoint,
+				Name:        "prod",
+				Environment: "production",
+				Values:      map[string]any{"endpoint_public_access": true},
+			},
+			"aws_iam_role.cluster_admin": {
+				ID:          "aws_iam_role.cluster_admin",
+				Address:     "aws_iam_role.cluster_admin",
+				Type:        "aws_iam_role",
+				Kind:        graph.NodePrincipal,
+				Name:        "cluster-admin",
+				Environment: "production",
+				Values:      map[string]any{"kubernetes_groups": []string{"system:masters"}},
+			},
+		},
+		Edges: []graph.Edge{
+			edge(graph.InternetNodeID, "aws_eks_cluster.prod", graph.EdgeHasPublicAccess),
+			edge("aws_eks_cluster.prod", "aws_iam_role.cluster_admin", graph.EdgeCanAssume),
+		},
+	}
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	var eksPath *AttackPath
+	for i := range paths {
+		if paths[i].Metadata["attack_pattern"] == "public_eks_cluster_admin" {
+			eksPath = &paths[i]
+			break
+		}
+	}
+	if eksPath == nil {
+		t.Fatalf("missing EKS admin path: %#v", paths)
+	}
+	if eksPath.Decision != model.DecisionBlock || eksPath.FindingRuleIDs[0] != RulePublicEKSClusterAdminPath {
+		t.Fatalf("unexpected EKS path: %#v", eksPath)
 	}
 }
 
@@ -243,14 +336,7 @@ func graphForPublicWorkload(expectedPublic bool) *graph.Graph {
 
 func basePublicNodes(workload graph.ResourceID) map[graph.ResourceID]*graph.Node {
 	return map[graph.ResourceID]*graph.Node{
-		graph.InternetNodeID: {
-			ID:        graph.InternetNodeID,
-			Address:   string(graph.InternetNodeID),
-			Type:      "internet",
-			Kind:      graph.NodePublicEntrypoint,
-			Name:      "internet",
-			Synthetic: true,
-		},
+		graph.InternetNodeID: internetNode(),
 		"aws_lb.admin": {
 			ID:      "aws_lb.admin",
 			Address: "aws_lb.admin",
@@ -265,6 +351,17 @@ func basePublicNodes(workload graph.ResourceID) map[graph.ResourceID]*graph.Node
 			Kind:    graph.NodeWorkload,
 			Name:    "service",
 		},
+	}
+}
+
+func internetNode() *graph.Node {
+	return &graph.Node{
+		ID:        graph.InternetNodeID,
+		Address:   string(graph.InternetNodeID),
+		Type:      "internet",
+		Kind:      graph.NodePublicEntrypoint,
+		Name:      "internet",
+		Synthetic: true,
 	}
 }
 

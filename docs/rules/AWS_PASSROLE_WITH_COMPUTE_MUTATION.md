@@ -1,14 +1,14 @@
 # iam:PassRole with compute mutation
 
-| Field       | Value                                |
-| ----------- | ------------------------------------ |
-| Rule ID     | `AWS_PASSROLE_WITH_COMPUTE_MUTATION` |
-| Category    | `privilege_escalation`               |
-| Severity    | `high`                               |
-| Confidence  | `high`                               |
-| Status      | `stable`                             |
-| Version     | `0.1.0`                              |
-| Policy pack | `aws-iam-escalation`                 |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_PASSROLE_WITH_COMPUTE_MUTATION` |
+| Category | `privilege_escalation` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 

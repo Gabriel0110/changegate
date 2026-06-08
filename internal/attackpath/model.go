@@ -309,11 +309,23 @@ func resourceType(resource string) string {
 func defaultFindingRuleIDs(path AttackPath) []string {
 	switch path.Type {
 	case TypePublicToSensitiveData:
+		if path.Metadata["attack_pattern"] == "public_eks_cluster_admin" {
+			return []string{RulePublicEKSClusterAdminPath}
+		}
 		if path.Decision == model.DecisionWarn && !strings.Contains(strings.ToLower(path.Target), "db") && !strings.Contains(strings.ToLower(path.Target), "secret") {
 			return []string{RulePublicAdminServicePath}
 		}
 		return []string{RulePublicToSensitiveDataPath}
 	case TypeIAMPrivilegeEscalation:
+		if path.Metadata["iam_semantics"] == "not_action_broad_allow" {
+			return []string{RuleIAMBroadNotActionEscalation}
+		}
+		switch path.Metadata["attack_pattern"] {
+		case "role_assumption_chain":
+			return []string{RuleIAMRoleAssumptionChain}
+		case "iam_policy_inline_role_escalation", "iam_policy_attach_admin_escalation", "iam_policy_version_escalation", "iam_trust_policy_takeover", "iam_user_access_key_escalation":
+			return []string{RuleIAMPolicyMutationEscalation}
+		}
 		for _, step := range path.Steps {
 			if strings.EqualFold(step.Action, "sts:AssumeRole") {
 				return []string{RuleIAMAssumeAdminPath}

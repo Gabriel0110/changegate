@@ -1,18 +1,18 @@
-# IAM pass-role function escalation path
+# IAM NotAction escalation path
 
 | Field | Value |
 | --- | --- |
-| Rule ID | `AWS_IAM_PASSROLE_FUNCTION_ESCALATION` |
+| Rule ID | `AWS_IAM_NOTACTION_ESCALATION_PATH` |
 | Category | `privilege_escalation` |
 | Severity | `high` |
-| Confidence | `high` |
+| Confidence | `medium` |
 | Status | `stable` |
 | Version | `0.1.0` |
 | Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 
-Detects iam:PassRole combined with Lambda or ECS compute mutation.
+Detects broad NotAction allow semantics that imply privilege-escalation permissions.
 
 ## Resources
 

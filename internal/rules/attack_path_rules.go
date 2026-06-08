@@ -13,6 +13,10 @@ func attackPathRules() []Rule {
 		staticAttackPathRule(attackpath.RuleIAMPassRoleFunctionEscalation, "IAM pass-role function escalation path", "Detects iam:PassRole combined with Lambda or ECS compute mutation.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation"),
 		staticAttackPathRule(attackpath.RuleIAMAssumeAdminPath, "IAM assume admin path", "Detects sts:AssumeRole paths to administrator or sensitive roles.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation"),
 		staticAttackPathRule(attackpath.RulePublicAdminServicePath, "Public admin service path", "Detects public entrypoints reaching admin-like workloads without sensitive downstream context.", model.RiskCategoryPublicExposure, model.SeverityMedium, model.ConfidenceMedium, "aws-public-exposure"),
+		staticAttackPathRule(attackpath.RulePublicEKSClusterAdminPath, "Public EKS cluster-admin attack path", "Detects public EKS control-plane exposure with graph evidence of cluster-admin or privileged role access.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation"),
+		staticAttackPathRule(attackpath.RuleIAMPolicyMutationEscalation, "IAM policy mutation escalation path", "Detects IAM policy mutation permissions that can create or promote privileged access.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation"),
+		staticAttackPathRule(attackpath.RuleIAMBroadNotActionEscalation, "IAM NotAction escalation path", "Detects broad NotAction allow semantics that imply privilege-escalation permissions.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceMedium, "aws-iam-escalation"),
+		staticAttackPathRule(attackpath.RuleIAMRoleAssumptionChain, "IAM role assumption chain", "Detects multi-hop role assumption paths to administrator or sensitive roles.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation"),
 	}
 }
 

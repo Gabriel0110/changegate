@@ -1,14 +1,14 @@
 # Trust policy allows external account assumption
 
-| Field       | Value                        |
-| ----------- | ---------------------------- |
-| Rule ID     | `AWS_EXTERNAL_ACCOUNT_TRUST` |
-| Category    | `privilege_escalation`       |
-| Severity    | `high`                       |
-| Confidence  | `high`                       |
-| Status      | `stable`                     |
-| Version     | `0.1.0`                      |
-| Policy pack | `aws-iam-escalation`         |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_EXTERNAL_ACCOUNT_TRUST` |
+| Category | `privilege_escalation` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 

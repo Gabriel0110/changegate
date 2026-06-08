@@ -1,14 +1,14 @@
 # Production RDS deletion skips final snapshot
 
-| Field       | Value                                  |
-| ----------- | -------------------------------------- |
-| Rule ID     | `AWS_RDS_FINAL_SNAPSHOT_DISABLED_PROD` |
-| Category    | `availability`                         |
-| Severity    | `high`                                 |
-| Confidence  | `high`                                 |
-| Status      | `stable`                               |
-| Version     | `0.1.0`                                |
-| Policy pack | `aws-core`                             |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_RDS_FINAL_SNAPSHOT_DISABLED_PROD` |
+| Category | `availability` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-core` |
 
 ## What It Detects
 

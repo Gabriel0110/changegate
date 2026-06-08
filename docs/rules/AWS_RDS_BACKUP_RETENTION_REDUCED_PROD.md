@@ -1,14 +1,14 @@
 # Production RDS backup retention reduced
 
-| Field       | Value                                   |
-| ----------- | --------------------------------------- |
-| Rule ID     | `AWS_RDS_BACKUP_RETENTION_REDUCED_PROD` |
-| Category    | `availability`                          |
-| Severity    | `high`                                  |
-| Confidence  | `high`                                  |
-| Status      | `stable`                                |
-| Version     | `0.1.0`                                 |
-| Policy pack | `aws-core`                              |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_RDS_BACKUP_RETENTION_REDUCED_PROD` |
+| Category | `availability` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-core` |
 
 ## What It Detects
 

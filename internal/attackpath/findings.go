@@ -16,6 +16,14 @@ const (
 	RuleIAMAssumeAdminPath = "AWS_IAM_ASSUME_ADMIN_PATH"
 	// RulePublicAdminServicePath identifies public admin workload paths without sensitive downstream context.
 	RulePublicAdminServicePath = "AWS_PUBLIC_ADMIN_SERVICE_PATH"
+	// RulePublicEKSClusterAdminPath identifies public EKS endpoint paths to cluster-admin access.
+	RulePublicEKSClusterAdminPath = "AWS_PUBLIC_EKS_CLUSTER_ADMIN_PATH"
+	// RuleIAMPolicyMutationEscalation identifies IAM policy mutation escalation paths.
+	RuleIAMPolicyMutationEscalation = "AWS_IAM_POLICY_MUTATION_ESCALATION"
+	// RuleIAMBroadNotActionEscalation identifies broad NotAction escalation paths.
+	RuleIAMBroadNotActionEscalation = "AWS_IAM_NOTACTION_ESCALATION_PATH"
+	// RuleIAMRoleAssumptionChain identifies multi-hop role assumption chains.
+	RuleIAMRoleAssumptionChain = "AWS_IAM_ROLE_ASSUMPTION_CHAIN"
 )
 
 // Findings converts attack paths into normal findings for policy, baseline, waiver, and review flows.
@@ -159,11 +167,23 @@ func affectedResourceValues(resources []AffectedResource) []string {
 func ruleForPath(path AttackPath) (string, string, model.RiskCategory) {
 	switch path.Type {
 	case TypePublicToSensitiveData:
+		if path.Metadata["attack_pattern"] == "public_eks_cluster_admin" {
+			return RulePublicEKSClusterAdminPath, "Public EKS cluster-admin attack path", model.RiskCategoryPrivilegeEscalation
+		}
 		if path.Decision == model.DecisionWarn && !strings.Contains(strings.ToLower(path.Target), "db") && !strings.Contains(strings.ToLower(path.Target), "secret") {
 			return RulePublicAdminServicePath, "Public admin service attack path", model.RiskCategoryPublicExposure
 		}
 		return RulePublicToSensitiveDataPath, "Public to sensitive data attack path", model.RiskCategorySensitiveData
 	case TypeIAMPrivilegeEscalation:
+		if path.Metadata["iam_semantics"] == "not_action_broad_allow" {
+			return RuleIAMBroadNotActionEscalation, "IAM NotAction escalation path", model.RiskCategoryPrivilegeEscalation
+		}
+		switch path.Metadata["attack_pattern"] {
+		case "role_assumption_chain":
+			return RuleIAMRoleAssumptionChain, "IAM role assumption chain", model.RiskCategoryPrivilegeEscalation
+		case "iam_policy_inline_role_escalation", "iam_policy_attach_admin_escalation", "iam_policy_version_escalation", "iam_trust_policy_takeover", "iam_user_access_key_escalation":
+			return RuleIAMPolicyMutationEscalation, "IAM policy mutation escalation path", model.RiskCategoryPrivilegeEscalation
+		}
 		if pathHasAction(path, "sts:AssumeRole") {
 			return RuleIAMAssumeAdminPath, "IAM assume admin attack path", model.RiskCategoryPrivilegeEscalation
 		}

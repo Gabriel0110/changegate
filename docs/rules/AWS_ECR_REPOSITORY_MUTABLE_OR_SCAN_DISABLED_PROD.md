@@ -1,14 +1,14 @@
 # Production ECR mutable tags or scan disabled
 
-| Field       | Value                                              |
-| ----------- | -------------------------------------------------- |
-| Rule ID     | `AWS_ECR_REPOSITORY_MUTABLE_OR_SCAN_DISABLED_PROD` |
-| Category    | `sensitive_data`                                   |
-| Severity    | `high`                                             |
-| Confidence  | `high`                                             |
-| Status      | `stable`                                           |
-| Version     | `0.1.0`                                            |
-| Policy pack | `aws-core`                                         |
+| Field | Value |
+| --- | --- |
+| Rule ID | `AWS_ECR_REPOSITORY_MUTABLE_OR_SCAN_DISABLED_PROD` |
+| Category | `sensitive_data` |
+| Severity | `high` |
+| Confidence | `high` |
+| Status | `stable` |
+| Version | `0.1.0` |
+| Policy pack | `aws-core` |
 
 ## What It Detects
 

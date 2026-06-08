@@ -2,10 +2,10 @@
 
 Attack paths are first-class ChangeGate evidence objects. They explain how a planned or live-context infrastructure relationship could become an exploitable path, not just that a risky setting exists.
 
-The v2 model supports two categories:
+The v2/v3 model supports two categories:
 
 - `public_to_sensitive_data`: a public entrypoint can reach a sensitive datastore, secret, or key.
-- `iam_privilege_escalation`: a principal can reach admin or sensitive access through high-signal IAM actions such as pass-role, assume-role, or function/service update.
+- `iam_privilege_escalation`: a principal can reach admin or sensitive access through high-signal IAM actions, role trust, policy mutation, or chained role assumption.
 
 The detector commands are available through `changegate attack-paths`, and high-confidence attack paths are integrated into scan, impact, review comment, and audit-bundle output when attack-path policy is enabled.
 
@@ -23,11 +23,20 @@ DOT and Mermaid output are intended for teams that already publish diagrams in d
 
 Public-to-sensitive detection uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 
+Network attack paths include:
+
+- public API Gateway routes that invoke workloads with downstream secret or data access
+- public Lambda Function URLs that invoke functions with secret, KMS, S3, or datastore access
+- public workloads that can reach RDS, OpenSearch, ElastiCache, EFS, S3, Secrets Manager, or KMS
+- public EKS endpoints with graph evidence of cluster-admin or privileged role access
+
 Sensitive assets include common AWS data stores, secrets, and KMS keys by default. Teams can extend classification with `.changegate.yaml` selectors for resource addresses, resource types, names, and tags; see [Policy Config Guide](policy-config.md#sensitive-assets). This lets private data platforms, backup vaults, or custom provider resources participate in attack paths and graph-aware rules.
 
 When an optional AWS cloud-context snapshot is merged into the graph, attack paths preserve provenance. A path can report `source=plan`, `source=cloud_context`, or `source=mixed` when live AWS context confirms or extends planned graph evidence. Cloud-confirmed edges can raise confidence; partial or ambiguous context lowers confidence and produces warning-oriented output.
 
-IAM privilege-escalation detection normalizes IAM action wildcards, service wildcards, resource wildcards, explicit deny statements, and complex conditions. The detector focuses on high-signal paths: `iam:PassRole` plus Lambda/ECS mutation, `sts:AssumeRole` to admin or sensitive roles, Lambda code/configuration updates or function creation into privileged execution roles, ECS service/task-definition mutation into sensitive task roles, and ECS task launch paths that can use passed roles. Complex conditions or explicit deny ambiguity reduce confidence and produce warnings rather than high-confidence blocks.
+IAM privilege-escalation detection normalizes IAM action wildcards, service wildcards, resource wildcards, explicit deny statements, complex conditions, and `NotAction`/`NotResource` semantics. The detector focuses on high-signal paths: `iam:PassRole` plus Lambda/ECS mutation, `sts:AssumeRole` to admin or sensitive roles, Lambda code/configuration updates or function creation into privileged execution roles, ECS service/task-definition mutation into sensitive task roles, chained role assumptions, and IAM policy mutation patterns such as inline role policy attachment, managed policy attachment, default policy version promotion, trust policy rewrite plus assume-role, and privileged user access-key creation. Complex conditions, explicit deny ambiguity, or broad `NotAction` semantics reduce confidence and produce warnings rather than high-confidence blocks.
+
+ChangeGate implements these paths natively in its graph and policy model. The IAM policy-mutation catalog is informed by established public AWS privilege-escalation research, including [DataDog/pathfinding.cloud](https://github.com/DataDog/pathfinding.cloud) and its [path catalog](https://pathfinding.cloud/paths/), but ChangeGate does not fetch or execute that project at scan time.
 
 ## Contract
 
@@ -51,7 +60,7 @@ Attack path JSON uses schema version 2 and is documented by [`schemas/attack-pat
       "title": "Public admin service reaches customer database",
       "severity": "critical",
       "confidence": "high",
-      "confidence_reason": "path confidence is based on plan graph evidence",
+      "confidence_reason": "high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence",
       "decision": "block",
       "source": "plan",
       "entrypoint": "aws_lb.admin",
@@ -93,9 +102,12 @@ This keeps ChangeGate’s enforcement posture conservative while still giving re
 
 ## Current Scope
 
-Attack Paths v2 is intentionally deterministic rather than exhaustive. It focuses on high-signal infrastructure changes that are practical to gate before apply:
+Attack Paths v2/v3 is intentionally deterministic rather than exhaustive. It focuses on high-signal infrastructure changes that are practical to gate before apply:
 
 - public entrypoint to workload to sensitive datastore, secret, or key
-- principal to `iam:PassRole`, `sts:AssumeRole`, Lambda update, or ECS update paths that reach admin or sensitive access
+- public API Gateway and Lambda Function URL paths into sensitive access
+- public EKS endpoint paths into cluster-admin or privileged role access
+- principal to `iam:PassRole`, `sts:AssumeRole`, Lambda update, ECS update, IAM policy mutation, or multi-role assumption chains that reach admin or sensitive access
+- broad `NotAction` or wildcard-resource IAM patterns when they imply escalation actions
 
 When graph or IAM evidence is ambiguous, detectors lower confidence and produce warning-oriented evidence instead of pretending the path is certain.
