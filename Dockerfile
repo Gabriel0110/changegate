@@ -18,4 +18,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build \
 
 FROM scratch
 COPY --from=build /out/changegate /changegate
+USER 65532:65532
 ENTRYPOINT ["/changegate"]

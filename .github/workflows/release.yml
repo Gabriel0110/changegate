@@ -26,6 +26,12 @@ jobs:
           go-version: "1.26.4"
           cache: true
 
+      - name: Set up Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Install Syft
         run: go install github.com/anchore/syft/cmd/syft@v1.20.0
 
@@ -84,3 +90,17 @@ jobs:
           fi
           git commit -m "Update changegate ${GITHUB_REF_NAME}"
           git push
+
+      - name: Publish npm package
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [[ -z "${NODE_AUTH_TOKEN}" ]]; then
+            echo "npm publishing skipped; set NPM_TOKEN to enable it."
+            exit 0
+          fi
+          version="${GITHUB_REF_NAME#v}"
+          cd npm/changegate
+          npm version "${version}" --no-git-tag-version
+          npm test
+          CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --provenance
