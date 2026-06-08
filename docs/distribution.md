@@ -1,10 +1,10 @@
-# Distribution
+# Install Options
 
-ChangeGate publishes release archives, Linux packages, Docker images, and an npm installer package from the GitHub release workflow.
+ChangeGate is distributed as a single CLI binary, release archives, Linux packages, Docker images, and an npm installer package.
 
 ## Docker
 
-The official image is published to GitHub Container Registry:
+Use the official image from GitHub Container Registry when ChangeGate runs inside CI, containerized build workers, or local Docker workflows:
 
 ```bash
 docker run --rm ghcr.io/gabriel0110/changegate:v0.3.0 version
@@ -19,11 +19,11 @@ Published tags:
 - `X`
 - `latest`
 
-Images are multi-architecture for `linux/amd64` and `linux/arm64`, run as a numeric non-root user, include OCI version/revision labels, and are signed by the release workflow.
+Images are multi-architecture for `linux/amd64` and `linux/arm64`, run as a numeric non-root user, include OCI version/revision labels, and are signed.
 
 ## npm
 
-The `changegate` npm package installs a platform-specific ChangeGate binary from GitHub Releases:
+Use the npm package when Node.js/npm is already available on developer workstations or CI runners:
 
 ```bash
 npx changegate version
@@ -32,25 +32,10 @@ npx changegate scan --plan tfplan.json
 
 The installer supports macOS, Linux, and Windows on `amd64`/`arm64`. It downloads the release archive and `checksums.txt`, verifies the archive SHA-256 checksum, and installs a local CLI shim named `changegate`.
 
-## Release Workflow
+Set `CHANGEGATE_VERSION` when you need a specific ChangeGate release:
 
-Normal pull request CI does not require Docker registry or npm publishing secrets. It validates:
+```bash
+CHANGEGATE_VERSION=v0.3.0 npx changegate version
+```
 
-- Docker image build and runtime smoke tests.
-- npm package unit tests, package dry-run, and local install through a locally built ChangeGate binary.
-
-Release publishing is triggered by pushing a `vX.Y.Z` tag.
-
-Required for Docker publishing:
-
-- The repository `GITHUB_TOKEN` with `packages: write`.
-
-Required for npm publishing:
-
-- `NPM_TOKEN` repository secret with permission to publish the `changegate` npm package.
-
-Optional:
-
-- `HOMEBREW_TAP_REPOSITORY` repository variable and `HOMEBREW_TAP_TOKEN` repository secret for Homebrew tap publishing.
-
-If the npm or Homebrew secrets are not configured, the release workflow skips those publishing steps without failing the release.
+Advanced install environments can use `CHANGEGATE_RELEASE_BASE_URL` to point the installer at an internal artifact mirror that serves the same release archive names and `checksums.txt` format.

@@ -109,7 +109,7 @@ npx changegate scan --plan tfplan.json
 
 The npm package installs the matching platform binary from GitHub Releases and verifies the archive checksum before extraction.
 
-See [Distribution](docs/distribution.md) for Docker tags, npm installer behavior, and release workflow details.
+See [Install Options](docs/distribution.md) for Docker tags and npm installer behavior.
 
 To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
 

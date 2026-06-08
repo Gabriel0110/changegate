@@ -19,7 +19,7 @@ Unsupported operating systems or CPU architectures fail during install with a cl
 
 ## Environment Variables
 
-Most users do not need these. They exist for CI validation and controlled mirrors.
+Most installs work without configuration. These variables are available for pinned versions, artifact mirrors, and controlled build environments.
 
 | Variable | Purpose |
 | --- | --- |
@@ -27,7 +27,7 @@ Most users do not need these. They exist for CI validation and controlled mirror
 | `CHANGEGATE_RELEASE_TAG` | Override the GitHub release tag. |
 | `CHANGEGATE_RELEASE_BASE_URL` | Download artifacts from a mirror instead of GitHub Releases. |
 | `CHANGEGATE_INSTALL_BINARY` | Copy an already-built local binary instead of downloading artifacts. |
-| `CHANGEGATE_NPM_SKIP_INSTALL` | Skip binary installation. Useful only for package metadata inspection. |
+| `CHANGEGATE_NPM_SKIP_INSTALL` | Skip binary installation when a packaging environment needs to avoid network access. |
 
 ## Security
 
