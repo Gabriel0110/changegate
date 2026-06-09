@@ -4,9 +4,12 @@ package output
 import (
 	"archive/zip"
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"html"
 	"sort"
 	"strings"
 	"time"
@@ -970,6 +973,10 @@ func RenderAuditBundle(report Report) ([]byte, error) {
 }
 
 func auditBundleFiles(report Report) (map[string][]byte, error) {
+	scanReportBody, err := RenderJSON(report)
+	if err != nil {
+		return nil, err
+	}
 	findingsBody, err := marshalAuditJSON(report.Findings)
 	if err != nil {
 		return nil, err
@@ -1038,6 +1045,12 @@ func auditBundleFiles(report Report) (map[string][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	importsBody, err := marshalAuditJSON(report.Imports)
+	if err != nil {
+		return nil, err
+	}
+	reproducibilityBody := []byte(renderReproducibilityMarkdown(report))
+	evidenceReportBody := []byte(renderEvidenceReportHTML(report))
 
 	policyBody := []byte(policyYAML(report))
 	if len(policyBody) == 0 {
@@ -1059,23 +1072,32 @@ func auditBundleFiles(report Report) (map[string][]byte, error) {
 		"changegate-audit/decision.json":              decisionBody,
 		"changegate-audit/environment.json":           environmentBody,
 		"changegate-audit/evidence.json":              evidenceBody,
+		"changegate-audit/evidence-report.html":       evidenceReportBody,
 		"changegate-audit/findings.json":              findingsBody,
 		"changegate-audit/graph.json":                 graphBody,
 		"changegate-audit/hcp-run-task.json":          hcpRunTaskBody,
 		"changegate-audit/impact.json":                impactBody,
 		"changegate-audit/impact.md":                  impactMarkdownBody,
+		"changegate-audit/imported-scanners.json":     importsBody,
 		"changegate-audit/plan-digest.txt":            []byte(policyText(planDigest)),
 		"changegate-audit/policy-digest.txt":          []byte(policyText(policyDigest)),
 		"changegate-audit/policy.yaml":                policyBody,
 		"changegate-audit/redaction-report.json":      redactionBody,
+		"changegate-audit/reproducibility.md":         reproducibilityBody,
 		"changegate-audit/review-comment.md":          reviewCommentBody,
 		"changegate-audit/risk-tests.json":            riskTestsBody,
 		"changegate-audit/rule-pack-versions.json":    ruleVersionsBody,
 		"changegate-audit/run-metadata.json":          runBody,
+		"changegate-audit/scan-report.json":           scanReportBody,
 		"changegate-audit/summary.md":                 []byte(RenderMarkdown(report)),
 		"changegate-audit/suppressed.json":            suppressedBody,
 		"changegate-audit/waivers.json":               waiversBody,
 	}
+	manifestBody, err := marshalAuditJSON(auditManifest(files, report))
+	if err != nil {
+		return nil, err
+	}
+	files["changegate-audit/manifest.json"] = manifestBody
 	return files, nil
 }
 
@@ -1098,6 +1120,218 @@ func auditString(audit *AuditReports, selectValue func(*AuditReports) string) st
 		return ""
 	}
 	return selectValue(audit)
+}
+
+type auditManifestDocument struct {
+	SchemaVersion string              `json:"schema_version"`
+	Root          string              `json:"root"`
+	Decision      model.Decision      `json:"decision"`
+	Plan          PlanSummary         `json:"plan"`
+	Graph         GraphSummary        `json:"graph"`
+	Artifacts     []auditManifestFile `json:"artifacts"`
+	Redaction     RedactionReport     `json:"redaction"`
+}
+
+type auditManifestFile struct {
+	Path        string `json:"path"`
+	Bytes       int    `json:"bytes"`
+	SHA256      string `json:"sha256"`
+	Description string `json:"description"`
+}
+
+func auditManifest(files map[string][]byte, report Report) auditManifestDocument {
+	names := make([]string, 0, len(files))
+	for name := range files {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	artifacts := make([]auditManifestFile, 0, len(names))
+	for _, name := range names {
+		body := files[name]
+		artifacts = append(artifacts, auditManifestFile{
+			Path:        name,
+			Bytes:       len(body),
+			SHA256:      sha256String(body),
+			Description: auditArtifactDescription(name),
+		})
+	}
+	return auditManifestDocument{
+		SchemaVersion: "changegate.audit.bundle.v2",
+		Root:          "changegate-audit/",
+		Decision:      report.Decision,
+		Plan:          report.Plan,
+		Graph:         report.Graph,
+		Artifacts:     artifacts,
+		Redaction:     redactionEvidence(report),
+	}
+}
+
+func auditArtifactDescription(name string) string {
+	switch name {
+	case "changegate-audit/scan-report.json":
+		return "Canonical ChangeGate scan report."
+	case "changegate-audit/evidence-report.html":
+		return "Self-contained human-readable evidence report."
+	case "changegate-audit/manifest.json":
+		return "Checksummed bundle manifest."
+	case "changegate-audit/reproducibility.md":
+		return "Commands and inputs for reproducing the scan."
+	case "changegate-audit/imported-scanners.json":
+		return "External scanner import summary and handling notes."
+	case "changegate-audit/summary.md":
+		return "Markdown summary of the deployment decision."
+	case "changegate-audit/review-comment.md":
+		return "PR or MR review comment body."
+	case "changegate-audit/impact.md", "changegate-audit/impact.json":
+		return "Security Impact Statement."
+	case "changegate-audit/graph.json":
+		return "Sanitized graph evidence."
+	case "changegate-audit/attack-paths.json":
+		return "Attack path evidence."
+	case "changegate-audit/cloud-context-summary.json":
+		return "Cloud context capability and collection summary."
+	case "changegate-audit/policy.yaml":
+		return "Policy configuration snapshot."
+	case "changegate-audit/run-metadata.json":
+		return "CLI version, build, digest, and redaction metadata."
+	case "changegate-audit/redaction-report.json":
+		return "Redaction summary."
+	default:
+		return "ChangeGate audit evidence artifact."
+	}
+}
+
+func sha256String(body []byte) string {
+	sum := sha256.Sum256(body)
+	return hex.EncodeToString(sum[:])
+}
+
+func renderReproducibilityMarkdown(report Report) string {
+	var b strings.Builder
+	b.WriteString("# Reproducibility\n\n")
+	b.WriteString("This bundle does not include raw plan JSON or raw cloud inventory. Reproduce with the same plan, policy, cloud-context snapshot, and external scanner artifacts used by the original scan.\n\n")
+	b.WriteString("## Primary command\n\n")
+	b.WriteString("```bash\n")
+	fmt.Fprintf(&b, "changegate scan --plan %s --format json --out changegate.json --audit-bundle changegate-audit.zip\n", shellQuote(report.Plan.Path))
+	b.WriteString("```\n\n")
+	if report.Run != nil {
+		b.WriteString("## Digests\n\n")
+		fmt.Fprintf(&b, "- Plan digest: `%s`\n", firstNonEmpty(report.Run.PlanDigest, "none"))
+		fmt.Fprintf(&b, "- Policy digest: `%s`\n", firstNonEmpty(report.Run.PolicyDigest, "none"))
+		fmt.Fprintf(&b, "- Config digest: `%s`\n", firstNonEmpty(report.Run.ConfigHash, "none"))
+		fmt.Fprintf(&b, "- CLI version: `%s`\n", firstNonEmpty(report.Run.CLIVersion, "unknown"))
+		if report.Run.CLICommit != "" {
+			fmt.Fprintf(&b, "- CLI commit: `%s`\n", report.Run.CLICommit)
+		}
+		if report.Run.CLIDate != "" {
+			fmt.Fprintf(&b, "- CLI build date: `%s`\n", report.Run.CLIDate)
+		}
+		b.WriteString("\n")
+	}
+	b.WriteString("## Bundle entry points\n\n")
+	b.WriteString("- `evidence-report.html` for a browser-readable evidence summary.\n")
+	b.WriteString("- `scan-report.json` for the canonical machine-readable report.\n")
+	b.WriteString("- `manifest.json` for artifact checksums.\n")
+	b.WriteString("- `policy.yaml` for the policy snapshot used by the scan.\n")
+	b.WriteString("- `summary.md`, `impact.md`, and `review-comment.md` for approval workflows.\n")
+	return b.String()
+}
+
+func shellQuote(value string) string {
+	if value == "" {
+		return "tfplan.json"
+	}
+	if strings.ContainsAny(value, " \t\n'\"\\$`") {
+		return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+	}
+	return value
+}
+
+func renderEvidenceReportHTML(report Report) string {
+	clusters := clustersForReport(report)
+	var b strings.Builder
+	b.WriteString("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">")
+	b.WriteString("<title>ChangeGate Evidence Report</title>")
+	b.WriteString("<style>body{font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif;margin:0;color:#111827;background:#f8fafc}main{max-width:1120px;margin:0 auto;padding:32px}h1,h2,h3{margin:0 0 12px}.hero,.card{background:#fff;border:1px solid #dbe3ef;border-radius:8px;padding:20px;margin-bottom:18px}.decision{display:inline-block;padding:6px 10px;border-radius:6px;background:#111827;color:#fff;font-weight:700;text-transform:uppercase}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}.metric{border:1px solid #dbe3ef;border-radius:8px;padding:14px;background:#f9fbff}.metric strong{display:block;font-size:28px}table{width:100%;border-collapse:collapse}th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:8px;vertical-align:top}code{background:#eef2f7;border-radius:4px;padding:1px 4px}a{color:#0f5cc0}.muted{color:#64748b}.finding{border-top:1px solid #e5e7eb;padding-top:12px;margin-top:12px}</style></head><body><main>")
+	fmt.Fprintf(&b, "<section class=\"hero\"><h1>ChangeGate Evidence Report</h1><p><span class=\"decision\">%s</span></p><p class=\"muted\">Plan %s, %d resources, %d changes. Graph: %d nodes and %d edges.</p></section>", html.EscapeString(string(report.Decision)), html.EscapeString(report.Plan.Path), report.Plan.Resources, report.Plan.Changes, report.Graph.Nodes, report.Graph.Edges)
+	b.WriteString("<section class=\"card\"><h2>Summary</h2><div class=\"grid\">")
+	writeMetricHTML(&b, "Findings", report.RiskSummary.Total)
+	writeMetricHTML(&b, "Risk clusters", len(clusters))
+	writeMetricHTML(&b, "Blocking", report.RiskSummary.Blocking)
+	writeMetricHTML(&b, "Warnings", report.RiskSummary.Warnings)
+	writeMetricHTML(&b, "Suppressed", report.RiskSummary.Suppressed)
+	writeMetricHTML(&b, "Downgraded", report.RiskSummary.Downgraded)
+	b.WriteString("</div></section>")
+	if report.Imports != nil {
+		b.WriteString("<section class=\"card\"><h2>External Scanner Intelligence</h2><div class=\"grid\">")
+		writeMetricHTML(&b, "Imported", report.Imports.Imported)
+		writeMetricHTML(&b, "Retained", retainedImportCount(report.Imports))
+		writeMetricHTML(&b, "Superseded", report.Imports.SupersededByNative)
+		writeMetricHTML(&b, "Correlated", report.Imports.Correlated)
+		writeMetricHTML(&b, "Downgraded", report.Imports.Downgraded)
+		writeMetricHTML(&b, "Upgraded", report.Imports.Upgraded)
+		b.WriteString("</div>")
+		if len(report.Imports.Insights) > 0 {
+			b.WriteString("<table><thead><tr><th>Source</th><th>Action</th><th>Resource</th><th>Reason</th></tr></thead><tbody>")
+			limit := len(report.Imports.Insights)
+			if limit > 10 {
+				limit = 10
+			}
+			for _, insight := range report.Imports.Insights[:limit] {
+				fmt.Fprintf(&b, "<tr><td><code>%s</code></td><td><code>%s</code></td><td><code>%s</code></td><td>%s</td></tr>", html.EscapeString(insight.Source), html.EscapeString(insight.Action), html.EscapeString(insight.Resource), html.EscapeString(insight.Reason))
+			}
+			b.WriteString("</tbody></table>")
+		}
+		b.WriteString("</section>")
+	}
+	if len(clusters) > 0 {
+		b.WriteString("<section class=\"card\"><h2>Risk Clusters</h2><table><thead><tr><th>Cluster</th><th>Decision</th><th>Severity</th><th>Confidence</th><th>Resources</th><th>Findings</th></tr></thead><tbody>")
+		for _, cluster := range clusters {
+			fmt.Fprintf(&b, "<tr><td>%s</td><td><code>%s</code></td><td><code>%s</code></td><td><code>%s</code></td><td>%d</td><td>%d</td></tr>", html.EscapeString(cluster.Title), html.EscapeString(string(cluster.Decision)), html.EscapeString(string(cluster.Severity)), html.EscapeString(string(cluster.Confidence)), len(cluster.AffectedResources), len(cluster.SupportingFindings))
+		}
+		b.WriteString("</tbody></table></section>")
+	}
+	b.WriteString("<section class=\"card\"><h2>Top Findings</h2>")
+	if len(report.Findings) == 0 {
+		b.WriteString("<p>No findings.</p>")
+	} else {
+		limit := len(report.Findings)
+		if limit > 10 {
+			limit = 10
+		}
+		for _, finding := range report.Findings[:limit] {
+			fmt.Fprintf(&b, "<div class=\"finding\"><h3>%s</h3><p><code>%s</code> on <code>%s</code></p><p>Severity <code>%s</code>, confidence <code>%s</code></p>", html.EscapeString(finding.Title), html.EscapeString(finding.RuleID), html.EscapeString(finding.ResourceAddress), html.EscapeString(string(finding.Severity)), html.EscapeString(string(finding.Confidence)))
+			if finding.Remediation.Summary != "" {
+				fmt.Fprintf(&b, "<p><strong>Fix:</strong> %s</p>", html.EscapeString(finding.Remediation.Summary))
+			}
+			b.WriteString("</div>")
+		}
+	}
+	b.WriteString("</section>")
+	b.WriteString("<section class=\"card\"><h2>Bundle Artifacts</h2><ul>")
+	for _, item := range []struct {
+		href  string
+		label string
+	}{
+		{"scan-report.json", "Canonical scan report"},
+		{"summary.md", "Markdown summary"},
+		{"impact.md", "Security Impact Statement"},
+		{"review-comment.md", "PR/MR review comment"},
+		{"graph.json", "Graph evidence"},
+		{"attack-paths.json", "Attack path evidence"},
+		{"imported-scanners.json", "External scanner summary"},
+		{"policy.yaml", "Policy snapshot"},
+		{"manifest.json", "Checksummed manifest"},
+		{"reproducibility.md", "Reproducibility notes"},
+	} {
+		fmt.Fprintf(&b, "<li><a href=\"%s\">%s</a></li>", html.EscapeString(item.href), html.EscapeString(item.label))
+	}
+	b.WriteString("</ul></section></main></body></html>\n")
+	return b.String()
+}
+
+func writeMetricHTML(b *strings.Builder, label string, value int) {
+	fmt.Fprintf(b, "<div class=\"metric\"><strong>%d</strong><span>%s</span></div>", value, html.EscapeString(label))
 }
 
 func policyYAML(report Report) string {

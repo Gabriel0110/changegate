@@ -73,6 +73,7 @@ func TestAuditBundle(t *testing.T) {
 		t.Fatalf("open audit bundle: %v", err)
 	}
 	names := make([]string, 0, len(reader.File))
+	contents := make(map[string][]byte, len(reader.File))
 	for _, file := range reader.File {
 		names = append(names, file.Name)
 		handle, err := file.Open()
@@ -86,10 +87,41 @@ func TestAuditBundle(t *testing.T) {
 		if err := handle.Close(); err != nil {
 			t.Fatalf("close audit bundle member %s: %v", file.Name, err)
 		}
+		contents[file.Name] = buf.Bytes()
 		assertNoSensitiveLeaks(t, buf.Bytes())
 	}
 	sort.Strings(names)
 	assertGolden(t, "audit-bundle.txt", strings.Join(names, "\n")+"\n")
+	for _, want := range []string{
+		"changegate-audit/evidence-report.html",
+		"changegate-audit/imported-scanners.json",
+		"changegate-audit/manifest.json",
+		"changegate-audit/reproducibility.md",
+		"changegate-audit/scan-report.json",
+	} {
+		if _, ok := contents[want]; !ok {
+			t.Fatalf("audit bundle missing %s", want)
+		}
+	}
+	if !bytes.Contains(contents["changegate-audit/evidence-report.html"], []byte("ChangeGate Evidence Report")) {
+		t.Fatalf("evidence report missing title:\n%s", string(contents["changegate-audit/evidence-report.html"]))
+	}
+	if !bytes.Contains(contents["changegate-audit/reproducibility.md"], []byte("changegate scan --plan tfplan.json")) {
+		t.Fatalf("reproducibility notes missing scan command:\n%s", string(contents["changegate-audit/reproducibility.md"]))
+	}
+	var manifest struct {
+		SchemaVersion string             `json:"schema_version"`
+		Artifacts     []manifestArtifact `json:"artifacts"`
+	}
+	if err := json.Unmarshal(contents["changegate-audit/manifest.json"], &manifest); err != nil {
+		t.Fatalf("manifest is not valid JSON: %v", err)
+	}
+	if manifest.SchemaVersion != "changegate.audit.bundle.v2" {
+		t.Fatalf("manifest schema = %q", manifest.SchemaVersion)
+	}
+	if !manifestHasArtifact(manifest.Artifacts, "changegate-audit/scan-report.json") {
+		t.Fatalf("manifest missing scan report artifact: %#v", manifest.Artifacts)
+	}
 }
 
 func TestRenderJSONUsesEmptyArraysForEmptyReportSlices(t *testing.T) {
@@ -229,6 +261,20 @@ func assertGolden(t *testing.T, name string, got string) {
 	if wantText != gotText {
 		t.Fatalf("golden mismatch for %s\nwant:\n%s\ngot:\n%s", name, wantText, gotText)
 	}
+}
+
+type manifestArtifact struct {
+	Path   string `json:"path"`
+	SHA256 string `json:"sha256"`
+}
+
+func manifestHasArtifact(artifacts []manifestArtifact, path string) bool {
+	for _, artifact := range artifacts {
+		if artifact.Path == path && artifact.SHA256 != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func normalizeTestNewlines(value string) string {

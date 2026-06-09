@@ -110,13 +110,18 @@ The HTML visualizations do not fetch network assets or external JavaScript. They
 The archive is deterministic for the same scan inputs and contains:
 
 - `changegate-audit/decision.json`
+- `changegate-audit/evidence-report.html`
 - `changegate-audit/findings.json`
+- `changegate-audit/scan-report.json`
 - `changegate-audit/suppressed.json`
 - `changegate-audit/waivers.json`
 - `changegate-audit/baseline.json`
 - `changegate-audit/policy.yaml`
 - `changegate-audit/policy-digest.txt`
 - `changegate-audit/plan-digest.txt`
+- `changegate-audit/manifest.json`
+- `changegate-audit/reproducibility.md`
+- `changegate-audit/imported-scanners.json`
 - `changegate-audit/rule-pack-versions.json`
 - `changegate-audit/environment.json`
 - `changegate-audit/evidence.json`
