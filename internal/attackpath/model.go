@@ -323,6 +323,8 @@ func defaultFindingRuleIDs(path AttackPath) []string {
 		switch path.Metadata["attack_pattern"] {
 		case "role_assumption_chain":
 			return []string{RuleIAMRoleAssumptionChain}
+		case "pathfinding_catalog":
+			return []string{RuleIAMPathfindingCatalogEscalation}
 		case "iam_policy_inline_role_escalation", "iam_policy_attach_admin_escalation", "iam_policy_version_escalation", "iam_trust_policy_takeover", "iam_user_access_key_escalation":
 			return []string{RuleIAMPolicyMutationEscalation}
 		}

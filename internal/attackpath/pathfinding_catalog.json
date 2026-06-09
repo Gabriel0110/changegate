@@ -1,0 +1,2150 @@
+[
+  {
+    "id": "apprunner-001",
+    "name": "iam:PassRole + apprunner:CreateService",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "apprunner"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "apprunner:CreateService"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://blog.appsecco.com/getting-shell-and-data-access-in-aws-app-runner-3632e844bc77",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-apprunner-privesc/index.html#iampassrole-apprunnercreateservice"
+    ],
+    "source_path": "data/paths/apprunner/apprunner-001.yaml"
+  },
+  {
+    "id": "apprunner-002",
+    "name": "apprunner:UpdateService",
+    "category": "existing-passrole",
+    "services": [
+      "apprunner"
+    ],
+    "required_actions": [
+      "apprunner:UpdateService"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://blog.appsecco.com/getting-shell-and-data-access-in-aws-app-runner-3632e844bc77"
+    ],
+    "source_path": "data/paths/apprunner/apprunner-002.yaml"
+  },
+  {
+    "id": "batch-001",
+    "name": "iam:PassRole + batch:RegisterJobDefinition + batch:SubmitJob",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "batch"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "batch:RegisterJobDefinition",
+      "batch:SubmitJob"
+    ],
+    "additional_actions": [
+      "batch:DescribeJobs",
+      "batch:DescribeJobQueues",
+      "batch:DescribeComputeEnvironments",
+      "batch:DeregisterJobDefinition",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsbatch.html",
+      "https://blog.doyensec.com/2023/06/13/messing-around-with-aws-batch-for-privilege-escalations.html",
+      "https://docs.aws.amazon.com/batch/latest/userguide/security_iam_service-with-iam.html"
+    ],
+    "source_path": "data/paths/batch/batch-001.yaml"
+  },
+  {
+    "id": "batch-002",
+    "name": "batch:SubmitJob",
+    "category": "existing-passrole",
+    "services": [
+      "iam",
+      "batch"
+    ],
+    "required_actions": [
+      "batch:SubmitJob"
+    ],
+    "additional_actions": [
+      "batch:DescribeJobDefinitions",
+      "batch:DescribeJobQueues",
+      "batch:DescribeJobs",
+      "batch:DescribeComputeEnvironments"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsbatch.html",
+      "https://blog.doyensec.com/2023/06/13/messing-around-with-aws-batch-for-privilege-escalations.html",
+      "https://docs.aws.amazon.com/batch/latest/userguide/security_iam_service-with-iam.html"
+    ],
+    "source_path": "data/paths/batch/batch-002.yaml"
+  },
+  {
+    "id": "bedrock-001",
+    "name": "iam:PassRole + bedrock-agentcore:CreateCodeInterpreter + bedrock-agentcore:StartCodeInterpreterSession + bedrock-agentcore:InvokeCodeInterpreter",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "bedrock-agentcore"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "bedrock-agentcore:CreateCodeInterpreter",
+      "bedrock-agentcore:StartCodeInterpreterSession",
+      "bedrock-agentcore:InvokeCodeInterpreter"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "bedrock-agentcore:GetCodeInterpreter"
+    ],
+    "references": [
+      "https://sonraisecurity.com/blog/aws-agentcore-privilege-escalation-bedrock-scp-fix/",
+      "https://sonraisecurity.com/blog/sandboxed-to-compromised-new-research-exposes-credential-exfiltration-paths-in-aws-code-interpreters/",
+      "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/security-credentials-management.html"
+    ],
+    "source_path": "data/paths/bedrock/bedrock-001.yaml"
+  },
+  {
+    "id": "bedrock-002",
+    "name": "bedrock-agentcore:StartCodeInterpreterSession + bedrock-agentcore:InvokeCodeInterpreter",
+    "category": "existing-passrole",
+    "services": [
+      "bedrock-agentcore"
+    ],
+    "required_actions": [
+      "bedrock-agentcore:StartCodeInterpreterSession",
+      "bedrock-agentcore:InvokeCodeInterpreter"
+    ],
+    "additional_actions": [
+      "bedrock-agentcore:ListCodeInterpreters",
+      "bedrock-agentcore:GetCodeInterpreter"
+    ],
+    "references": [
+      "https://sonraisecurity.com/blog/aws-agentcore-privilege-escalation-bedrock-scp-fix/",
+      "https://sonraisecurity.com/blog/sandboxed-to-compromised-new-research-exposes-credential-exfiltration-paths-in-aws-code-interpreters/",
+      "https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/security-credentials-management.html"
+    ],
+    "source_path": "data/paths/bedrock/bedrock-002.yaml"
+  },
+  {
+    "id": "braket-001",
+    "name": "iam:PassRole + braket:CreateJob",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "braket"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "braket:CreateJob"
+    ],
+    "additional_actions": [
+      "braket:GetJob",
+      "braket:SearchJobs",
+      "s3:GetObject",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonbraket.html",
+      "https://docs.aws.amazon.com/braket/latest/developerguide/braket-manage-access.html"
+    ],
+    "source_path": "data/paths/braket/braket-001.yaml"
+  },
+  {
+    "id": "cloudformation-001",
+    "name": "iam:PassRole + cloudformation:CreateStack",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "cloudformation"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "cloudformation:CreateStack"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-cloudformationcreatestack",
+      "https://github.com/BishopFox/iam-vulnerable/blob/main/modules/free-resources/privesc-paths/privesc20-PassExistingRoleToCloudFormation.tf",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-cloudformation-privesc/index.html#iampassrole-cloudformationcreatestack",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/cloudformation/cloudformation-001.yaml"
+  },
+  {
+    "id": "cloudformation-002",
+    "name": "cloudformation:UpdateStack",
+    "category": "existing-passrole",
+    "services": [
+      "cloudformation",
+      "iam"
+    ],
+    "required_actions": [
+      "cloudformation:UpdateStack"
+    ],
+    "additional_actions": [
+      "cloudformation:DescribeStacks",
+      "cloudformation:GetTemplate",
+      "iam:GetRole",
+      "sts:AssumeRole"
+    ],
+    "references": [
+      "https://github.com/nccgroup/PMapper/blob/master/principalmapper/graphing/cloudformation_edges.py",
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://rhinosecuritylabs.com/aws/escalating-aws-iam-privileges-undocumented-codestar-api/",
+      "https://dev.to/aws-builders/cloudformation-change-set-privilege-escalation-18i6",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/protect-stack-resources.html",
+      "https://docs.aws.amazon.com/prescriptive-guidance/latest/least-privilege-cloudformation/service-roles-for-cloudformation.html"
+    ],
+    "source_path": "data/paths/cloudformation/cloudformation-002.yaml"
+  },
+  {
+    "id": "cloudformation-003",
+    "name": "iam:PassRole + cloudformation:CreateStackSet + cloudformation:CreateStackInstances",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "cloudformation"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "cloudformation:CreateStackSet",
+      "cloudformation:CreateStackInstances"
+    ],
+    "additional_actions": [
+      "cloudformation:DescribeStackSet",
+      "cloudformation:DescribeStackSetOperation",
+      "cloudformation:ListStackInstances",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://aws.amazon.com/blogs/security/how-to-implement-the-principle-of-least-privilege-with-cloudformation-stacksets/",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/stacksets-prereqs-self-managed.html"
+    ],
+    "source_path": "data/paths/cloudformation/cloudformation-003.yaml"
+  },
+  {
+    "id": "cloudformation-004",
+    "name": "iam:PassRole + cloudformation:UpdateStackSet",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "cloudformation"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "cloudformation:UpdateStackSet"
+    ],
+    "additional_actions": [
+      "cloudformation:DescribeStackSet",
+      "cloudformation:DescribeStackSetOperation",
+      "cloudformation:GetTemplate",
+      "cloudformation:ListStackInstances",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://aws.amazon.com/blogs/security/how-to-implement-the-principle-of-least-privilege-with-cloudformation-stacksets/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-cloudformation-privesc/index.html",
+      "https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/using-iam-servicerole.html",
+      "https://docs.aws.amazon.com/prescriptive-guidance/latest/least-privilege-cloudformation/best-practices-identity-based-policies.html"
+    ],
+    "source_path": "data/paths/cloudformation/cloudformation-004.yaml"
+  },
+  {
+    "id": "cloudformation-005",
+    "name": "cloudformation:CreateChangeSet + cloudformation:ExecuteChangeSet",
+    "category": "new-passrole",
+    "services": [
+      "cloudformation",
+      "iam"
+    ],
+    "required_actions": [
+      "cloudformation:CreateChangeSet",
+      "cloudformation:ExecuteChangeSet"
+    ],
+    "additional_actions": [
+      "cloudformation:DescribeChangeSet",
+      "cloudformation:DescribeStacks",
+      "cloudformation:DescribeStackResource"
+    ],
+    "references": [
+      "https://www.youtube.com/watch?v=OaEU_5dh9Bc",
+      "https://dev.to/aws-builders/cloudformation-change-set-privilege-escalation-18i6",
+      "https://github.com/nccgroup/PMapper/blob/master/principalmapper/graphing/cloudformation_edges.py",
+      "https://cloud.hacktricks.xyz/pentesting-cloud/aws-security/aws-privilege-escalation/aws-cloudformation-privesc"
+    ],
+    "source_path": "data/paths/cloudformation/cloudformation-005.yaml"
+  },
+  {
+    "id": "codebuild-001",
+    "name": "iam:PassRole + codebuild:CreateProject + codebuild:StartBuild",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "codebuild"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "codebuild:CreateProject",
+      "codebuild:StartBuild"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "codebuild:BatchGetBuilds"
+    ],
+    "references": [
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-codebuild-privesc/index.html#iampassrole-codebuildcreateproject-codebuildstartbuild--codebuildstartbuildbatch"
+    ],
+    "source_path": "data/paths/codebuild/codebuild-001.yaml"
+  },
+  {
+    "id": "codebuild-002",
+    "name": "codebuild:StartBuild",
+    "category": "existing-passrole",
+    "services": [
+      "codebuild",
+      "iam"
+    ],
+    "required_actions": [
+      "codebuild:StartBuild"
+    ],
+    "additional_actions": [
+      "codebuild:ListProjects",
+      "codebuild:BatchGetProjects",
+      "codebuild:BatchGetBuilds"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-codebuild-privesc/index.html#codebuildstartbuild--codebuildstartbuildbatch"
+    ],
+    "source_path": "data/paths/codebuild/codebuild-002.yaml"
+  },
+  {
+    "id": "codebuild-003",
+    "name": "codebuild:StartBuildBatch",
+    "category": "existing-passrole",
+    "services": [
+      "codebuild",
+      "iam"
+    ],
+    "required_actions": [
+      "codebuild:StartBuildBatch"
+    ],
+    "additional_actions": [
+      "codebuild:ListProjects",
+      "codebuild:BatchGetProjects",
+      "codebuild:BatchGetBuildBatches"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-codebuild-privesc/index.html#codebuildstartbuild--codebuildstartbuildbatch"
+    ],
+    "source_path": "data/paths/codebuild/codebuild-003.yaml"
+  },
+  {
+    "id": "codebuild-004",
+    "name": "iam:PassRole + codebuild:CreateProject + codebuild:StartBuildBatch",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "codebuild"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "codebuild:CreateProject",
+      "codebuild:StartBuildBatch"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "codebuild:BatchGetBuildBatches"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-codebuild-privesc/index.html#codebuildstartbuild--codebuildstartbuildbatch"
+    ],
+    "source_path": "data/paths/codebuild/codebuild-004.yaml"
+  },
+  {
+    "id": "codedeploy-001",
+    "name": "codedeploy:CreateDeployment",
+    "category": "existing-passrole",
+    "services": [
+      "iam",
+      "codedeploy",
+      "ec2"
+    ],
+    "required_actions": [
+      "codedeploy:CreateDeployment",
+      "codedeploy:RegisterApplicationRevision",
+      "codedeploy:GetDeploymentConfig"
+    ],
+    "additional_actions": [
+      "codedeploy:GetDeployment",
+      "codedeploy:ListDeployments",
+      "codedeploy:GetDeploymentGroup",
+      "codedeploy:GetApplication",
+      "codedeploy:ListDeploymentInstances",
+      "codedeploy:GetDeploymentInstance"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awscodedeploy.html",
+      "https://docs.aws.amazon.com/codedeploy/latest/userguide/auth-and-access-control-permissions-reference.html"
+    ],
+    "source_path": "data/paths/codedeploy/codedeploy-001.yaml"
+  },
+  {
+    "id": "cognitoidentity-001",
+    "name": "iam:PassRole + cognito-identity:SetIdentityPoolRoles",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "cognito-identity"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "cognito-identity:SetIdentityPoolRoles"
+    ],
+    "additional_actions": [
+      "cognito-identity:ListIdentityPools",
+      "cognito-identity:DescribeIdentityPool",
+      "cognito-identity:GetIdentityPoolRoles",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoncognitoidentity.html",
+      "https://hackingthe.cloud/aws/exploitation/cognito_identity_pool_excessive_privileges/",
+      "https://docs.aws.amazon.com/cognito/latest/developerguide/role-based-access-control.html"
+    ],
+    "source_path": "data/paths/cognitoidentity/cognitoidentity-001.yaml"
+  },
+  {
+    "id": "datapipeline-001",
+    "name": "iam:PassRole + datapipeline:CreatePipeline + datapipeline:PutPipelineDefinition + datapipeline:ActivatePipeline",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "datapipeline"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "datapipeline:CreatePipeline",
+      "datapipeline:PutPipelineDefinition",
+      "datapipeline:ActivatePipeline"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-datapipelineactivatepipeline-datapipelinecreatepipeline-datapipelineputpipelinedefinition",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-datapipeline-privesc/index.html#iampassrole-datapipelinecreatepipeline-datapipelineputpipelinedefinition-datapipelineactivatepipeline"
+    ],
+    "source_path": "data/paths/datapipeline/datapipeline-001.yaml"
+  },
+  {
+    "id": "ec2instanceconnect-003",
+    "name": "ec2-instance-connect:SendSSHPublicKey",
+    "category": "existing-passrole",
+    "services": [
+      "ec2",
+      "ec2-instance-connect"
+    ],
+    "required_actions": [
+      "ec2-instance-connect:SendSSHPublicKey",
+      "ec2:DescribeInstances"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ec2-privesc/index.html#ec2-instance-connectsendsshpublickey",
+      "https://pswalia2u.medium.com/aws-iam-privilege-escalation-paths-cba36be1aa9e"
+    ],
+    "source_path": "data/paths/ec2-instance-connect/ec2instanceconnect-003.yaml"
+  },
+  {
+    "id": "ec2-001",
+    "name": "iam:PassRole + ec2:RunInstances",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ec2"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ec2:RunInstances"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-ec2runinstances",
+      "https://github.com/BishopFox/iam-vulnerable/blob/main/modules/free-resources/privesc-paths/privesc3-CreateEC2WithExistingIP.tf",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ec2-privesc/index.html#iampassrole-ec2runinstances",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-2"
+    ],
+    "source_path": "data/paths/ec2/ec2-001.yaml"
+  },
+  {
+    "id": "ec2-002",
+    "name": "ec2:ModifyInstanceAttribute + ec2:StopInstances + ec2:StartInstances",
+    "category": "existing-passrole",
+    "services": [
+      "ec2"
+    ],
+    "required_actions": [
+      "ec2:ModifyInstanceAttribute",
+      "ec2:StopInstances",
+      "ec2:StartInstances"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://bishopfox.com/blog/privilege-escalation-in-aws",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ec2-privesc/index.html#ec2modifyinstanceattribute"
+    ],
+    "source_path": "data/paths/ec2/ec2-002.yaml"
+  },
+  {
+    "id": "ec2-003",
+    "name": "iam:PassRole + ec2:RequestSpotInstances",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ec2"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ec2:RequestSpotInstances"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListInstanceProfiles",
+      "ec2:DescribeSpotInstanceRequests",
+      "ec2:DescribeInstances"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ec2-privesc/index.html#ec2requestspotinstancesiampassrole"
+    ],
+    "source_path": "data/paths/ec2/ec2-003.yaml"
+  },
+  {
+    "id": "ec2-004",
+    "name": "ec2:CreateLaunchTemplateVersion + ec2:ModifyLaunchTemplate",
+    "category": "existing-passrole",
+    "services": [
+      "ec2",
+      "iam"
+    ],
+    "required_actions": [
+      "ec2:CreateLaunchTemplateVersion",
+      "ec2:ModifyLaunchTemplate"
+    ],
+    "additional_actions": [
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeLaunchTemplateVersions",
+      "iam:ListRoles",
+      "iam:ListInstanceProfiles",
+      "autoscaling:DescribeAutoScalingGroups",
+      "ec2:DescribeInstances",
+      "autoscaling:SetDesiredCapacity"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-launch-templates.html",
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ec2-privesc/index.html#ec2createlaunchtemplateversionec2createlaunchtemplateec2modifylaunchtemplate"
+    ],
+    "source_path": "data/paths/ec2/ec2-004.yaml"
+  },
+  {
+    "id": "ec2-005",
+    "name": "ec2:CreateLaunchTemplateVersion + ec2:ModifyLaunchTemplate",
+    "category": "existing-passrole",
+    "services": [
+      "iam",
+      "ec2"
+    ],
+    "required_actions": [
+      "ec2:CreateLaunchTemplateVersion",
+      "ec2:ModifyLaunchTemplate"
+    ],
+    "additional_actions": [
+      "ec2:DescribeLaunchTemplates",
+      "ec2:DescribeLaunchTemplateVersions",
+      "ec2:RunInstances",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/permissions-for-launch-templates.html",
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2.html",
+      "https://docs.aws.amazon.com/autoscaling/ec2/userguide/ec2-auto-scaling-launch-template-permissions.html"
+    ],
+    "source_path": "data/paths/ec2/ec2-005.yaml"
+  },
+  {
+    "id": "ecs-001",
+    "name": "iam:PassRole + ecs:CreateCluster + ecs:RegisterTaskDefinition + ecs:CreateService",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:CreateCluster",
+      "ecs:RegisterTaskDefinition",
+      "ecs:CreateService"
+    ],
+    "additional_actions": [
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ecs:DescribeServices",
+      "ecs:DescribeTasks",
+      "ecs:ListTasks",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-ecsruntask",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/",
+      "https://www.tenable.com/blog/auditing-iampassrole-a-problematic-privilege-escalation-permission",
+      "https://securitylabs.datadoghq.com/articles/tales-from-the-cloud-trenches-ecs-crypto-mining/"
+    ],
+    "source_path": "data/paths/ecs/ecs-001.yaml"
+  },
+  {
+    "id": "ecs-002",
+    "name": "iam:PassRole + ecs:CreateCluster + ecs:RegisterTaskDefinition + ecs:RunTask",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:CreateCluster",
+      "ecs:RegisterTaskDefinition",
+      "ecs:RunTask"
+    ],
+    "additional_actions": [
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ecs:DescribeTasks",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://www.tenable.com/blog/auditing-iampassrole-a-problematic-privilege-escalation-permission"
+    ],
+    "source_path": "data/paths/ecs/ecs-002.yaml"
+  },
+  {
+    "id": "ecs-003",
+    "name": "iam:PassRole + ecs:RegisterTaskDefinition + ecs:CreateService",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:RegisterTaskDefinition",
+      "ecs:CreateService"
+    ],
+    "additional_actions": [
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "ecs:DescribeClusters",
+      "ecs:ListClusters",
+      "ecs:DescribeServices",
+      "ecs:DescribeTasks",
+      "ecs:ListTasks",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/index.html#iampassrole-ecsregistertaskdefinition-ecsupdateserviceecscreateservice",
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://www.tenable.com/blog/auditing-iampassrole-a-problematic-privilege-escalation-permission"
+    ],
+    "source_path": "data/paths/ecs/ecs-003.yaml"
+  },
+  {
+    "id": "ecs-004",
+    "name": "iam:PassRole + ecs:RegisterTaskDefinition + ecs:RunTask",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:RegisterTaskDefinition",
+      "ecs:RunTask"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:DescribeClusters",
+      "ecs:DescribeTasks",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://www.tenable.com/blog/auditing-iampassrole-a-problematic-privilege-escalation-permission",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/index.html#iampassrole-ecsregistertaskdefinition-ecsruntask"
+    ],
+    "source_path": "data/paths/ecs/ecs-004.yaml"
+  },
+  {
+    "id": "ecs-005",
+    "name": "iam:PassRole + ecs:RegisterTaskDefinition + ecs:StartTask",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:RegisterTaskDefinition",
+      "ecs:StartTask"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:DescribeClusters",
+      "ecs:ListContainerInstances",
+      "ecs:DescribeContainerInstances",
+      "ecs:DescribeTasks",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/index.html#iampassrole-ecsregistertaskdefinition-ecsstarttask",
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://www.tenable.com/blog/auditing-iampassrole-a-problematic-privilege-escalation-permission"
+    ],
+    "source_path": "data/paths/ecs/ecs-005.yaml"
+  },
+  {
+    "id": "ecs-006",
+    "name": "ecs:ExecuteCommand + ecs:DescribeTasks",
+    "category": "existing-passrole",
+    "services": [
+      "ecs"
+    ],
+    "required_actions": [
+      "ecs:ExecuteCommand",
+      "ecs:DescribeTasks"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:ListTasks",
+      "ecs:DescribeTaskDefinition"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/index.html#ecsexecutecommand-ecsdescribetasksecsruntaskecsstarttaskecsupdateserviceecscreateservice",
+      "https://aws.amazon.com/blogs/containers/new-using-amazon-ecs-exec-access-your-containers-fargate-ec2/",
+      "https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs-exec.html"
+    ],
+    "source_path": "data/paths/ecs/ecs-006.yaml"
+  },
+  {
+    "id": "ecs-007",
+    "name": "iam:PassRole + ecs:StartTask + ecs:RegisterContainerInstance",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs",
+      "ec2"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:RegisterContainerInstance",
+      "ecs:StartTask"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:ListContainerInstances",
+      "ecs:ListTaskDefinitions",
+      "ecs:DescribeTasks",
+      "ecs:DeregisterContainerInstance",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups"
+    ],
+    "references": [
+      "https://labs.reversec.com/posts/2025/08/another-ecs-privilege-escalation-path",
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/"
+    ],
+    "source_path": "data/paths/ecs/ecs-007.yaml"
+  },
+  {
+    "id": "ecs-008",
+    "name": "iam:PassRole + ecs:RunTask",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:RunTask"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:ListTaskDefinitions",
+      "ecs:DescribeTasks",
+      "ec2:DescribeVpcs",
+      "ec2:DescribeSubnets"
+    ],
+    "references": [
+      "https://labs.reversec.com/posts/2025/08/another-ecs-privilege-escalation-path",
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ecs-privesc/"
+    ],
+    "source_path": "data/paths/ecs/ecs-008.yaml"
+  },
+  {
+    "id": "ecs-009",
+    "name": "iam:PassRole + ecs:StartTask",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ecs"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ecs:StartTask"
+    ],
+    "additional_actions": [
+      "ecs:ListClusters",
+      "ecs:ListContainerInstances",
+      "ecs:ListTaskDefinitions",
+      "ecs:DescribeTasks",
+      "ec2:DescribeSubnets",
+      "ec2:DescribeSecurityGroups"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/weaponizing-ecs-task-definitions-steal-credentials-running-containers/"
+    ],
+    "source_path": "data/paths/ecs/ecs-009.yaml"
+  },
+  {
+    "id": "emr-001",
+    "name": "iam:PassRole + elasticmapreduce:RunJobFlow",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "emr"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "elasticmapreduce:RunJobFlow"
+    ],
+    "additional_actions": [
+      "elasticmapreduce:DescribeCluster",
+      "elasticmapreduce:DescribeStep",
+      "elasticmapreduce:ListClusters",
+      "elasticmapreduce:ListSteps",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonemr.html",
+      "https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-iam-roles.html"
+    ],
+    "source_path": "data/paths/emr/emr-001.yaml"
+  },
+  {
+    "id": "emrserverless-001",
+    "name": "iam:PassRole + emr-serverless:CreateApplication + emr-serverless:StartJobRun",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "emr"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "emr-serverless:CreateApplication",
+      "emr-serverless:StartJobRun"
+    ],
+    "additional_actions": [
+      "emr-serverless:GetApplication",
+      "emr-serverless:GetJobRun",
+      "emr-serverless:ListApplications",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonemrserverless.html",
+      "https://docs.aws.amazon.com/emr/latest/EMR-Serverless-UserGuide/security-iam-role.html"
+    ],
+    "source_path": "data/paths/emrserverless/emrserverless-001.yaml"
+  },
+  {
+    "id": "gamelift-001",
+    "name": "iam:PassRole + gamelift:CreateBuild + gamelift:CreateFleet",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "gamelift"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "gamelift:CreateBuild",
+      "gamelift:CreateFleet",
+      "gamelift:RequestUploadCredentials"
+    ],
+    "additional_actions": [
+      "gamelift:DescribeBuild",
+      "gamelift:DescribeFleetAttributes",
+      "gamelift:ListFleets",
+      "gamelift:DescribeInstances",
+      "gamelift:GetComputeAccess",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazongamelift.html",
+      "https://docs.aws.amazon.com/gamelift/latest/developerguide/setting-up-role.html"
+    ],
+    "source_path": "data/paths/gamelift/gamelift-001.yaml"
+  },
+  {
+    "id": "glue-001",
+    "name": "iam:PassRole + glue:CreateDevEndpoint",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:CreateDevEndpoint"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://know.bishopfox.com/research/privilege-escalation-in-aws",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-gluecreatedevendpoint",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#iampassrole-gluecreatedevendpoint-gluegetdevendpoint--gluegetdevendpoints"
+    ],
+    "source_path": "data/paths/glue/glue-001.yaml"
+  },
+  {
+    "id": "glue-002",
+    "name": "glue:UpdateDevEndpoint",
+    "category": "existing-passrole",
+    "services": [
+      "glue"
+    ],
+    "required_actions": [
+      "glue:UpdateDevEndpoint"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://know.bishopfox.com/research/privilege-escalation-in-aws",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#glueupdatedevendpoint",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#glueupdatedevendpoint-gluegetdevendpoint--gluegetdevendpoints",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/glue/glue-002.yaml"
+  },
+  {
+    "id": "glue-003",
+    "name": "iam:PassRole + glue:CreateJob + glue:StartJobRun",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:CreateJob",
+      "glue:StartJobRun"
+    ],
+    "additional_actions": [
+      "glue:GetJob",
+      "glue:GetJobRun",
+      "glue:GetJobRuns",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-gluecreatejob",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#iampassrole-gluecreatejob--glueupdatejob-gluestartjobrun--gluecreatetrigger",
+      "https://rhinosecuritylabs.com/cloud-security/cloudgoat-walkthrough-glue_privesc/",
+      "https://github.com/RhinoSecurityLabs/cloudgoat/tree/master/cloudgoat/scenarios/aws/glue_privesc"
+    ],
+    "source_path": "data/paths/glue/glue-003.yaml"
+  },
+  {
+    "id": "glue-004",
+    "name": "iam:PassRole + glue:CreateJob + glue:CreateTrigger",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:CreateJob",
+      "glue:CreateTrigger"
+    ],
+    "additional_actions": [
+      "glue:GetJob",
+      "glue:GetTrigger",
+      "glue:GetJobRun",
+      "glue:GetJobRuns",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-glueupdatejob",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#iampassrole-gluecreatejob--glueupdatejob-gluestartjobrun--gluecreatetrigger",
+      "https://rhinosecuritylabs.com/cloud-security/cloudgoat-walkthrough-glue_privesc/",
+      "https://github.com/RhinoSecurityLabs/cloudgoat/tree/master/cloudgoat/scenarios/aws/glue_privesc"
+    ],
+    "source_path": "data/paths/glue/glue-004.yaml"
+  },
+  {
+    "id": "glue-005",
+    "name": "iam:PassRole + glue:UpdateJob + glue:StartJobRun",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:UpdateJob",
+      "glue:StartJobRun"
+    ],
+    "additional_actions": [
+      "glue:GetJob",
+      "glue:ListJobs",
+      "glue:GetJobRun",
+      "glue:GetJobRuns",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#iampassrole-gluecreatejob--glueupdatejob-gluestartjobrun--gluecreatetrigger",
+      "https://rhinosecuritylabs.com/cloud-security/cloudgoat-walkthrough-glue_privesc/",
+      "https://github.com/RhinoSecurityLabs/cloudgoat/tree/master/cloudgoat/scenarios/aws/glue_privesc"
+    ],
+    "source_path": "data/paths/glue/glue-005.yaml"
+  },
+  {
+    "id": "glue-006",
+    "name": "iam:PassRole + glue:UpdateJob + glue:CreateTrigger",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:UpdateJob",
+      "glue:CreateTrigger"
+    ],
+    "additional_actions": [
+      "glue:GetJob",
+      "glue:ListJobs",
+      "glue:GetTrigger",
+      "glue:GetJobRun",
+      "glue:GetJobRuns",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-glue-privesc/index.html#iampassrole-gluecreatejob--glueupdatejob-gluestartjobrun--gluecreatetrigger",
+      "https://rhinosecuritylabs.com/cloud-security/cloudgoat-walkthrough-glue_privesc/",
+      "https://github.com/RhinoSecurityLabs/cloudgoat/tree/master/cloudgoat/scenarios/aws/glue_privesc"
+    ],
+    "source_path": "data/paths/glue/glue-006.yaml"
+  },
+  {
+    "id": "glue-007",
+    "name": "iam:PassRole + glue:CreateSession + glue:RunStatement",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "glue"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "glue:CreateSession",
+      "glue:RunStatement"
+    ],
+    "additional_actions": [
+      "glue:GetSession",
+      "glue:ListSessions",
+      "glue:DeleteSession",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/glue/latest/dg/glue-is-security.html",
+      "https://docs.aws.amazon.com/glue/latest/dg/interactive-sessions.html",
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsglue.html"
+    ],
+    "source_path": "data/paths/glue/glue-007.yaml"
+  },
+  {
+    "id": "iam-001",
+    "name": "iam:CreatePolicyVersion",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:CreatePolicyVersion"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreatepolicyversion",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamcreatepolicyversion",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable"
+    ],
+    "source_path": "data/paths/iam/iam-001.yaml"
+  },
+  {
+    "id": "iam-002",
+    "name": "iam:CreateAccessKey",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:CreateAccessKey"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreateaccesskey",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamcreateaccesskey",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-3"
+    ],
+    "source_path": "data/paths/iam/iam-002.yaml"
+  },
+  {
+    "id": "iam-003",
+    "name": "iam:CreateAccessKey + iam:DeleteAccessKey",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:CreateAccessKey",
+      "iam:DeleteAccessKey"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreateaccesskey",
+      "https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_iam-quotas.html"
+    ],
+    "source_path": "data/paths/iam/iam-003.yaml"
+  },
+  {
+    "id": "iam-004",
+    "name": "iam:CreateLoginProfile",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:CreateLoginProfile"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreateloginprofile--iamupdateloginprofile",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamcreateloginprofile",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-3"
+    ],
+    "source_path": "data/paths/iam/iam-004.yaml"
+  },
+  {
+    "id": "iam-005",
+    "name": "iam:PutRolePolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:PutRolePolicy"
+    ],
+    "additional_actions": [
+      "iam:GetRolePolicy",
+      "iam:ListRolePolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamputrolepolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-005.yaml"
+  },
+  {
+    "id": "iam-006",
+    "name": "iam:UpdateLoginProfile",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:UpdateLoginProfile"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreateloginprofile--iamupdateloginprofile",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamupdateloginprofile",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-3"
+    ],
+    "source_path": "data/paths/iam/iam-006.yaml"
+  },
+  {
+    "id": "iam-007",
+    "name": "iam:PutUserPolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:PutUserPolicy"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamputuserpolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-007.yaml"
+  },
+  {
+    "id": "iam-008",
+    "name": "iam:AttachUserPolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachUserPolicy"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachuserpolicy--iamattachgrouppolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamattachuserpolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-008.yaml"
+  },
+  {
+    "id": "iam-009",
+    "name": "iam:AttachRolePolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachRolePolicy"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamattachrolepolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-009.yaml"
+  },
+  {
+    "id": "iam-010",
+    "name": "iam:AttachGroupPolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachGroupPolicy"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachuserpolicy--iamattachgrouppolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamattachgrouppolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-010.yaml"
+  },
+  {
+    "id": "iam-011",
+    "name": "iam:PutGroupPolicy",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:PutGroupPolicy"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamputgrouppolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-011.yaml"
+  },
+  {
+    "id": "iam-012",
+    "name": "iam:UpdateAssumeRolePolicy",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:UpdateAssumeRolePolicy"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamupdateassumerolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamupdateassumerolepolicy",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-012.yaml"
+  },
+  {
+    "id": "iam-013",
+    "name": "iam:AddUserToGroup",
+    "category": "self-escalation",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AddUserToGroup"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamaddusertogroup",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iamaddusertogroup",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-013.yaml"
+  },
+  {
+    "id": "iam-014",
+    "name": "iam:AttachRolePolicy + sts:AssumeRole",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachRolePolicy",
+      "sts:AssumeRole"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/WithSecureLabs/pathfinding-labs",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy"
+    ],
+    "source_path": "data/paths/iam/iam-014.yaml"
+  },
+  {
+    "id": "iam-015",
+    "name": "iam:AttachUserPolicy + iam:CreateAccessKey",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachUserPolicy",
+      "iam:CreateAccessKey"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser",
+      "iam:ListAttachedUserPolicies",
+      "iam:ListAccessKeys",
+      "iam:ListPolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/RhinoSecurityLabs/AWS-IAM-Privilege-Escalation",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachuserpolicy--iamattachgrouppolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://bishopfox.com/blog/privilege-escalation-in-aws",
+      "https://github.com/BishopFox/iam-vulnerable"
+    ],
+    "source_path": "data/paths/iam/iam-015.yaml"
+  },
+  {
+    "id": "iam-016",
+    "name": "iam:CreatePolicyVersion + sts:AssumeRole",
+    "category": "principal-access",
+    "services": [
+      "iam",
+      "sts"
+    ],
+    "required_actions": [
+      "iam:CreatePolicyVersion",
+      "sts:AssumeRole"
+    ],
+    "additional_actions": [
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+      "iam:ListPolicyVersions",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreatepolicyversion",
+      "https://bishopfox.com/blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-016.yaml"
+  },
+  {
+    "id": "iam-017",
+    "name": "iam:PutRolePolicy + sts:AssumeRole",
+    "category": "principal-access",
+    "services": [
+      "iam",
+      "sts"
+    ],
+    "required_actions": [
+      "iam:PutRolePolicy",
+      "sts:AssumeRole"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListRolePolicies",
+      "iam:GetRolePolicy"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/RhinoSecurityLabs/AWS-IAM-Privilege-Escalation",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://bishopfox.com/blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/iam/iam-017.yaml"
+  },
+  {
+    "id": "iam-018",
+    "name": "iam:PutUserPolicy + iam:CreateAccessKey",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:PutUserPolicy",
+      "iam:CreateAccessKey"
+    ],
+    "additional_actions": [
+      "iam:ListUsers",
+      "iam:GetUser",
+      "iam:ListUserPolicies",
+      "iam:GetUserPolicy",
+      "iam:ListAccessKeys"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/RhinoSecurityLabs/AWS-IAM-Privilege-Escalation",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamattachrolepolicy--stsassumeroleiamcreaterole--iamputuserpolicy--iamputgrouppolicy--iamputrolepolicy",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://bishopfox.com/blog/privilege-escalation-in-aws",
+      "https://github.com/BishopFox/iam-vulnerable"
+    ],
+    "source_path": "data/paths/iam/iam-018.yaml"
+  },
+  {
+    "id": "iam-019",
+    "name": "iam:AttachRolePolicy + iam:UpdateAssumeRolePolicy",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:AttachRolePolicy",
+      "iam:UpdateAssumeRolePolicy"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamupdateassumerolepolicy"
+    ],
+    "source_path": "data/paths/iam/iam-019.yaml"
+  },
+  {
+    "id": "iam-020",
+    "name": "iam:CreatePolicyVersion + iam:UpdateAssumeRolePolicy",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:CreatePolicyVersion",
+      "iam:UpdateAssumeRolePolicy"
+    ],
+    "additional_actions": [
+      "iam:GetPolicy",
+      "iam:GetPolicyVersion",
+      "iam:ListPolicyVersions",
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamcreatepolicyversion"
+    ],
+    "source_path": "data/paths/iam/iam-020.yaml"
+  },
+  {
+    "id": "iam-021",
+    "name": "iam:PutRolePolicy + iam:UpdateAssumeRolePolicy",
+    "category": "principal-access",
+    "services": [
+      "iam"
+    ],
+    "required_actions": [
+      "iam:PutRolePolicy",
+      "iam:UpdateAssumeRolePolicy"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListRolePolicies",
+      "iam:GetRolePolicy"
+    ],
+    "references": [
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-iam-privesc/index.html#iamupdateassumerolepolicy"
+    ],
+    "source_path": "data/paths/iam/iam-021.yaml"
+  },
+  {
+    "id": "imagebuilder-001",
+    "name": "iam:PassRole + imagebuilder:CreateComponent + imagebuilder:CreateImageRecipe + imagebuilder:CreateInfrastructureConfiguration + imagebuilder:CreateImage",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "imagebuilder",
+      "ec2"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "imagebuilder:CreateComponent",
+      "imagebuilder:CreateImageRecipe",
+      "imagebuilder:CreateInfrastructureConfiguration",
+      "imagebuilder:CreateImage"
+    ],
+    "additional_actions": [
+      "imagebuilder:GetComponent",
+      "imagebuilder:GetImage",
+      "imagebuilder:GetImageRecipe",
+      "imagebuilder:GetInfrastructureConfiguration",
+      "imagebuilder:TagResource",
+      "ec2:DescribeImages",
+      "imagebuilder:ListImages",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonec2imagebuilder.html",
+      "https://docs.aws.amazon.com/imagebuilder/latest/userguide/security-best-practices.html"
+    ],
+    "source_path": "data/paths/imagebuilder/imagebuilder-001.yaml"
+  },
+  {
+    "id": "kinesisanalytics-001",
+    "name": "iam:PassRole + kinesisanalytics:CreateApplication + kinesisanalytics:StartApplication",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "kinesisanalytics"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "kinesisanalytics:CreateApplication",
+      "kinesisanalytics:StartApplication"
+    ],
+    "additional_actions": [
+      "kinesisanalytics:DescribeApplication",
+      "kinesisanalytics:ListApplications",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonkinesisdataanalytics.html",
+      "https://docs.aws.amazon.com/managed-flink/latest/java/security-best-practices.html"
+    ],
+    "source_path": "data/paths/kinesisanalytics/kinesisanalytics-001.yaml"
+  },
+  {
+    "id": "lambda-001",
+    "name": "iam:PassRole + lambda:CreateFunction + lambda:InvokeFunction",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "lambda"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "lambda:CreateFunction",
+      "lambda:InvokeFunction"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies",
+      "lambda:ListFunctions"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#iampassrole-lambdacreatefunction-lambdainvokefunction",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc/index.html#iampassrole-lambdacreatefunction-lambdainvokefunction--lambdainvokefunctionurl",
+      "https://github.com/BishopFox/iam-vulnerable/blob/main/modules/free-resources/privesc-paths/privesc15-PassExistingRoleToNewLambdaThenInvoke.tf",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/lambda/lambda-001.yaml"
+  },
+  {
+    "id": "lambda-002",
+    "name": "iam:PassRole + lambda:CreateFunction + lambda:CreateEventSourceMapping",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "lambda"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "lambda:CreateFunction",
+      "lambda:CreateEventSourceMapping"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies",
+      "lambda:ListFunctions",
+      "lambda:ListEventSourceMappings",
+      "dynamodb:PutItem"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc/index.html#iampassrole-lambdacreatefunction-lambdacreateeventsourcemapping",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws"
+    ],
+    "source_path": "data/paths/lambda/lambda-002.yaml"
+  },
+  {
+    "id": "lambda-003",
+    "name": "lambda:UpdateFunctionCode",
+    "category": "existing-passrole",
+    "services": [
+      "lambda"
+    ],
+    "required_actions": [
+      "lambda:UpdateFunctionCode"
+    ],
+    "additional_actions": [
+      "lambda:ListFunctions",
+      "lambda:GetFunction",
+      "lambda:GetFunctionConfiguration",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://hackingthe.cloud/aws/exploitation/iam_privilege_escalation/#lambdaupdatefunctioncode",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc/index.html#lambdaupdatefunctioncode",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-4"
+    ],
+    "source_path": "data/paths/lambda/lambda-003.yaml"
+  },
+  {
+    "id": "lambda-004",
+    "name": "lambda:UpdateFunctionCode + lambda:InvokeFunction",
+    "category": "existing-passrole",
+    "services": [
+      "lambda"
+    ],
+    "required_actions": [
+      "lambda:UpdateFunctionCode",
+      "lambda:InvokeFunction"
+    ],
+    "additional_actions": [
+      "lambda:ListFunctions",
+      "lambda:GetFunction",
+      "lambda:GetFunctionConfiguration",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc/index.html#lambdaupdatefunctioncode",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://labs.bishopfox.com/tech-blog/privilege-escalation-in-aws",
+      "https://s3cur3.it/home/practicing-aws-security-with-iamvulnerable-part-4"
+    ],
+    "source_path": "data/paths/lambda/lambda-004.yaml"
+  },
+  {
+    "id": "lambda-005",
+    "name": "lambda:UpdateFunctionCode + lambda:AddPermission",
+    "category": "existing-passrole",
+    "services": [
+      "lambda"
+    ],
+    "required_actions": [
+      "lambda:UpdateFunctionCode",
+      "lambda:AddPermission"
+    ],
+    "additional_actions": [
+      "lambda:ListFunctions",
+      "lambda:GetFunction",
+      "lambda:GetFunctionConfiguration",
+      "lambda:GetPolicy",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.xyz/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc"
+    ],
+    "source_path": "data/paths/lambda/lambda-005.yaml"
+  },
+  {
+    "id": "lambda-006",
+    "name": "iam:PassRole + lambda:CreateFunction + lambda:AddPermission",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "lambda"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "lambda:CreateFunction",
+      "lambda:AddPermission"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "iam:ListAttachedRolePolicies",
+      "lambda:GetFunction",
+      "lambda:GetPolicy",
+      "lambda:DeleteFunction"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/pentesting-cloud/aws-security/aws-privilege-escalation/aws-lambda-privesc/",
+      "https://blog.the1ntern.net/aws/privesc/xacclambdainvoke/"
+    ],
+    "source_path": "data/paths/lambda/lambda-006.yaml"
+  },
+  {
+    "id": "omics-001",
+    "name": "iam:PassRole + omics:CreateWorkflow + omics:StartRun",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "omics",
+      "s3"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "omics:CreateWorkflow",
+      "omics:StartRun",
+      "s3:GetObject"
+    ],
+    "additional_actions": [
+      "omics:GetWorkflow",
+      "omics:GetRun",
+      "omics:ListRuns",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awshealthomics.html",
+      "https://docs.aws.amazon.com/omics/latest/dev/security-iam-roles.html"
+    ],
+    "source_path": "data/paths/omics/omics-001.yaml"
+  },
+  {
+    "id": "sagemaker-001",
+    "name": "iam:PassRole + sagemaker:CreateNotebookInstance",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "sagemaker"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "sagemaker:CreateNotebookInstance"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "sagemaker:DescribeNotebookInstance",
+      "sagemaker:CreatePresignedNotebookInstanceUrl"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-sagemaker-privesc/index.html#iampassrole--sagemakercreatenotebookinstance-sagemakercreatepresignednotebookinstanceurl"
+    ],
+    "source_path": "data/paths/sagemaker/sagemaker-001.yaml"
+  },
+  {
+    "id": "sagemaker-002",
+    "name": "iam:PassRole + sagemaker:CreateTrainingJob",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "sagemaker"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "sagemaker:CreateTrainingJob"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-sagemaker-privesc/index.html#sagemakercreatetrainingjob-iampassrole"
+    ],
+    "source_path": "data/paths/sagemaker/sagemaker-002.yaml"
+  },
+  {
+    "id": "sagemaker-003",
+    "name": "iam:PassRole + sagemaker:CreateProcessingJob",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "sagemaker"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "sagemaker:CreateProcessingJob"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-sagemaker-privesc/index.html#sagemakercreateprocessingjob-iampassrole"
+    ],
+    "source_path": "data/paths/sagemaker/sagemaker-003.yaml"
+  },
+  {
+    "id": "sagemaker-004",
+    "name": "sagemaker:CreatePresignedNotebookInstanceUrl",
+    "category": "existing-passrole",
+    "services": [
+      "sagemaker"
+    ],
+    "required_actions": [
+      "sagemaker:CreatePresignedNotebookInstanceUrl"
+    ],
+    "additional_actions": [
+
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-sagemaker-privesc/index.html#sagemakercreatepresignednotebookinstanceurl"
+    ],
+    "source_path": "data/paths/sagemaker/sagemaker-004.yaml"
+  },
+  {
+    "id": "sagemaker-005",
+    "name": "sagemaker:CreateNotebookInstanceLifecycleConfig + sagemaker:StopNotebookInstance + sagemaker:UpdateNotebookInstance + sagemaker:StartNotebookInstance",
+    "category": "existing-passrole",
+    "services": [
+      "sagemaker",
+      "iam"
+    ],
+    "required_actions": [
+      "sagemaker:CreateNotebookInstanceLifecycleConfig",
+      "sagemaker:StopNotebookInstance",
+      "sagemaker:UpdateNotebookInstance",
+      "sagemaker:StartNotebookInstance"
+    ],
+    "additional_actions": [
+      "sagemaker:DescribeNotebookInstance",
+      "sagemaker:ListNotebookInstances",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://www.plerion.com/blog/privilege-escalation-with-sagemaker-and-execution-roles"
+    ],
+    "source_path": "data/paths/sagemaker/sagemaker-005.yaml"
+  },
+  {
+    "id": "scheduler-001",
+    "name": "iam:PassRole + scheduler:CreateSchedule",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "scheduler"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "scheduler:CreateSchedule"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole",
+      "scheduler:ListSchedules",
+      "scheduler:GetSchedule"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazoneventbridgescheduler.html",
+      "https://docs.aws.amazon.com/scheduler/latest/UserGuide/security_iam_id-based-policy-examples.html"
+    ],
+    "source_path": "data/paths/scheduler/scheduler-001.yaml"
+  },
+  {
+    "id": "ssm-001",
+    "name": "ssm:StartSession",
+    "category": "existing-passrole",
+    "services": [
+      "ssm",
+      "ec2"
+    ],
+    "required_actions": [
+      "ssm:StartSession"
+    ],
+    "additional_actions": [
+      "ec2:DescribeInstances",
+      "ssm:DescribeInstanceInformation"
+    ],
+    "references": [
+      "https://github.com/nccgroup/PMapper/blob/master/principalmapper/graphing/ssm_edges.py",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ssm-privesc/index.html#ssmstartsession",
+      "https://pswalia2u.medium.com/aws-iam-privilege-escalation-paths-cba36be1aa9e"
+    ],
+    "source_path": "data/paths/ssm/ssm-001.yaml"
+  },
+  {
+    "id": "ssm-002",
+    "name": "ssm:SendCommand",
+    "category": "existing-passrole",
+    "services": [
+      "ssm",
+      "ec2"
+    ],
+    "required_actions": [
+      "ssm:SendCommand"
+    ],
+    "additional_actions": [
+      "ec2:DescribeInstances",
+      "ssm:DescribeInstanceInformation",
+      "ssm:ListCommandInvocations",
+      "ssm:GetCommandInvocation"
+    ],
+    "references": [
+      "https://github.com/BishopFox/iam-vulnerable/blob/main/modules/free-resources/privesc-paths/privesc-ssmSendCommand.tf",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-ssm-privesc/index.html#ssmsendcommand",
+      "https://pswalia2u.medium.com/aws-iam-privilege-escalation-paths-cba36be1aa9e"
+    ],
+    "source_path": "data/paths/ssm/ssm-002.yaml"
+  },
+  {
+    "id": "ssm-003",
+    "name": "iam:PassRole + ssm:CreateDocument + ssm:StartAutomationExecution",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "ssm"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "ssm:CreateDocument",
+      "ssm:StartAutomationExecution"
+    ],
+    "additional_actions": [
+      "ssm:DescribeAutomationExecutions",
+      "ssm:GetAutomationExecution",
+      "ssm:ListDocuments",
+      "ssm:DescribeDocument",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/systems-manager/latest/userguide/automation-document-script-considerations.html",
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_amazonsystemsmanager.html",
+      "https://docs.aws.amazon.com/systems-manager/latest/userguide/automation-setup.html"
+    ],
+    "source_path": "data/paths/ssm/ssm-003.yaml"
+  },
+  {
+    "id": "stepfunctions-001",
+    "name": "iam:PassRole + states:CreateStateMachine + states:StartExecution",
+    "category": "new-passrole",
+    "services": [
+      "iam",
+      "stepfunctions"
+    ],
+    "required_actions": [
+      "iam:PassRole",
+      "states:CreateStateMachine",
+      "states:StartExecution"
+    ],
+    "additional_actions": [
+      "states:DescribeExecution",
+      "states:DescribeStateMachine",
+      "iam:ListAttachedUserPolicies"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsstepfunctions.html",
+      "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-create-iam-role.html"
+    ],
+    "source_path": "data/paths/stepfunctions/stepfunctions-001.yaml"
+  },
+  {
+    "id": "stepfunctions-002",
+    "name": "states:UpdateStateMachine + states:StartExecution",
+    "category": "existing-passrole",
+    "services": [
+      "iam",
+      "stepfunctions"
+    ],
+    "required_actions": [
+      "states:UpdateStateMachine",
+      "states:StartExecution"
+    ],
+    "additional_actions": [
+      "states:ListStateMachines",
+      "states:DescribeStateMachine",
+      "states:ListExecutions",
+      "states:DescribeExecution"
+    ],
+    "references": [
+      "https://docs.aws.amazon.com/service-authorization/latest/reference/list_awsstepfunctions.html",
+      "https://docs.aws.amazon.com/step-functions/latest/dg/procedure-create-iam-role.html"
+    ],
+    "source_path": "data/paths/stepfunctions/stepfunctions-002.yaml"
+  },
+  {
+    "id": "sts-001",
+    "name": "sts:AssumeRole",
+    "category": "principal-access",
+    "services": [
+      "sts"
+    ],
+    "required_actions": [
+      "sts:AssumeRole"
+    ],
+    "additional_actions": [
+      "iam:ListRoles",
+      "iam:GetRole"
+    ],
+    "references": [
+      "https://rhinosecuritylabs.com/aws/aws-privilege-escalation-methods-mitigation/",
+      "https://cloud.hacktricks.wiki/en/pentesting-cloud/aws-security/aws-privilege-escalation/aws-sts-privesc/index.html#stsassumerole",
+      "https://github.com/BishopFox/iam-vulnerable",
+      "https://pswalia2u.medium.com/aws-iam-privilege-escalation-paths-cba36be1aa9e"
+    ],
+    "source_path": "data/paths/sts/sts-001.yaml"
+  }
+]

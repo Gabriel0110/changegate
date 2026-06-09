@@ -87,6 +87,17 @@ tests:
         include:
           - iam_privilege_escalation
 
+  - name: pathfinding_codebuild_passrole_blocked
+    plan: fixtures/pathfinding-codebuild-passrole.json
+    expect:
+      decision: block
+      findings:
+        include:
+          - AWS_IAM_PATHFINDING_CATALOG_ESCALATION
+      attack_paths:
+        include:
+          - iam_privilege_escalation
+
   - name: public_opensearch_domain_blocked
     plan: fixtures/public-opensearch-domain.json
     expect:

@@ -70,6 +70,7 @@ func DetectIAMPrivilegeEscalation(g *graph.Graph, opts IAMDetectionOptions) []At
 	paths = append(paths, detectFunctionUpdateRoleAccess(g, grants, opts)...)
 	paths = append(paths, detectECSUpdateServiceRoleAccess(g, grants, opts)...)
 	paths = append(paths, detectIAMPolicyMutationEscalation(g, grants, opts)...)
+	paths = append(paths, detectPathfindingCatalogEscalation(g, grants, opts)...)
 	return Normalize(paths)
 }
 
@@ -399,6 +400,272 @@ func detectIAMPolicyMutationEscalation(g *graph.Graph, grants []iamGrant, opts I
 		}
 	}
 	return out
+}
+
+func detectPathfindingCatalogEscalation(g *graph.Graph, grants []iamGrant, opts IAMDetectionOptions) []AttackPath {
+	out := make([]AttackPath, 0)
+	for _, grant := range grants {
+		for _, entry := range pathfindingCatalog() {
+			if catalogCoveredByNativeDetector(entry) || !grantAllowsAll(grant, entry.RequiredActions...) {
+				continue
+			}
+			for _, target := range pathfindingTargets(g, grant, entry) {
+				decision, severity, confidence := iamDecisionForTarget(g.Nodes[target], grant)
+				if grant.BroadNotAction {
+					confidence = model.ConfidenceMedium
+					decision, severity = iamDecision(confidence, g.Nodes[target])
+				}
+				if decision == model.DecisionWarn && !opts.IncludeWarnings {
+					continue
+				}
+				out = append(out, AttackPath{
+					Type:             TypeIAMPrivilegeEscalation,
+					Title:            fmt.Sprintf("Principal %s matches pathfinding.cloud path %s: %s", grant.Principal, entry.ID, entry.Name),
+					Severity:         severity,
+					Confidence:       confidence,
+					ConfidenceReason: iamConfidenceReason(confidence, grant, "pathfinding.cloud IAM privilege-escalation prerequisites are satisfied by policy and graph evidence"),
+					Decision:         decision,
+					Principal:        string(grant.Principal),
+					Target:           string(target),
+					Steps:            pathfindingSteps(grant, target, entry, confidence),
+					Evidence:         pathfindingEvidence(grant, target, entry),
+					Mitigations:      pathfindingMitigations(entry),
+					References:       pathfindingReferences(entry),
+					Metadata: iamMetadata(grant, map[string]string{
+						"attack_pattern":          "pathfinding_catalog",
+						"pathfinding_id":          entry.ID,
+						"pathfinding_category":    entry.Category,
+						"pathfinding_services":    strings.Join(entry.Services, ","),
+						"pathfinding_source":      "DataDog/pathfinding.cloud research catalog",
+						"pathfinding_source_path": entry.SourcePath,
+					}),
+				})
+			}
+		}
+	}
+	return out
+}
+
+func catalogCoveredByNativeDetector(entry pathfindingCatalogEntry) bool {
+	switch entry.ID {
+	case "lambda-001", "lambda-003", "lambda-004", "ecs-002", "ecs-004", "ecs-008", "sts-001":
+		return true
+	}
+	if strings.HasPrefix(entry.ID, "iam-") {
+		switch entry.ID {
+		case "iam-001", "iam-002", "iam-005", "iam-009", "iam-014", "iam-016", "iam-017", "iam-021":
+			return true
+		}
+	}
+	return false
+}
+
+func pathfindingTargets(g *graph.Graph, grant iamGrant, entry pathfindingCatalogEntry) []graph.ResourceID {
+	switch entry.Category {
+	case "new-passrole":
+		return pathfindingPassRoleTargets(g, grant)
+	case "existing-passrole":
+		return pathfindingExistingResourceTargets(g, grant, entry)
+	case "self-escalation", "principal-access":
+		return pathfindingPrincipalTargets(g, grant, entry)
+	default:
+		return nil
+	}
+}
+
+func pathfindingPassRoleTargets(g *graph.Graph, grant iamGrant) []graph.ResourceID {
+	out := make([]graph.ResourceID, 0)
+	for _, role := range passableRoles(g, grant) {
+		if privilegedOrSensitiveRole(g, role) {
+			out = append(out, role)
+		}
+	}
+	return dedupeResourceIDs(out)
+}
+
+func pathfindingPrincipalTargets(g *graph.Graph, grant iamGrant, entry pathfindingCatalogEntry) []graph.ResourceID {
+	candidates := matchingPrincipals(g, grant.Resources)
+	if len(candidates) == 0 && resourceCovered(grant.Resources, g.Nodes[grant.Principal]) {
+		candidates = append(candidates, grant.Principal)
+	}
+	out := make([]graph.ResourceID, 0, len(candidates))
+	for _, candidate := range candidates {
+		node := g.Nodes[candidate]
+		if node == nil {
+			continue
+		}
+		if !pathfindingPrincipalTargetCompatible(node, entry) {
+			continue
+		}
+		switch {
+		case entry.Category == "self-escalation" && candidate == grant.Principal:
+			out = append(out, candidate)
+		case pathfindingCredentialAccess(entry) && node.Type == "aws_iam_user" && (candidate == grant.Principal || privilegedOrSensitivePrincipal(g, candidate)):
+			out = append(out, candidate)
+		case entry.Category != "self-escalation" && privilegedOrSensitivePrincipal(g, candidate):
+			out = append(out, candidate)
+		}
+	}
+	return dedupeResourceIDs(out)
+}
+
+func pathfindingPrincipalTargetCompatible(node *graph.Node, entry pathfindingCatalogEntry) bool {
+	if node == nil {
+		return false
+	}
+	if entry.Category == "self-escalation" {
+		return true
+	}
+	for _, action := range entry.RequiredActions {
+		switch strings.ToLower(action) {
+		case "iam:createaccesskey", "iam:deleteaccesskey", "iam:createloginprofile", "iam:updateloginprofile", "iam:attachuserpolicy", "iam:putuserpolicy":
+			if node.Type != "aws_iam_user" {
+				return false
+			}
+		case "iam:updaterolepolicy", "iam:updateassumerolepolicy", "iam:attachrolepolicy", "iam:putrolepolicy", "sts:assumerole":
+			if node.Type != "aws_iam_role" {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func pathfindingExistingResourceTargets(g *graph.Graph, grant iamGrant, entry pathfindingCatalogEntry) []graph.ResourceID {
+	out := make([]graph.ResourceID, 0)
+	for _, id := range sortedGraphNodeIDs(g) {
+		node := g.Nodes[id]
+		if node == nil || !pathfindingNodeMatchesServices(node, entry.Services) || !resourceCovered(grant.Resources, node) {
+			continue
+		}
+		for _, role := range rolesUsedBy(g, id) {
+			if privilegedOrSensitiveRole(g, role) {
+				out = append(out, role)
+			}
+		}
+	}
+	return dedupeResourceIDs(out)
+}
+
+func pathfindingCredentialAccess(entry pathfindingCatalogEntry) bool {
+	for _, action := range entry.RequiredActions {
+		action = strings.ToLower(action)
+		if strings.Contains(action, "createaccesskey") || strings.Contains(action, "loginprofile") {
+			return true
+		}
+	}
+	return false
+}
+
+func pathfindingNodeMatchesServices(node *graph.Node, services []string) bool {
+	if node == nil {
+		return false
+	}
+	for _, service := range services {
+		for _, prefix := range terraformTypePrefixesForService(service) {
+			if strings.HasPrefix(node.Type, prefix) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func terraformTypePrefixesForService(service string) []string {
+	switch strings.ToLower(service) {
+	case "apprunner":
+		return []string{"aws_apprunner_"}
+	case "batch":
+		return []string{"aws_batch_"}
+	case "bedrock-agentcore", "bedrock":
+		return []string{"aws_bedrock"}
+	case "braket":
+		return []string{"aws_braket_"}
+	case "cloudformation":
+		return []string{"aws_cloudformation_"}
+	case "codebuild":
+		return []string{"aws_codebuild_"}
+	case "codedeploy":
+		return []string{"aws_codedeploy_"}
+	case "cognito-identity", "cognitoidentity":
+		return []string{"aws_cognito_identity_"}
+	case "datapipeline":
+		return []string{"aws_datapipeline_"}
+	case "ec2", "ec2-instance-connect":
+		return []string{"aws_instance", "aws_launch_template", "aws_spot_instance_request"}
+	case "ecs":
+		return []string{"aws_ecs_"}
+	case "elasticmapreduce", "emr":
+		return []string{"aws_emr_"}
+	case "emr-serverless":
+		return []string{"aws_emrserverless_"}
+	case "gamelift":
+		return []string{"aws_gamelift_"}
+	case "glue":
+		return []string{"aws_glue_"}
+	case "imagebuilder":
+		return []string{"aws_imagebuilder_"}
+	case "kinesisanalytics":
+		return []string{"aws_kinesisanalytics"}
+	case "lambda":
+		return []string{"aws_lambda_"}
+	case "omics":
+		return []string{"aws_omics_"}
+	case "sagemaker":
+		return []string{"aws_sagemaker_"}
+	case "scheduler":
+		return []string{"aws_scheduler_"}
+	case "ssm":
+		return []string{"aws_ssm_"}
+	case "states", "stepfunctions":
+		return []string{"aws_sfn_", "aws_stepfunctions_"}
+	default:
+		normalized := strings.ReplaceAll(strings.ToLower(service), "-", "_")
+		return []string{"aws_" + normalized + "_"}
+	}
+}
+
+func pathfindingSteps(grant iamGrant, target graph.ResourceID, entry pathfindingCatalogEntry, confidence model.Confidence) []Step {
+	steps := make([]Step, 0, len(entry.RequiredActions))
+	for _, action := range entry.RequiredActions {
+		steps = append(steps, iamStep(grant.Principal, target, action, graph.EdgeGrantsPermission, "principal satisfies pathfinding.cloud privilege-escalation prerequisite", confidence))
+	}
+	return steps
+}
+
+func pathfindingEvidence(grant iamGrant, target graph.ResourceID, entry pathfindingCatalogEntry) []model.Evidence {
+	out := iamEvidence(grant, target, strings.Join(entry.RequiredActions, "+"))
+	out = append(out, model.Evidence{
+		Type:     "attack_path.pathfinding",
+		Resource: string(target),
+		Path:     "pathfinding.id",
+		Value:    entry.ID,
+		Message:  "Datadog pathfinding.cloud catalog path matched: " + entry.Name,
+	})
+	return out
+}
+
+func pathfindingMitigations(entry pathfindingCatalogEntry) []string {
+	out := []string{"Remove or narrow the IAM actions required by this escalation path.", "Scope resources to exact non-privileged targets and add restrictive IAM conditions where supported."}
+	if hasRequiredAction(entry, "iam:PassRole") {
+		out = append(out, "Restrict iam:PassRole to approved service roles and use iam:PassedToService conditions.")
+	}
+	return out
+}
+
+func pathfindingReferences(entry pathfindingCatalogEntry) []string {
+	refs := []string{"docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"}
+	refs = append(refs, entry.References...)
+	return dedupeSorted(refs)
+}
+
+func hasRequiredAction(entry pathfindingCatalogEntry, action string) bool {
+	for _, candidate := range entry.RequiredActions {
+		if strings.EqualFold(candidate, action) {
+			return true
+		}
+	}
+	return false
 }
 
 func collectIAMGrants(g *graph.Graph) []iamGrant {

@@ -4,6 +4,28 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v0.5.0 - 2026-06-08
+
+### Added
+
+- Added embedded DataDog/pathfinding.cloud IAM privilege-escalation catalog coverage for 86 AWS escalation paths.
+- Added `AWS_IAM_PATHFINDING_CATALOG_ESCALATION` as a stable graph-aware attack-path rule with compliance mappings and rule documentation.
+- Added a catalog updater script and third-party notice for the embedded defensive detection metadata.
+- Added a risk-test fixture for a CodeBuild pass-role escalation path backed by the embedded catalog.
+
+### Changed
+
+- Improved IAM attack-path detection so catalog-backed paths include path IDs, required actions, services, upstream references, and conservative confidence handling.
+- Updated attack-path documentation to describe catalog-backed IAM escalation behavior and attribution.
+
+### Fixed
+
+- Ensured catalog-backed attack paths map to their dedicated ChangeGate rule ID in scan reports.
+
+### Breaking changes
+
+- None.
+
 ## v0.4.0 - 2026-06-08
 
 ### Added

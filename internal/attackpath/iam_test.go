@@ -328,6 +328,133 @@ func TestDetectIAMRoleAssumptionChainBlocks(t *testing.T) {
 	}
 }
 
+func TestPathfindingCatalogCoverage(t *testing.T) {
+	t.Parallel()
+	if got := PathfindingCatalogCoverage(); got < 80 {
+		t.Fatalf("catalog coverage = %d, want at least 80 pathfinding.cloud paths", got)
+	}
+}
+
+func TestDetectPathfindingNewPassRoleServicePathBlocks(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "codebuild:CreateProject", "codebuild:StartBuild"],
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	path := findPathfindingPath(paths, "codebuild-001")
+	if path == nil {
+		t.Fatalf("missing codebuild pathfinding path: %#v", paths)
+	}
+	if path.Decision != model.DecisionBlock || path.Target != "aws_iam_role.admin_execution" {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+	if len(path.FindingRuleIDs) == 0 || path.FindingRuleIDs[0] != RuleIAMPathfindingCatalogEscalation {
+		t.Fatalf("finding rule ids = %#v", path.FindingRuleIDs)
+	}
+}
+
+func TestDetectPathfindingExistingPassRolePathRequiresGraphTarget(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_codebuild_project.admin"] = workloadNode("aws_codebuild_project.admin", "aws_codebuild_project")
+	g.Edges = append(g.Edges, edge("aws_codebuild_project.admin", "aws_iam_role.admin_execution", graph.EdgeCanAssume))
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": "codebuild:StartBuild",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	if path := findPathfindingPath(paths, "codebuild-002"); path == nil {
+		t.Fatalf("missing existing CodeBuild pathfinding path: %#v", paths)
+	}
+
+	noTarget := iamBaseGraph()
+	noTarget.Nodes["aws_iam_policy.deploy"] = g.Nodes["aws_iam_policy.deploy"]
+	noTarget.Edges = append(noTarget.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+	paths = DetectIAMPrivilegeEscalation(noTarget, IAMDetectionOptions{})
+	if path := findPathfindingPath(paths, "codebuild-002"); path != nil {
+		t.Fatalf("expected no path without existing privileged target, got %#v", path)
+	}
+}
+
+func TestDetectPathfindingSelfEscalationBlocks(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": "iam:AttachUserPolicy",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	path := findPathfindingPath(paths, "iam-008")
+	if path == nil {
+		t.Fatalf("missing self-escalation path: %#v", paths)
+	}
+	if path.Decision != model.DecisionBlock || path.Target != "aws_iam_role.github_actions" {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+}
+
+func TestDetectPathfindingPrincipalAccessBlocksPrivilegedUserCredentialPath(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_user.admin"] = &graph.Node{ID: "aws_iam_user.admin", Address: "aws_iam_user.admin", Type: "aws_iam_user", Kind: graph.NodePrincipal, Name: "admin-user", Environment: "production"}
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": "iam:CreateLoginProfile",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	path := findPathfindingPath(paths, "iam-004")
+	if path == nil {
+		t.Fatalf("missing create-login-profile path: %#v", paths)
+	}
+	if path.Target != "aws_iam_user.admin" {
+		t.Fatalf("target = %q, want admin user", path.Target)
+	}
+}
+
+func TestDetectPathfindingBroadNotActionWarns(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "NotAction": "iam:DeleteRole",
+	    "Resource": "*"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	path := findPathfindingPath(paths, "codebuild-001")
+	if path == nil {
+		t.Fatalf("missing broad NotAction catalog path: %#v", paths)
+	}
+	if path.Decision != model.DecisionWarn || path.Confidence != model.ConfidenceMedium {
+		t.Fatalf("unexpected path: %#v", path)
+	}
+}
+
 func iamBaseGraph() *graph.Graph {
 	return &graph.Graph{Nodes: map[graph.ResourceID]*graph.Node{
 		"aws_iam_role.github_actions":  principalNode("aws_iam_role.github_actions", "github_actions"),
@@ -371,6 +498,15 @@ func findIAMPath(paths []AttackPath, action string) *AttackPath {
 			if step.Action == action {
 				return &paths[i]
 			}
+		}
+	}
+	return nil
+}
+
+func findPathfindingPath(paths []AttackPath, id string) *AttackPath {
+	for i := range paths {
+		if paths[i].Metadata["pathfinding_id"] == id {
+			return &paths[i]
 		}
 	}
 	return nil

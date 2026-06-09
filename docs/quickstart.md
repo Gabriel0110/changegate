@@ -24,8 +24,8 @@ Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifact
 Docker:
 
 ```bash
-docker run --rm ghcr.io/gabriel0110/changegate:v0.4.0 version
-docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.4.0 scan --plan /work/tfplan.json
+docker run --rm ghcr.io/gabriel0110/changegate:v0.5.0 version
+docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.5.0 scan --plan /work/tfplan.json
 ```
 
 npm:

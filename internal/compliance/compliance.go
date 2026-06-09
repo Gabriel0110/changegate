@@ -205,6 +205,12 @@ func defaultMappings() map[string]output.ComplianceMapping {
 			"soc2":        {"CC6.1", "CC6.3"},
 			"iso_27001":   {"A.5.15", "A.5.18"},
 		}),
+		"AWS_IAM_PATHFINDING_CATALOG_ESCALATION": mapping(map[string][]string{
+			"nist_800_53": {"AC-2", "AC-6"},
+			"pci_dss":     {"7.2"},
+			"soc2":        {"CC6.1", "CC6.3"},
+			"iso_27001":   {"A.5.15", "A.5.18"},
+		}),
 		"AWS_IAM_SENSITIVE_ACTIONS_RESOURCE_WILDCARD": mapping(map[string][]string{
 			"nist_800_53": {"AC-6", "SC-12", "SC-28"},
 			"pci_dss":     {"3.5", "7.2", "8.2"},

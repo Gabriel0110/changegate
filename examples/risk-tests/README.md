@@ -26,6 +26,7 @@ The fixtures are hand-written minimal Terraform plan JSON documents. They use on
 | `lambda-url-secret.json` + cloud context          | Public Lambda function URL reaching a secret is blocked through cloud-context graph evidence. |
 | `passrole-lambda-update.json`                     | `iam:PassRole` plus Lambda code update is blocked as privilege escalation.                    |
 | `assume-role-admin.json`                          | `sts:AssumeRole` to admin role is blocked.                                                    |
+| `pathfinding-codebuild-passrole.json`             | Embedded pathfinding.cloud IAM escalation prerequisites are blocked for CodeBuild pass-role.  |
 | `public-opensearch-domain.json`                   | OpenSearch domain policy with public principal is blocked.                                    |
 | `public-s3-bucket-policy.json`                    | S3 bucket policy granting public object access is blocked.                                    |
 | `public-admin-api-route.json`                     | Unauthenticated public API Gateway admin route is blocked.                                    |

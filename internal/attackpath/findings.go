@@ -24,6 +24,8 @@ const (
 	RuleIAMBroadNotActionEscalation = "AWS_IAM_NOTACTION_ESCALATION_PATH"
 	// RuleIAMRoleAssumptionChain identifies multi-hop role assumption chains.
 	RuleIAMRoleAssumptionChain = "AWS_IAM_ROLE_ASSUMPTION_CHAIN"
+	// RuleIAMPathfindingCatalogEscalation identifies Datadog pathfinding.cloud catalog-backed IAM escalation paths.
+	RuleIAMPathfindingCatalogEscalation = "AWS_IAM_PATHFINDING_CATALOG_ESCALATION"
 )
 
 // Findings converts attack paths into normal findings for policy, baseline, waiver, and review flows.
@@ -181,6 +183,8 @@ func ruleForPath(path AttackPath) (string, string, model.RiskCategory) {
 		switch path.Metadata["attack_pattern"] {
 		case "role_assumption_chain":
 			return RuleIAMRoleAssumptionChain, "IAM role assumption chain", model.RiskCategoryPrivilegeEscalation
+		case "pathfinding_catalog":
+			return RuleIAMPathfindingCatalogEscalation, "Pathfinding.cloud IAM escalation path", model.RiskCategoryPrivilegeEscalation
 		case "iam_policy_inline_role_escalation", "iam_policy_attach_admin_escalation", "iam_policy_version_escalation", "iam_trust_policy_takeover", "iam_user_access_key_escalation":
 			return RuleIAMPolicyMutationEscalation, "IAM policy mutation escalation path", model.RiskCategoryPrivilegeEscalation
 		}
