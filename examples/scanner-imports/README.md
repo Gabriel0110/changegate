@@ -30,8 +30,9 @@ Both commands intentionally return exit code `1` in this demo. The S3 example is
 - Imported rule IDs are prefixed with `EXT_<SOURCE>_`.
 - Imported findings use policy packs such as `external:checkov` or `external:trivy`.
 - When an imported finding maps to a changed graph resource, ChangeGate adds correlation evidence.
-- If a native ChangeGate finding covers the same resource/category with stronger graph evidence, the native finding remains authoritative.
-- Uncorrelated imported findings are still reported, but they do not become more important than high-confidence native plan evidence.
+- If a native ChangeGate finding covers the same resource/category with stronger graph evidence, the report explains that the imported finding was superseded.
+- Uncorrelated imported findings are still reported, but high-severity/high-confidence scanner-only noise is downgraded unless graph evidence increases materiality.
+- Markdown and JSON reports include an external scanner intelligence summary showing retained, deduplicated, correlated, upgraded, and downgraded imported findings.
 
 ## Artifacts
 

@@ -9,10 +9,28 @@
 | Suppressed                     |     0 |
 | Downgraded                     |     1 |
 | Imported findings              |     2 |
+| Retained imported findings     |     2 |
 | Deduplicated imported findings |     0 |
 | Correlated imported findings   |     1 |
+| Downgraded imported findings   |     1 |
+| Upgraded imported findings     |     1 |
 | Graph nodes                    |     5 |
 | Graph edges                    |     5 |
+
+## External scanner intelligence
+
+ChangeGate imported 2 external findings, retained 2 after deduplication, and correlated 1 to the change graph.
+
+| Source  | Findings |
+| ------- | -------: |
+| `grype` |        1 |
+| `sarif` |        1 |
+
+Key handling notes:
+
+- `sarif` `correlated` `aws_lb.web`: scanner finding matched a changed graph resource through graph.alias
+- `grype` `downgraded` `openssl`: imported finding did not correlate to a changed graph resource
+- `sarif` `upgraded` `aws_lb.web`: graph context increases materiality of imported finding
 
 ## Decision reasons
 
@@ -47,13 +65,14 @@
 - Rule: `EXT_SARIF_CG_PUBLIC_WEB_EDGE_REVIEW`
 - Resource: `aws_lb.web`
 - Severity: `high`, confidence: `high`
-- Fingerprint: `e971f4b8926a31cfe01a923facce855dac7bd4b9abd797e1020c5341b5216dc3`
+- Fingerprint: `b37b4497a7c83d334f7aee95233adb4ad1adc7eea100647233e18facf9b26a7d`
 
 Evidence:
 
 - `external_scanner` `sarif`: finding imported from sarif
 - `external_location` `main.tf:12`: SARIF result location
-- `external_correlation` `graph.node`: imported finding correlated to changed graph resource
+- `external_correlation` `graph.alias`: imported finding correlated to changed graph resource
+- `external_decision` `upgraded`: external finding upgraded because graph evidence increases materiality
 
 Remediation:
 
@@ -74,7 +93,7 @@ Remediation:
 - Rule: `EXT_GRYPE_CVE_2026_0001`
 - Resource: `openssl`
 - Severity: `medium`, confidence: `medium`
-- Fingerprint: `0eef8e3bfec15c4089843bd43941de17c0d80b23f9b927c1d038b8f9d41446cf`
+- Fingerprint: `a7e54214cc2e870fa1c1de83e1d85efddb8e6d7eb891dbe233d6c069286223c2`
 
 Synthetic package vulnerability used to demonstrate external scanner import.
 
@@ -82,6 +101,7 @@ Evidence:
 
 - `external_scanner` `grype`: finding imported from grype
 - `external_vulnerability` `/image`: Grype vulnerability match
+- `external_decision` `downgraded`: external finding downgraded because graph evidence was incomplete
 
 Remediation:
 

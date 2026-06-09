@@ -1,18 +1,36 @@
 # ChangeGate: BLOCK
 
-| Metric                         | Value |
-| ------------------------------ | ----: |
-| Risk clusters                  |     2 |
-| Findings                       |     2 |
-| Blocking                       |     1 |
-| Warnings                       |     1 |
-| Suppressed                     |     0 |
-| Downgraded                     |     0 |
-| Imported findings              |     3 |
-| Deduplicated imported findings |     2 |
-| Correlated imported findings   |     1 |
-| Graph nodes                    |     1 |
-| Graph edges                    |     0 |
+| Metric                             | Value |
+| ---------------------------------- | ----: |
+| Risk clusters                      |     2 |
+| Findings                           |     2 |
+| Blocking                           |     1 |
+| Warnings                           |     1 |
+| Suppressed                         |     0 |
+| Downgraded                         |     0 |
+| Imported findings                  |     3 |
+| Retained imported findings         |     1 |
+| Deduplicated imported findings     |     2 |
+| Native findings superseded imports |     2 |
+| Correlated imported findings       |     1 |
+| Graph nodes                        |     1 |
+| Graph edges                        |     0 |
+
+## External scanner intelligence
+
+ChangeGate imported 3 external findings, retained 1 after deduplication, and correlated 1 to the change graph.
+
+| Source    | Findings |
+| --------- | -------: |
+| `checkov` |        1 |
+| `kics`    |        1 |
+| `trivy`   |        1 |
+
+Key handling notes:
+
+- `kics` `correlated` `aws_s3_bucket_policy.assets`: scanner finding matched a changed graph resource through graph.alias
+- `checkov` `superseded_by_native` `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
+- `trivy` `superseded_by_native` `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
 
 ## Decision reasons
 
@@ -73,13 +91,13 @@ Remediation:
 - Rule: `EXT_KICS_381C3F2A_EF6F_4EFF_99F7_B169CDA3422C`
 - Resource: `aws_s3_bucket_policy.assets`
 - Severity: `high`, confidence: `medium`
-- Fingerprint: `1d1d357cce6c5aabd1896565441e44de4527a7311b11b85d244092aaf942b30b`
+- Fingerprint: `d1a05322c9b77ff441fcfe03d280d3df7f8a2782c9224a36853fff43f134c542`
 
 Evidence:
 
 - `external_scanner` `kics`: finding imported from kics
 - `external_location` `main.tf:3`: KICS query match
-- `external_correlation` `graph.node`: imported finding correlated to changed graph resource
+- `external_correlation` `graph.alias`: imported finding correlated to changed graph resource
 
 Remediation:
 

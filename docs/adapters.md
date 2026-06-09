@@ -59,11 +59,22 @@ Imported findings are labeled with external metadata:
 
 This makes imported findings visually distinct while keeping them suppressable with the same waiver, baseline, and policy mechanisms as native findings.
 
-## Deduplication and correlation
+## Scanner intelligence
 
 Imported findings are deduplicated by stable fingerprint when the same scanner artifact is imported more than once. Imported findings are also deduplicated against native findings by fingerprint and by resource/category. Native ChangeGate findings win because they have richer graph evidence.
 
-If an imported finding references a changed graph resource, ChangeGate adds `external_correlation` evidence. If the graph shows public exposure or sensitive-data access for that resource, ChangeGate can upgrade the imported finding's materiality. If the imported finding cannot be correlated to a changed resource, ChangeGate downgrades high-severity/high-confidence imported noise.
+If an imported finding references a changed graph resource, ChangeGate adds `external_correlation` evidence. Correlation uses explicit Terraform/OpenTofu resource addresses and graph aliases such as ARN, provider ID, bucket name, function name, role ARN, resource name, and tags. If the graph shows public exposure or sensitive-data access for that resource, ChangeGate can upgrade the imported finding's materiality. If the imported finding cannot be correlated to a changed resource, ChangeGate downgrades high-severity/high-confidence imported noise.
+
+JSON and Markdown reports include an external scanner intelligence summary with:
+
+- imported and retained finding counts
+- repeated scanner duplicates
+- imported findings superseded by native ChangeGate findings
+- graph-correlated imported findings
+- imported findings upgraded or downgraded by graph context
+- short explanations for the most important scanner-handling decisions
+
+SARIF location-only results are retained, but ChangeGate only correlates them to the graph when the result includes a resource identifier, resource property, ARN, provider ID, or other graph alias. Terraform plan JSON does not contain source-code line ranges, so ChangeGate does not infer resource identity from a file path alone.
 
 Adapter normalization is tested against real scanner JSON fixtures for Checkov, Trivy, KICS, and Grype in addition to minimal schema fixtures. This keeps parser behavior tied to actual tool output shapes while preserving ChangeGate's local-only model: external tools are never installed or run by ChangeGate.
 

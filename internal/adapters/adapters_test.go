@@ -265,11 +265,20 @@ func TestMergeDeduplicatesAndCorrelatesImportedFindings(t *testing.T) {
 	if len(merged) != 3 {
 		t.Fatalf("merged findings = %d, want 3", len(merged))
 	}
-	if summary.Imported != 3 || summary.Deduplicated != 1 || summary.Correlated != 1 || summary.Downgraded != 1 || summary.Upgraded != 1 {
+	if summary.Imported != 3 || summary.Retained != 2 || summary.Deduplicated != 1 || summary.SupersededByNative != 1 || summary.Correlated != 1 || summary.Downgraded != 1 || summary.Upgraded != 1 {
 		t.Fatalf("summary = %#v", summary)
 	}
 	if summary.BySource[SourceCheckov] != 1 || summary.BySource[SourceTrivy] != 1 || summary.BySource[SourceKICS] != 1 {
 		t.Fatalf("by source = %#v", summary.BySource)
+	}
+	if !hasInsight(summary.Insights, "superseded_by_native", "aws_s3_bucket.logs") {
+		t.Fatalf("missing superseded insight: %#v", summary.Insights)
+	}
+	if !hasInsight(summary.Insights, "upgraded", "aws_lb.admin") {
+		t.Fatalf("missing upgraded insight: %#v", summary.Insights)
+	}
+	if !hasInsight(summary.Insights, "downgraded", "aws_security_group.missing") {
+		t.Fatalf("missing downgraded insight: %#v", summary.Insights)
 	}
 }
 
@@ -291,14 +300,116 @@ func TestMergeDeduplicatesRepeatedImportedFindings(t *testing.T) {
 	if len(merged) != 1 {
 		t.Fatalf("merged findings = %d, want 1", len(merged))
 	}
-	if summary.Imported != 2 || summary.Deduplicated != 1 || summary.BySource[SourceCheckov] != 2 {
+	if summary.Imported != 2 || summary.Retained != 1 || summary.Deduplicated != 1 || summary.BySource[SourceCheckov] != 2 {
 		t.Fatalf("summary = %#v", summary)
+	}
+	if !hasInsight(summary.Insights, "repeated_duplicate", "aws_s3_bucket.logs") {
+		t.Fatalf("missing repeated duplicate insight: %#v", summary.Insights)
+	}
+}
+
+func TestMergeCorrelatesImportedFindingsByGraphAlias(t *testing.T) {
+	t.Parallel()
+
+	imported := model.NormalizeFinding(model.Finding{
+		RuleID:          "EXT_SARIF_PUBLIC_BUCKET",
+		Title:           "public bucket",
+		ResourceAddress: "arn:aws:s3:::customer-logs",
+		Provider:        "external",
+		PolicyPack:      "external:sarif",
+		Category:        model.RiskCategoryPublicExposure,
+		Severity:        model.SeverityMedium,
+		Confidence:      model.ConfidenceMedium,
+	})
+	resourceGraph := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			"aws_s3_bucket.logs": {
+				ID:      "aws_s3_bucket.logs",
+				Address: "aws_s3_bucket.logs",
+				Type:    "aws_s3_bucket",
+				Values: map[string]any{
+					"arn":    "arn:aws:s3:::customer-logs",
+					"bucket": "customer-logs",
+				},
+			},
+		},
+	}
+
+	merged, summary := Merge(nil, []model.Finding{imported}, resourceGraph)
+	if len(merged) != 1 {
+		t.Fatalf("merged findings = %d, want 1", len(merged))
+	}
+	if got := merged[0].ResourceAddress; got != "aws_s3_bucket.logs" {
+		t.Fatalf("canonical resource = %q, want aws_s3_bucket.logs", got)
+	}
+	if summary.Retained != 1 || summary.Correlated != 1 || summary.Downgraded != 0 {
+		t.Fatalf("summary = %#v", summary)
+	}
+	if !hasInsight(summary.Insights, "correlated", "aws_s3_bucket.logs") {
+		t.Fatalf("missing correlated insight: %#v", summary.Insights)
+	}
+}
+
+func TestMergeSupersedesImportedFindingsByGraphAlias(t *testing.T) {
+	t.Parallel()
+
+	native := model.NormalizeFinding(model.Finding{
+		RuleID:          "AWS_S3_BUCKET_PUBLIC_POLICY",
+		Title:           "public bucket policy",
+		ResourceAddress: "aws_s3_bucket.logs",
+		Provider:        "aws",
+		Category:        model.RiskCategoryPublicExposure,
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceHigh,
+	})
+	imported := model.NormalizeFinding(model.Finding{
+		RuleID:          "EXT_SARIF_PUBLIC_BUCKET",
+		Title:           "public bucket",
+		ResourceAddress: "arn:aws:s3:::customer-logs",
+		Provider:        "external",
+		PolicyPack:      "external:sarif",
+		Category:        model.RiskCategoryPublicExposure,
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceMedium,
+	})
+	resourceGraph := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			"aws_s3_bucket.logs": {
+				ID:      "aws_s3_bucket.logs",
+				Address: "aws_s3_bucket.logs",
+				Type:    "aws_s3_bucket",
+				Values: map[string]any{
+					"arn":    "arn:aws:s3:::customer-logs",
+					"bucket": "customer-logs",
+				},
+			},
+		},
+	}
+
+	merged, summary := Merge([]model.Finding{native}, []model.Finding{imported}, resourceGraph)
+	if len(merged) != 1 {
+		t.Fatalf("merged findings = %d, want 1", len(merged))
+	}
+	if summary.Imported != 1 || summary.Retained != 0 || summary.Deduplicated != 1 || summary.SupersededByNative != 1 {
+		t.Fatalf("summary = %#v", summary)
+	}
+	if !hasInsight(summary.Insights, "superseded_by_native", "aws_s3_bucket.logs") {
+		t.Fatalf("missing alias superseded insight: %#v", summary.Insights)
 	}
 }
 
 func hasRuleID(findings []model.Finding, ruleID string) bool {
 	for _, finding := range findings {
 		if finding.RuleID == ruleID {
+			return true
+		}
+	}
+	return false
+}
+
+func hasInsight(insights []Insight, action string, resource string) bool {
+	for _, insight := range insights {
+		if insight.Action == action && insight.Resource == resource {
 			return true
 		}
 	}
