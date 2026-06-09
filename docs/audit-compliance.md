@@ -16,6 +16,9 @@ changegate scan --plan tfplan.json --format sarif --out changegate.sarif --audit
 
 The zip uses a stable `changegate-audit/` prefix and deterministic member ordering:
 
+- `evidence-report.html` is the browser-readable entry point for reviewers. It summarizes the decision, graph size, scanner-import handling, risk clusters, top findings, and links to the supporting files in the same bundle.
+- `manifest.json` lists supporting bundle artifacts with byte size, SHA-256 checksum, and a short description.
+- `scan-report.json` contains the canonical ChangeGate JSON report for automation and archival.
 - `decision.json` records the allow/warn/block decision, reason codes, decision reasons, and risk summary.
 - `findings.json` contains the already-redacted canonical findings.
 - `suppressed.json` contains only findings with active suppressions.
@@ -23,12 +26,14 @@ The zip uses a stable `changegate-audit/` prefix and deterministic member orderi
 - `baseline.json` contains baseline diff evidence when a baseline is configured.
 - `policy.yaml` contains the active policy file, or the generated default policy stub.
 - `policy-digest.txt` and `plan-digest.txt` contain SHA-256 digests.
+- `reproducibility.md` records the primary command shape, available digests, and the most useful bundle entry points.
 - `rule-pack-versions.json` records bundled policy pack versions.
 - `environment.json` records non-secret scan context, plan summary, graph summary, decision, and optional cloud-context timestamp.
 - `evidence.json` contains finding evidence and decision reasons.
 - `compliance.json` contains rule-to-framework mappings and mapped actual findings.
 - `run-metadata.json` contains CLI version, build metadata, digests, policy pack versions, and redaction status.
 - `redaction-report.json` summarizes sensitive evidence counts.
+- `imported-scanners.json` contains the external scanner import summary when scanner artifacts are imported.
 - `summary.md` is a human-readable archive summary.
 - `impact.json` and `impact.md` contain the Security Impact Statement created from the same scan report.
 - `review-comment.md` contains the sticky PR/MR review comment body that can be posted by the review integrations.
