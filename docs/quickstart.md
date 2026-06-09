@@ -90,4 +90,4 @@ changegate scan --plan tfplan.json --format markdown --out changegate.md
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip
 ```
 
-The archive contains the decision, findings, suppressed findings, waiver and baseline reports when configured, policy digests, plan digest, rule pack versions, evidence JSON, compliance metadata, run metadata, and a Markdown summary.
+The archive contains a browser-readable evidence report, canonical JSON report, decision evidence, redacted findings, policy and plan digests, scanner-import summary when used, and reproducibility notes.

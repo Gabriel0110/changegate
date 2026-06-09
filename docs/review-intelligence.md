@@ -1,10 +1,10 @@
 # ChangeGate Review Intelligence
 
-Review Intelligence turns the plan parser, graph engine, policy decisions, waivers, baselines, remediation, and audit bundles into a production-grade infrastructure change review experience.
+Review Intelligence turns plan analysis, graph evidence, policy decisions, waivers, baselines, remediation, and audit bundles into an infrastructure change review workflow.
 
-The feature set is implemented as local CLI functionality. Existing `changegate scan` behavior remains stable unless a later release explicitly documents a compatible extension or a new opt-in flag.
+The workflow is local CLI functionality. `changegate scan` remains the core gate, and the review commands reuse the same deterministic report model.
 
-## Goals
+## Capabilities
 
 Review Intelligence focuses on six capabilities:
 
@@ -37,7 +37,7 @@ changegate impact --plan tfplan.json --baseline .changegate/baseline.json --new-
 changegate impact --plan tfplan.json --audit-bundle impact-audit.zip
 ```
 
-`changegate impact` is available now. It reuses the same scan engine as `changegate scan`, including policy config, baselines, waivers, cloud context files, external scanner imports, and multi-plan input. Markdown is intended for pull requests and approval workflows; JSON is the stable machine contract.
+`changegate impact` reuses the same scan engine as `changegate scan`, including policy config, baselines, waivers, cloud context files, external scanner imports, and multi-plan input. Markdown is intended for pull requests and approval workflows; JSON is the stable machine contract.
 
 See [Security Impact Statement](security-impact-statement.md) for the statement contract and output behavior.
 

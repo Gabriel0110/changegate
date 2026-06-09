@@ -71,7 +71,7 @@ AWS_PUBLIC_RDS_INSTANCE:
 
 This means compliance reports can help audit teams route evidence without turning checklist metadata into separate blocking risks.
 
-The bundled AWS rule pack has mapping coverage tests so newly added stable AWS rules cannot silently ship without compliance metadata. These mappings are evidence routing aids, not legal claims of compliance.
+Bundled AWS rules include compliance mappings where the relationship is useful for evidence routing. These mappings are evidence aids, not legal claims of compliance.
 
 Teams can add organization-specific mappings in `.changegate.yaml`:
 

@@ -76,7 +76,7 @@ JSON and Markdown reports include an external scanner intelligence summary with:
 
 SARIF location-only results are retained, but ChangeGate only correlates them to the graph when the result includes a resource identifier, resource property, ARN, provider ID, or other graph alias. Terraform plan JSON does not contain source-code line ranges, so ChangeGate does not infer resource identity from a file path alone.
 
-Adapter normalization is tested against real scanner JSON fixtures for Checkov, Trivy, KICS, and Grype in addition to minimal schema fixtures. This keeps parser behavior tied to actual tool output shapes while preserving ChangeGate's local-only model: external tools are never installed or run by ChangeGate.
+Adapter normalization supports real Checkov, Trivy, KICS, and Grype JSON output shapes in addition to minimal schema fixtures. ChangeGate still keeps the workflow local-only: external tools are never installed or run by ChangeGate.
 
 For copy-pasteable sample artifacts and generated output snapshots, see [external scanner import examples](../examples/scanner-imports).
 
