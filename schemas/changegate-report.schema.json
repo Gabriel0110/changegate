@@ -45,22 +45,63 @@
     "imports": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["imported", "deduplicated", "correlated", "downgraded", "upgraded"],
+      "required": [
+        "imported",
+        "deduplicated",
+        "correlated",
+        "downgraded",
+        "upgraded"
+      ],
       "properties": {
         "imported": { "type": "integer", "minimum": 0 },
+        "retained": { "type": "integer", "minimum": 0 },
         "deduplicated": { "type": "integer", "minimum": 0 },
+        "superseded_by_native": { "type": "integer", "minimum": 0 },
         "correlated": { "type": "integer", "minimum": 0 },
         "downgraded": { "type": "integer", "minimum": 0 },
         "upgraded": { "type": "integer", "minimum": 0 },
         "by_source": {
           "type": "object",
           "additionalProperties": { "type": "integer", "minimum": 0 }
+        },
+        "insights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["action", "source", "reason"],
+            "properties": {
+              "action": {
+                "enum": [
+                  "correlated",
+                  "downgraded",
+                  "repeated_duplicate",
+                  "superseded_by_native",
+                  "upgraded"
+                ]
+              },
+              "source": { "type": "string" },
+              "rule_id": { "type": "string" },
+              "resource": { "type": "string" },
+              "native_rule_id": { "type": "string" },
+              "native_finding_id": { "type": "string" },
+              "reason": { "type": "string" }
+            }
+          }
         }
       }
     },
     "risk_summary": {
       "type": "object",
-      "required": ["total", "blocking", "warnings", "informational", "suppressed", "downgraded", "upgraded"],
+      "required": [
+        "total",
+        "blocking",
+        "warnings",
+        "informational",
+        "suppressed",
+        "downgraded",
+        "upgraded"
+      ],
       "properties": {
         "total": { "type": "integer", "minimum": 0 },
         "blocking": { "type": "integer", "minimum": 0 },
@@ -272,7 +313,14 @@
     "compliance_finding": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["finding_id", "rule_id", "resource", "frameworks", "actual_risk", "suppressed"],
+      "required": [
+        "finding_id",
+        "rule_id",
+        "resource",
+        "frameworks",
+        "actual_risk",
+        "suppressed"
+      ],
       "properties": {
         "finding_id": { "type": "string" },
         "rule_id": { "type": "string" },
@@ -409,7 +457,14 @@
     },
     "patch_suggestion": {
       "type": "object",
-      "required": ["title", "format", "snippet", "safe_to_apply", "rationale", "review_needed"],
+      "required": [
+        "title",
+        "format",
+        "snippet",
+        "safe_to_apply",
+        "rationale",
+        "review_needed"
+      ],
       "properties": {
         "title": { "type": "string" },
         "format": { "type": "string" },

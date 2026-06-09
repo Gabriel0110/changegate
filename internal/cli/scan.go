@@ -606,20 +606,35 @@ func importExternalFindings(requests []adapters.ImportRequest, nativeFindings []
 }
 
 func importSummaryFromAdapter(summary adapters.Summary) *output.ImportSummary {
-	if summary.Imported == 0 && summary.Deduplicated == 0 && summary.Correlated == 0 && summary.Downgraded == 0 && summary.Upgraded == 0 {
+	if summary.Imported == 0 && summary.Retained == 0 && summary.Deduplicated == 0 && summary.Correlated == 0 && summary.Downgraded == 0 && summary.Upgraded == 0 {
 		return nil
 	}
 	bySource := make(map[string]int, len(summary.BySource))
 	for source, count := range summary.BySource {
 		bySource[string(source)] = count
 	}
+	insights := make([]output.ImportInsight, 0, len(summary.Insights))
+	for _, insight := range summary.Insights {
+		insights = append(insights, output.ImportInsight{
+			Action:          insight.Action,
+			Source:          string(insight.Source),
+			RuleID:          insight.RuleID,
+			Resource:        insight.Resource,
+			NativeRuleID:    insight.NativeRuleID,
+			NativeFindingID: insight.NativeFindingID,
+			Reason:          insight.Reason,
+		})
+	}
 	return &output.ImportSummary{
-		Imported:     summary.Imported,
-		Deduplicated: summary.Deduplicated,
-		Correlated:   summary.Correlated,
-		Downgraded:   summary.Downgraded,
-		Upgraded:     summary.Upgraded,
-		BySource:     bySource,
+		Imported:           summary.Imported,
+		Retained:           summary.Retained,
+		Deduplicated:       summary.Deduplicated,
+		SupersededByNative: summary.SupersededByNative,
+		Correlated:         summary.Correlated,
+		Downgraded:         summary.Downgraded,
+		Upgraded:           summary.Upgraded,
+		BySource:           bySource,
+		Insights:           insights,
 	}
 }
 

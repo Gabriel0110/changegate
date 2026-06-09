@@ -37,7 +37,8 @@ changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 - `schema_version`
 - final `decision`
 - plan and graph summaries
-- optional external import summary with imported, deduplicated, correlated, downgraded, and upgraded counts
+- optional external import summary with imported, retained, deduplicated, superseded, correlated, downgraded, and upgraded counts
+- optional external import insights explaining why imported findings were retained, superseded by native findings, upgraded, or downgraded
 - risk summary, including suppressed and downgraded counts
 - optional risk movement when a baseline is configured
 - decision reason codes and human-readable reasons
@@ -92,7 +93,7 @@ The HTML visualizations do not fetch network assets or external JavaScript. They
 
 ## Markdown
 
-`--format markdown` and `--format pr-comment` render PR-comment-friendly Markdown with a decision summary, decision reasons, findings, evidence, and remediation.
+`--format markdown` and `--format pr-comment` render PR-comment-friendly Markdown with a decision summary, decision reasons, external scanner intelligence when imports are used, findings, evidence, and remediation.
 
 `--format github-step-summary` renders a compact Markdown table suitable for GitHub Actions `GITHUB_STEP_SUMMARY`.
 

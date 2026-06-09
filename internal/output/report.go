@@ -38,12 +38,26 @@ type GraphSummary struct {
 
 // ImportSummary captures external scanner import and correlation counts.
 type ImportSummary struct {
-	Imported     int            `json:"imported"`
-	Deduplicated int            `json:"deduplicated"`
-	Correlated   int            `json:"correlated"`
-	Downgraded   int            `json:"downgraded"`
-	Upgraded     int            `json:"upgraded"`
-	BySource     map[string]int `json:"by_source,omitempty"`
+	Imported           int             `json:"imported"`
+	Retained           int             `json:"retained,omitempty"`
+	Deduplicated       int             `json:"deduplicated"`
+	SupersededByNative int             `json:"superseded_by_native,omitempty"`
+	Correlated         int             `json:"correlated"`
+	Downgraded         int             `json:"downgraded"`
+	Upgraded           int             `json:"upgraded"`
+	BySource           map[string]int  `json:"by_source,omitempty"`
+	Insights           []ImportInsight `json:"insights,omitempty"`
+}
+
+// ImportInsight explains how an imported scanner finding affected the report.
+type ImportInsight struct {
+	Action          string `json:"action"`
+	Source          string `json:"source"`
+	RuleID          string `json:"rule_id,omitempty"`
+	Resource        string `json:"resource,omitempty"`
+	NativeRuleID    string `json:"native_rule_id,omitempty"`
+	NativeFindingID string `json:"native_finding_id,omitempty"`
+	Reason          string `json:"reason"`
 }
 
 // RunMetadata captures deterministic machine-readable run evidence.
@@ -214,13 +228,17 @@ func RenderConsole(report Report) string {
 	clusters := clustersForReport(report)
 	fmt.Fprintf(&b, "Risk clusters: %d\n", len(clusters))
 	if report.Imports != nil {
-		native := report.RiskSummary.Total - report.Imports.Imported + report.Imports.Deduplicated
+		native := report.RiskSummary.Total - retainedImportCount(report.Imports)
 		if native < 0 {
 			native = 0
 		}
 		fmt.Fprintf(&b, "Native findings: %d\n", native)
 		fmt.Fprintf(&b, "Imported findings: %d\n", report.Imports.Imported)
+		fmt.Fprintf(&b, "Imported retained: %d\n", retainedImportCount(report.Imports))
 		fmt.Fprintf(&b, "Deduplicated: %d\n", report.Imports.Deduplicated)
+		if report.Imports.SupersededByNative > 0 {
+			fmt.Fprintf(&b, "Superseded by native findings: %d\n", report.Imports.SupersededByNative)
+		}
 		fmt.Fprintf(&b, "Imported correlated: %d\n", report.Imports.Correlated)
 		fmt.Fprintf(&b, "Imported downgraded: %d\n", report.Imports.Downgraded)
 		fmt.Fprintf(&b, "Imported upgraded: %d\n", report.Imports.Upgraded)
@@ -287,11 +305,22 @@ func RenderMarkdown(report Report) string {
 	fmt.Fprintf(&b, "| Downgraded | %d |\n", report.RiskSummary.Downgraded)
 	if report.Imports != nil {
 		fmt.Fprintf(&b, "| Imported findings | %d |\n", report.Imports.Imported)
+		fmt.Fprintf(&b, "| Retained imported findings | %d |\n", retainedImportCount(report.Imports))
 		fmt.Fprintf(&b, "| Deduplicated imported findings | %d |\n", report.Imports.Deduplicated)
+		if report.Imports.SupersededByNative > 0 {
+			fmt.Fprintf(&b, "| Native findings superseded imports | %d |\n", report.Imports.SupersededByNative)
+		}
 		fmt.Fprintf(&b, "| Correlated imported findings | %d |\n", report.Imports.Correlated)
+		if report.Imports.Downgraded > 0 {
+			fmt.Fprintf(&b, "| Downgraded imported findings | %d |\n", report.Imports.Downgraded)
+		}
+		if report.Imports.Upgraded > 0 {
+			fmt.Fprintf(&b, "| Upgraded imported findings | %d |\n", report.Imports.Upgraded)
+		}
 	}
 	fmt.Fprintf(&b, "| Graph nodes | %d |\n", report.Graph.Nodes)
 	fmt.Fprintf(&b, "| Graph edges | %d |\n\n", report.Graph.Edges)
+	writeImportIntelligenceMarkdown(&b, report.Imports)
 	reasons := collapsedDecisionReasons(report)
 	if len(reasons) > 0 {
 		b.WriteString("## Decision reasons\n\n")
@@ -470,6 +499,66 @@ func pluralize(count int, singular string, plural string) string {
 	return plural
 }
 
+func retainedImportCount(imports *ImportSummary) int {
+	if imports == nil {
+		return 0
+	}
+	if imports.Retained > 0 || imports.Imported == 0 {
+		return imports.Retained
+	}
+	retained := imports.Imported - imports.Deduplicated
+	if retained < 0 {
+		return 0
+	}
+	return retained
+}
+
+func writeImportIntelligenceMarkdown(b *strings.Builder, imports *ImportSummary) {
+	if imports == nil {
+		return
+	}
+	b.WriteString("## External scanner intelligence\n\n")
+	fmt.Fprintf(b, "ChangeGate imported %d external %s, retained %d after deduplication, and correlated %d to the change graph.\n\n", imports.Imported, pluralize(imports.Imported, "finding", "findings"), retainedImportCount(imports), imports.Correlated)
+	if len(imports.BySource) > 0 {
+		b.WriteString("| Source | Findings |\n| --- | ---: |\n")
+		sources := make([]string, 0, len(imports.BySource))
+		for source := range imports.BySource {
+			sources = append(sources, source)
+		}
+		sort.Strings(sources)
+		for _, source := range sources {
+			fmt.Fprintf(b, "| `%s` | %d |\n", source, imports.BySource[source])
+		}
+		b.WriteString("\n")
+	}
+	if len(imports.Insights) == 0 {
+		return
+	}
+	b.WriteString("Key handling notes:\n")
+	limit := len(imports.Insights)
+	if limit > 8 {
+		limit = 8
+	}
+	for _, insight := range imports.Insights[:limit] {
+		target := insight.Resource
+		if target == "" {
+			target = insight.RuleID
+		}
+		if target == "" {
+			target = insight.Source
+		}
+		fmt.Fprintf(b, "- `%s` `%s` `%s`: %s", insight.Source, insight.Action, target, insight.Reason)
+		if insight.NativeRuleID != "" {
+			fmt.Fprintf(b, " (`%s`)", insight.NativeRuleID)
+		}
+		b.WriteString("\n")
+	}
+	if len(imports.Insights) > limit {
+		fmt.Fprintf(b, "- ... %d more scanner handling notes in JSON output\n", len(imports.Insights)-limit)
+	}
+	b.WriteString("\n")
+}
+
 // RenderGitHubStepSummary renders a compact Markdown summary for GITHUB_STEP_SUMMARY.
 func RenderGitHubStepSummary(report Report) string {
 	var b strings.Builder
@@ -482,8 +571,18 @@ func RenderGitHubStepSummary(report Report) string {
 	fmt.Fprintf(&b, "- Suppressed: %d\n", report.RiskSummary.Suppressed)
 	if report.Imports != nil {
 		fmt.Fprintf(&b, "- Imported findings: %d\n", report.Imports.Imported)
+		fmt.Fprintf(&b, "- Retained imported findings: %d\n", retainedImportCount(report.Imports))
 		fmt.Fprintf(&b, "- Deduplicated imported findings: %d\n", report.Imports.Deduplicated)
+		if report.Imports.SupersededByNative > 0 {
+			fmt.Fprintf(&b, "- Native findings superseded imports: %d\n", report.Imports.SupersededByNative)
+		}
 		fmt.Fprintf(&b, "- Correlated imported findings: %d\n", report.Imports.Correlated)
+		if report.Imports.Downgraded > 0 {
+			fmt.Fprintf(&b, "- Downgraded imported findings: %d\n", report.Imports.Downgraded)
+		}
+		if report.Imports.Upgraded > 0 {
+			fmt.Fprintf(&b, "- Upgraded imported findings: %d\n", report.Imports.Upgraded)
+		}
 	}
 	if len(report.Findings) == 0 {
 		b.WriteString("\nNo findings.\n")

@@ -1099,8 +1099,12 @@ func TestScanImportsExternalFindings(t *testing.T) {
 	for _, want := range []string{
 		`"imports": {`,
 		`"imported": 2`,
+		`"retained": 1`,
 		`"deduplicated": 1`,
+		`"superseded_by_native": 1`,
 		`"correlated": 1`,
+		`"action": "superseded_by_native"`,
+		`"action": "correlated"`,
 		`"policy_pack": "external:generic-json"`,
 		`"type": "external_scanner"`,
 		`"type": "external_correlation"`,
