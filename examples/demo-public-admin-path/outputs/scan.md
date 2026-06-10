@@ -1,15 +1,15 @@
 # ChangeGate: BLOCK
 
-| Metric        | Value |
-| ------------- | ----: |
-| Risk clusters |     2 |
-| Findings      |    11 |
-| Blocking      |    11 |
-| Warnings      |     0 |
-| Suppressed    |     0 |
-| Downgraded    |     0 |
-| Graph nodes   |     7 |
-| Graph edges   |    12 |
+| Metric | Value |
+| --- | ---: |
+| Risk clusters | 2 |
+| Findings | 11 |
+| Blocking | 11 |
+| Warnings | 0 |
+| Suppressed | 0 |
+| Downgraded | 0 |
+| Graph nodes | 7 |
+| Graph edges | 12 |
 
 ## Decision reasons
 
@@ -50,35 +50,33 @@
 ChangeGate detected a high-signal infrastructure attack path.
 
 Evidence:
-
-- `attack_path` `attack_path.id`: attack path attack-path-809c77cb5de3cd2d produced block decision
-- `attack_path` `attack_path.type`: attack path type is public_to_sensitive_data
-- `attack_path` `attack_path.kind`: attack path kind is network
-- `attack_path` `attack_path.confidence_reason`: path confidence is based on plan graph evidence
-- `attack_path.graph_path` `graph.path`: public entrypoint reaches sensitive asset
-- `attack_path` `attack_path.source`: attack path source is plan
-- `attack_path` `attack_path.affected_resources`: attack path affected resources are linked to this finding
-- `attack_path.step` `has_public_access`: load balancer is internet exposed
-- `attack_path.step` `routes_to`: load balancer routes to listener
-- `attack_path.step` `routes_to`: listener forwards to target group
-- `attack_path.step` `routes_to`: target group routes to ECS service
-- `attack_path.step` `allows_egress`: resource can send traffic through security group
-- `attack_path.step` `allows_ingress`: security group applies to resource
+- **Attack path:** attack path type is public_to_sensitive_data
+- **Attack path:** attack path kind is network
+- **Confidence:** high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence
+- **Graph path:** public entrypoint reaches sensitive asset
+- **Attack path step:** load balancer is internet exposed
+- **Attack path step:** load balancer routes to listener
+- 7 additional evidence items are available in JSON output.
 
 Remediation:
 
-- Remove the public route to the workload or restrict ingress to approved CIDRs.
+**Primary fix:** Remove the public route to the workload or restrict ingress to approved CIDRs.
+
+Recommended actions:
 - Allow sensitive assets only from reviewed workload security groups and roles.
 - Remove direct routing from public workloads to sensitive datastores or secrets.
-- Remove the public route to the workload or restrict ingress to approved CIDRs.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 - Segment the workload from sensitive data stores and secrets.
-- Why this works: Removing any required step breaks the attack path before deployment.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Attack path requires topology review (ChangeGate does not auto-patch multi-resource attack paths because the correct fix depends on service ownership, routing intent, and approved access patterns.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Production RDS backup retention disabled
 
@@ -90,21 +88,27 @@ Remediation:
 Detects production databases with backup retention disabled or reduced to zero.
 
 Evidence:
-
-- `rule` `backup_retention_period`: production database backup retention is disabled
+- **Rule evidence:** production database backup retention is disabled
 
 Remediation:
 
-- Set backup retention to a non-zero period aligned with recovery requirements.
+**Primary fix:** Set backup retention to a non-zero period aligned with recovery requirements.
+
+Recommended actions:
 - Confirm the planned delete or replacement is intentional.
 - Enable deletion protection where supported.
 - Take a backup or snapshot and document rollback.
-- Why this works: Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Availability changes require review (ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Avoid replacement** (preferred): Prefer an in-place supported change or staged migration instead of replacing stateful infrastructure.
+- **Approve replacement with recovery plan**: If replacement is intentional, require a snapshot, rollback plan, and maintenance window.
+
+Review notes:
+- Effort: medium
+- Downtime risk: high
+- This change may be destructive; review replacement or deletion behavior before apply.
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Production RDS deletion protection disabled
 
@@ -116,21 +120,27 @@ Remediation:
 Detects production databases without deletion protection.
 
 Evidence:
-
-- `rule` `deletion_protection`: production database deletion protection is disabled
+- **Rule evidence:** production database deletion protection is disabled
 
 Remediation:
 
-- Enable deletion protection for production databases.
+**Primary fix:** Enable deletion protection for production databases.
+
+Recommended actions:
 - Confirm the planned delete or replacement is intentional.
 - Enable deletion protection where supported.
 - Take a backup or snapshot and document rollback.
-- Why this works: Availability controls reduce the chance that a routine apply becomes an outage or data-loss event.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Availability changes require review (ChangeGate does not auto-patch destructive or downtime-prone changes because the safe path depends on service ownership and recovery requirements.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Avoid replacement** (preferred): Prefer an in-place supported change or staged migration instead of replacing stateful infrastructure.
+- **Approve replacement with recovery plan**: If replacement is intentional, require a snapshot, rollback plan, and maintenance window.
+
+Review notes:
+- Effort: medium
+- Downtime risk: high
+- This change may be destructive; review replacement or deletion behavior before apply.
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Internet-facing ALB routes to admin service
 
@@ -142,33 +152,28 @@ Remediation:
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
-
-- `rule` `graph`: aws_ecs_service.admin: security group applies to resource (security_groups)
-- `rule` `graph`: aws_security_group.public: security group allows public ingress (ingress)
+- **Rule evidence:** aws_ecs_service.admin: security group applies to resource (security_groups)
+- **Rule evidence:** aws_security_group.public: security group allows public ingress (ingress)
 
 Remediation:
 
-- Remove public routing to the admin service or require private/authenticated access.
+**Primary fix:** Remove public routing to the admin service or require private/authenticated access.
+
+Recommended actions:
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
 - Set the ALB `internal` argument to `true` for private admin services.
-- Why this works: Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.
-- Fix confidence: `high`
-- Automatic patch: `false`
 
-Patch suggestion: Prefer internal ALB for admin services
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
 
-```hcl
-resource "aws_lb" "admin" {
-  internal = true
-
-  # Keep admin listeners reachable only from private subnets or a trusted proxy.
-}
-```
-
-- Owner hints: `service=admin`
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Review notes:
+- Owner hint: `service=admin`
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Internet-facing ALB routes to admin service
 
@@ -180,18 +185,20 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
-
-- `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
+- **Rule evidence:** aws_lb.admin: load balancer is internet exposed (scheme)
 
 Remediation:
 
-- Remove public routing to the admin service or require private/authenticated access.
+**Primary fix:** Remove public routing to the admin service or require private/authenticated access.
+
+Recommended actions:
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
 - Set the ALB `internal` argument to `true` for private admin services.
-- Why this works: Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.
-- Fix confidence: `high`
-- Automatic patch: `false`
+
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
 
 Patch suggestion: Prefer internal ALB for admin services
 
@@ -203,9 +210,14 @@ resource "aws_lb" "admin" {
 }
 ```
 
-- Owner hints: `service=admin`
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Review the patch before applying it.
+
+Review notes:
+- Owner hint: `service=admin`
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Internet-facing ALB routes to admin service
 
@@ -217,32 +229,27 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
-
-- `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
-- `rule` `graph`: aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
+- **Rule evidence:** aws_lb.admin: load balancer is internet exposed (scheme)
+- **Rule evidence:** aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
 
 Remediation:
 
-- Remove public routing to the admin service or require private/authenticated access.
+**Primary fix:** Remove public routing to the admin service or require private/authenticated access.
+
+Recommended actions:
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
 - Set the ALB `internal` argument to `true` for private admin services.
-- Why this works: Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.
-- Fix confidence: `high`
-- Automatic patch: `false`
 
-Patch suggestion: Prefer internal ALB for admin services
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
 
-```hcl
-resource "aws_lb" "admin" {
-  internal = true
-
-  # Keep admin listeners reachable only from private subnets or a trusted proxy.
-}
-```
-
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Review notes:
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Internet-facing ALB routes to admin service
 
@@ -254,33 +261,28 @@ resource "aws_lb" "admin" {
 Detects public load balancer paths to resources that appear to expose admin surfaces.
 
 Evidence:
-
-- `rule` `graph`: aws_lb.admin: load balancer is internet exposed (scheme)
-- `rule` `graph`: aws_lb_listener.admin: listener forwards to target group (default_action.target_group_arn)
-- `rule` `graph`: aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
+- **Rule evidence:** aws_lb.admin: load balancer is internet exposed (scheme)
+- **Rule evidence:** aws_lb_listener.admin: listener forwards to target group (default_action.target_group_arn)
+- **Rule evidence:** aws_lb_listener.admin: load balancer routes to listener (load_balancer_arn)
 
 Remediation:
 
-- Remove public routing to the admin service or require private/authenticated access.
+**Primary fix:** Remove public routing to the admin service or require private/authenticated access.
+
+Recommended actions:
 - Confirm downstream services are not tagged as admin or production unless the exposure is intentional.
 - If public access is required, restrict listener security groups to VPN, zero-trust proxy, or allowlisted CIDRs.
 - Set the ALB `internal` argument to `true` for private admin services.
-- Why this works: Removing direct public routing to admin workloads prevents unauthenticated internet clients from reaching privileged control surfaces.
-- Fix confidence: `high`
-- Automatic patch: `false`
 
-Patch suggestion: Prefer internal ALB for admin services
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
 
-```hcl
-resource "aws_lb" "admin" {
-  internal = true
-
-  # Keep admin listeners reachable only from private subnets or a trusted proxy.
-}
-```
-
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Review notes:
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -292,25 +294,30 @@ resource "aws_lb" "admin" {
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: resource can send traffic through security group
-- `rule` `graph.edge`: security group applies to resource
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** resource can send traffic through security group
+- **Graph edge:** security group applies to resource
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Owner hints: `service=admin`
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Owner hint: `service=admin`
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -322,28 +329,33 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: load balancer routes to listener
-- `rule` `graph.edge`: listener forwards to target group
-- `rule` `graph.edge`: target group routes to ECS service
-- `rule` `graph.edge`: resource can send traffic through security group
-- `rule` `graph.edge`: security group applies to resource
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** load balancer routes to listener
+- **Graph edge:** listener forwards to target group
+- **Graph edge:** target group routes to ECS service
+- **Graph edge:** resource can send traffic through security group
+- 1 additional evidence item is available in JSON output.
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Owner hints: `service=admin`
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Owner hint: `service=admin`
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -355,26 +367,31 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: listener forwards to target group
-- `rule` `graph.edge`: target group routes to ECS service
-- `rule` `graph.edge`: resource can send traffic through security group
-- `rule` `graph.edge`: security group applies to resource
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** listener forwards to target group
+- **Graph edge:** target group routes to ECS service
+- **Graph edge:** resource can send traffic through security group
+- **Graph edge:** security group applies to resource
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -386,22 +403,27 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: target group routes to ECS service
-- `rule` `graph.edge`: resource can send traffic through security group
-- `rule` `graph.edge`: security group applies to resource
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** target group routes to ECS service
+- **Graph edge:** resource can send traffic through security group
+- **Graph edge:** security group applies to resource
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.

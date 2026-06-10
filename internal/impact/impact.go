@@ -103,6 +103,9 @@ func RenderMarkdown(statement Statement) string {
 	if len(statement.TopGraphPaths) > 0 {
 		fmt.Fprintf(&b, "## Top Graph Paths\n\n")
 		for _, path := range statement.TopGraphPaths {
+			if len(path.Path) == 0 {
+				continue
+			}
 			fmt.Fprintf(&b, "- `%s`: %s\n", path.Resource, strings.Join(path.Path, " -> "))
 		}
 		b.WriteString("\n")
@@ -140,7 +143,13 @@ func RenderMarkdown(statement Statement) string {
 		}
 	}
 
-	return b.String()
+	return normalizeFinalNewline(b.String())
+}
+
+func normalizeFinalNewline(value string) string {
+	return strings.TrimRightFunc(value, func(r rune) bool {
+		return r == '\n' || r == '\r' || r == '\t' || r == ' '
+	}) + "\n"
 }
 
 func plural(count int) string {

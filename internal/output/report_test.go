@@ -148,6 +148,85 @@ func TestRenderJSONUsesEmptyArraysForEmptyReportSlices(t *testing.T) {
 	}
 }
 
+func TestRenderMarkdownCuratesEvidenceAndRemediation(t *testing.T) {
+	t.Parallel()
+
+	finding := model.NormalizeFinding(model.Finding{
+		RuleID:          "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+		Title:           "Public entrypoint reaches sensitive data",
+		ResourceAddress: "aws_lambda_function.public_handler",
+		Provider:        "aws",
+		Category:        model.RiskCategorySensitiveData,
+		Severity:        model.SeverityCritical,
+		Confidence:      model.ConfidenceHigh,
+		Evidence: []model.Evidence{
+			{Type: "attack_path", Path: "attack_path.id", Message: "attack path attack-path-123 produced block decision"},
+			{Type: "attack_path", Path: "attack_path.confidence_reason", Message: "path confidence is based on plan and cloud context evidence"},
+			{Type: "attack_path.graph_path", Path: "graph.path", Message: "public entrypoint reaches sensitive asset"},
+			{Type: "attack_path.step", Path: "reads_secret", Message: "Lambda environment references secret value"},
+			{Type: "cloud_context", Path: "cloud_context.account", Message: "AWS account context attached"},
+			{Type: "cloud_context", Path: "cloud_context.region", Message: "AWS region context attached"},
+		},
+		Remediation: model.Remediation{
+			Summary:          "Limit secret access to the smallest required workload role.",
+			Steps:            []string{"Limit secret access to the smallest required workload role.", "Remove direct routing from public workloads to sensitive datastores or secrets.", "Remove direct routing from public workloads to sensitive datastores or secrets."},
+			WhyThisWorks:     "Removing any required step breaks the path.",
+			FixConfidence:    model.ConfidenceMedium,
+			AutoFixAvailable: false,
+			Patches: []model.PatchSuggestion{{
+				Title:     "Attack path requires topology review",
+				Rationale: "ChangeGate does not auto-patch multi-resource attack paths.",
+			}},
+			OwnerHints: []string{"service=public-api"},
+			NextSteps:  []string{"Attach evidence of the selected mitigation before apply."},
+		},
+	})
+	report := Report{
+		SchemaVersion: ReportSchemaVersion,
+		Decision:      model.DecisionBlock,
+		Plan:          PlanSummary{Path: "tfplan.json", Tool: model.ToolTerraform, FormatVersion: "1.0"},
+		RiskSummary:   model.RiskSummary{Total: 1, Blocking: 1},
+		Findings:      []model.Finding{finding},
+	}
+
+	got := RenderMarkdown(report)
+	for _, want := range []string{
+		"- **Confidence:** path confidence is based on plan and cloud context evidence",
+		"- **Graph path:** public entrypoint reaches sensitive asset",
+		"- **Attack path step:** Lambda environment references secret value",
+		"**Primary fix:** Limit secret access to the smallest required workload role.",
+		"- Remove direct routing from public workloads to sensitive datastores or secrets.",
+		"- Owner hint: `service=public-api`",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("markdown missing %q:\n%s", want, got)
+		}
+	}
+	for _, unwanted := range []string{
+		"attack_path.id",
+		"cloud_context.account",
+		"cloud_context.region",
+		"Fix confidence",
+		"Automatic patch",
+		"Patch suggestion: Attack path requires topology review",
+		"Why this works",
+	} {
+		if strings.Contains(got, unwanted) {
+			t.Fatalf("markdown still contains noisy text %q:\n%s", unwanted, got)
+		}
+	}
+	findingDetails := got
+	if marker := strings.Index(got, "## Finding details"); marker >= 0 {
+		findingDetails = got[marker:]
+	}
+	if strings.Count(findingDetails, "Limit secret access to the smallest required workload role.") != 1 {
+		t.Fatalf("primary fix should appear once in finding details:\n%s", got)
+	}
+	if strings.Count(findingDetails, "Remove direct routing from public workloads to sensitive datastores or secrets.") != 1 {
+		t.Fatalf("duplicate remediation step was not removed:\n%s", got)
+	}
+}
+
 func sampleReport() Report {
 	finding := model.NormalizeFinding(model.Finding{
 		RuleID:          "AWS_SG_WORLD_OPEN_ADMIN_PORT",

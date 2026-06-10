@@ -269,7 +269,7 @@ func RenderConsole(report Report) string {
 			fmt.Fprintf(&b, "- [%s/%s] %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, cluster.Title, len(cluster.AffectedResources), len(cluster.SupportingFindings))
 		}
 	}
-	return b.String()
+	return normalizeMarkdownFinalNewline(b.String())
 }
 
 // RenderJSON renders the canonical report JSON.
@@ -365,7 +365,7 @@ func RenderMarkdown(report Report) string {
 	}
 	if len(report.Findings) == 0 {
 		b.WriteString("No findings.\n")
-		return b.String()
+		return normalizeMarkdownFinalNewline(b.String())
 	}
 	b.WriteString("## Finding details\n\n")
 	for _, finding := range report.Findings {
@@ -377,56 +377,352 @@ func RenderMarkdown(report Report) string {
 		if finding.Description != "" {
 			fmt.Fprintf(&b, "\n%s\n", finding.Description)
 		}
-		if len(finding.Evidence) > 0 {
-			b.WriteString("\nEvidence:\n")
-			for _, evidence := range finding.Evidence {
-				fmt.Fprintf(&b, "- `%s`", evidence.Type)
-				if evidence.Path != "" {
-					fmt.Fprintf(&b, " `%s`", evidence.Path)
-				}
-				if evidence.Message != "" {
-					fmt.Fprintf(&b, ": %s", evidence.Message)
-				}
-				b.WriteString("\n")
-			}
-		}
-		if finding.Remediation.Summary != "" || len(finding.Remediation.Steps) > 0 {
-			b.WriteString("\nRemediation:\n")
-			if finding.Remediation.Summary != "" {
-				fmt.Fprintf(&b, "- %s\n", finding.Remediation.Summary)
-			}
-			for _, step := range finding.Remediation.Steps {
-				fmt.Fprintf(&b, "- %s\n", step)
-			}
-			if finding.Remediation.WhyThisWorks != "" {
-				fmt.Fprintf(&b, "- Why this works: %s\n", finding.Remediation.WhyThisWorks)
-			}
-			if finding.Remediation.FixConfidence != "" {
-				fmt.Fprintf(&b, "- Fix confidence: `%s`\n", finding.Remediation.FixConfidence)
-			}
-			if finding.Remediation.AutoFixAvailable || len(finding.Remediation.Patches) > 0 || finding.Remediation.WhyThisWorks != "" || finding.Remediation.FixConfidence != "" {
-				fmt.Fprintf(&b, "- Automatic patch: `%t`\n", finding.Remediation.AutoFixAvailable)
-			}
-			for _, patch := range finding.Remediation.Patches {
-				if patch.Snippet == "" {
-					fmt.Fprintf(&b, "- Patch suggestion: %s (%s)\n", patch.Title, patch.Rationale)
-					continue
-				}
-				fmt.Fprintf(&b, "\nPatch suggestion: %s\n\n```%s\n%s\n```\n", patch.Title, patch.Language, strings.TrimSpace(patch.Snippet))
-			}
-			if len(finding.Remediation.OwnerHints) > 0 {
-				fmt.Fprintf(&b, "- Owner hints: `%s`\n", strings.Join(finding.Remediation.OwnerHints, "`, `"))
-			}
-			for _, step := range finding.Remediation.NextSteps {
-				fmt.Fprintf(&b, "- Next step: %s\n", step)
-			}
-			for _, doc := range finding.Remediation.Docs {
-				fmt.Fprintf(&b, "- Doc: %s\n", doc)
-			}
-		}
+		writeFindingEvidenceMarkdown(&b, finding.Evidence)
+		writeFindingRemediationMarkdown(&b, finding)
 		b.WriteString("\n")
 	}
-	return b.String()
+	return normalizeMarkdownFinalNewline(b.String())
+}
+
+const findingEvidenceLimit = 6
+
+func writeFindingEvidenceMarkdown(b *strings.Builder, evidence []model.Evidence) {
+	items, omitted := curatedFindingEvidence(evidence, findingEvidenceLimit)
+	if len(items) == 0 {
+		return
+	}
+	b.WriteString("\nEvidence:\n")
+	for _, item := range items {
+		label := evidenceLabel(item)
+		message := strings.TrimSpace(item.Message)
+		if message == "" {
+			message = evidenceFallbackMessage(item)
+		}
+		if label == "" {
+			fmt.Fprintf(b, "- %s\n", message)
+			continue
+		}
+		fmt.Fprintf(b, "- **%s:** %s\n", label, message)
+	}
+	if omitted > 0 {
+		fmt.Fprintf(b, "- %d additional evidence item%s available in JSON output.\n", omitted, pluralize(omitted, " is", "s are"))
+	}
+}
+
+func curatedFindingEvidence(evidence []model.Evidence, limit int) ([]model.Evidence, int) {
+	if limit <= 0 {
+		limit = findingEvidenceLimit
+	}
+	selected := make([]model.Evidence, 0, min(len(evidence), limit))
+	seen := make(map[string]bool, len(evidence))
+	omitted := 0
+	for _, item := range evidence {
+		if isLowSignalEvidence(item) {
+			omitted++
+			continue
+		}
+		message := strings.TrimSpace(item.Message)
+		if message == "" && item.Path == "" && item.Resource == "" {
+			omitted++
+			continue
+		}
+		key := normalizedMarkdownKey(item.Type + "\x00" + item.Path + "\x00" + item.Resource + "\x00" + message)
+		if seen[key] {
+			omitted++
+			continue
+		}
+		seen[key] = true
+		if len(selected) >= limit {
+			omitted++
+			continue
+		}
+		selected = append(selected, item)
+	}
+	return selected, omitted
+}
+
+func isLowSignalEvidence(evidence model.Evidence) bool {
+	path := strings.ToLower(strings.TrimSpace(evidence.Path))
+	typ := strings.ToLower(strings.TrimSpace(evidence.Type))
+	switch {
+	case typ == "cloud_context" && (path == "cloud_context.account" || path == "cloud_context.region"):
+		return true
+	case path == "attack_path.id" || path == "attack_path.source" || path == "attack_path.affected_resources":
+		return true
+	default:
+		return false
+	}
+}
+
+func evidenceLabel(evidence model.Evidence) string {
+	path := strings.ToLower(strings.TrimSpace(evidence.Path))
+	typ := strings.ToLower(strings.TrimSpace(evidence.Type))
+	switch {
+	case path == "graph.path" || strings.Contains(path, "graph_path"):
+		return "Graph path"
+	case path == "graph.target":
+		return "Reachable sensitive asset"
+	case path == "graph.edge":
+		return "Graph edge"
+	case strings.HasPrefix(typ, "attack_path") || strings.HasPrefix(path, "attack_path."):
+		if strings.HasPrefix(path, "attack_path.step") || typ == "attack_path.step" {
+			return "Attack path step"
+		}
+		if path == "attack_path.confidence_reason" {
+			return "Confidence"
+		}
+		return "Attack path"
+	case typ == "cloud_context":
+		return "Cloud context"
+	case typ == "rule":
+		return "Rule evidence"
+	case typ == "attribute":
+		if evidence.Path != "" {
+			return evidence.Path
+		}
+		return "Attribute"
+	case evidence.Resource != "":
+		return evidence.Resource
+	default:
+		return ""
+	}
+}
+
+func evidenceFallbackMessage(evidence model.Evidence) string {
+	switch {
+	case evidence.Resource != "" && evidence.Path != "":
+		return fmt.Sprintf("%s `%s`", evidence.Resource, evidence.Path)
+	case evidence.Resource != "":
+		return evidence.Resource
+	case evidence.Path != "":
+		return evidence.Path
+	default:
+		return "Evidence is available in JSON output."
+	}
+}
+
+func writeFindingRemediationMarkdown(b *strings.Builder, finding model.Finding) {
+	remediation := finding.Remediation
+	if !hasRenderableRemediation(remediation) {
+		return
+	}
+	b.WriteString("\nRemediation:\n\n")
+	if remediation.Summary != "" {
+		fmt.Fprintf(b, "**Primary fix:** %s\n", strings.TrimSpace(remediation.Summary))
+	}
+	steps := uniqueMarkdownStringsExcept(remediation.Steps, remediation.Summary)
+	if len(steps) > 0 {
+		if remediation.Summary != "" {
+			b.WriteString("\n")
+		}
+		b.WriteString("Recommended actions:\n")
+		for _, step := range steps {
+			fmt.Fprintf(b, "- %s\n", step)
+		}
+	}
+	writeFixOptionsMarkdown(b, remediation.FixOptions)
+	writePatchSuggestionsMarkdown(b, finding.ResourceAddress, remediation)
+	writeReviewNotesMarkdown(b, remediation)
+	writeDocsMarkdown(b, remediation.Docs)
+}
+
+func hasRenderableRemediation(remediation model.Remediation) bool {
+	return remediation.Summary != "" ||
+		len(remediation.Steps) > 0 ||
+		len(remediation.FixOptions) > 0 ||
+		len(remediation.Patches) > 0 ||
+		len(remediation.OwnerHints) > 0 ||
+		len(remediation.NextSteps) > 0 ||
+		len(remediation.Docs) > 0 ||
+		remediation.Effort != "" ||
+		remediation.DowntimeRisk != "" ||
+		remediation.Destructive ||
+		remediation.AutoFixAvailable
+}
+
+func writeFixOptionsMarkdown(b *strings.Builder, options []model.FixOption) {
+	if len(options) == 0 {
+		return
+	}
+	b.WriteString("\nFix options:\n")
+	for _, option := range options {
+		title := strings.TrimSpace(option.Title)
+		description := strings.TrimSpace(option.Description)
+		if title == "" && description == "" {
+			continue
+		}
+		if title == "" {
+			fmt.Fprintf(b, "- %s\n", description)
+			continue
+		}
+		marker := ""
+		if option.Preferred {
+			marker = " (preferred)"
+		}
+		if description == "" {
+			fmt.Fprintf(b, "- **%s**%s\n", title, marker)
+			continue
+		}
+		fmt.Fprintf(b, "- **%s**%s: %s\n", title, marker, description)
+	}
+}
+
+func writePatchSuggestionsMarkdown(b *strings.Builder, resourceAddress string, remediation model.Remediation) {
+	if !remediation.AutoFixAvailable && !hasApplicableSnippetPatch(resourceAddress, remediation.Patches) {
+		return
+	}
+	for _, patch := range remediation.Patches {
+		if strings.TrimSpace(patch.Snippet) == "" {
+			continue
+		}
+		if !patchAppliesToResource(resourceAddress, patch) {
+			continue
+		}
+		language := strings.TrimSpace(patch.Language)
+		title := strings.TrimSpace(patch.Title)
+		if title == "" {
+			title = "Patch suggestion"
+		}
+		fmt.Fprintf(b, "\nPatch suggestion: %s\n\n```%s\n%s\n```\n", title, language, strings.TrimSpace(patch.Snippet))
+		if patch.ReviewNeeded {
+			b.WriteString("\nReview the patch before applying it.\n")
+		}
+	}
+}
+
+func writeReviewNotesMarkdown(b *strings.Builder, remediation model.Remediation) {
+	notes := make([]string, 0, len(remediation.NextSteps)+4)
+	if remediation.AutoFixAvailable {
+		notes = append(notes, "Automatic patch guidance is available; review it before applying.")
+	}
+	if remediation.Effort != "" {
+		notes = append(notes, "Effort: "+remediation.Effort)
+	}
+	if remediation.DowntimeRisk != "" {
+		notes = append(notes, "Downtime risk: "+remediation.DowntimeRisk)
+	}
+	if remediation.Destructive {
+		notes = append(notes, "This change may be destructive; review replacement or deletion behavior before apply.")
+	}
+	notes = append(notes, remediation.NextSteps...)
+	notes = uniqueMarkdownStrings(notes)
+	if len(notes) == 0 && len(remediation.OwnerHints) == 0 {
+		return
+	}
+	b.WriteString("\nReview notes:\n")
+	for _, hint := range uniqueMarkdownStrings(remediation.OwnerHints) {
+		fmt.Fprintf(b, "- Owner hint: `%s`\n", hint)
+	}
+	for _, note := range notes {
+		fmt.Fprintf(b, "- %s\n", note)
+	}
+}
+
+func writeDocsMarkdown(b *strings.Builder, docs []string) {
+	docs = uniqueMarkdownStrings(docs)
+	if len(docs) == 0 {
+		return
+	}
+	b.WriteString("\nReferences:\n")
+	for _, doc := range docs {
+		fmt.Fprintf(b, "- %s\n", doc)
+	}
+}
+
+func hasApplicableSnippetPatch(resourceAddress string, patches []model.PatchSuggestion) bool {
+	for _, patch := range patches {
+		if strings.TrimSpace(patch.Snippet) != "" && patchAppliesToResource(resourceAddress, patch) {
+			return true
+		}
+	}
+	return false
+}
+
+func patchAppliesToResource(resourceAddress string, patch model.PatchSuggestion) bool {
+	if len(patch.AppliesTo) == 0 {
+		return true
+	}
+	resourceType := terraformResourceType(resourceAddress)
+	for _, appliesTo := range patch.AppliesTo {
+		appliesTo = strings.TrimSpace(appliesTo)
+		if appliesTo == "" {
+			continue
+		}
+		if appliesTo == resourceAddress || appliesTo == resourceType {
+			return true
+		}
+	}
+	return false
+}
+
+func terraformResourceType(resourceAddress string) string {
+	parts := strings.Split(resourceAddress, ".")
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.TrimSpace(parts[0])
+}
+
+func uniqueMarkdownStrings(values ...any) []string {
+	out := make([]string, 0)
+	seen := make(map[string]bool)
+	for _, value := range values {
+		switch typed := value.(type) {
+		case string:
+			addUniqueMarkdownString(&out, seen, typed)
+		case []string:
+			for _, item := range typed {
+				addUniqueMarkdownString(&out, seen, item)
+			}
+		}
+	}
+	return out
+}
+
+func uniqueMarkdownStringsExcept(values []string, excluded ...string) []string {
+	excludedKeys := make(map[string]bool, len(excluded))
+	for _, value := range excluded {
+		key := normalizedMarkdownKey(value)
+		if key != "" {
+			excludedKeys[key] = true
+		}
+	}
+	out := make([]string, 0, len(values))
+	seen := make(map[string]bool, len(values))
+	for _, value := range values {
+		key := normalizedMarkdownKey(value)
+		if key == "" || excludedKeys[key] {
+			continue
+		}
+		addUniqueMarkdownString(&out, seen, value)
+	}
+	return out
+}
+
+func addUniqueMarkdownString(out *[]string, seen map[string]bool, value string) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return
+	}
+	key := normalizedMarkdownKey(value)
+	if seen[key] {
+		return
+	}
+	seen[key] = true
+	*out = append(*out, value)
+}
+
+func normalizedMarkdownKey(value string) string {
+	value = strings.ToLower(strings.TrimSpace(value))
+	value = strings.Trim(value, ".;:")
+	value = strings.Join(strings.Fields(value), " ")
+	return value
+}
+
+func normalizeMarkdownFinalNewline(value string) string {
+	return strings.TrimRightFunc(value, func(r rune) bool {
+		return r == '\n' || r == '\r' || r == '\t' || r == ' '
+	}) + "\n"
 }
 
 // RenderPRComment renders a concise Markdown summary for pull request comments.

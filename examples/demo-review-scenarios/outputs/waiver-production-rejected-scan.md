@@ -1,15 +1,15 @@
 # ChangeGate: BLOCK
 
-| Metric        | Value |
-| ------------- | ----: |
-| Risk clusters |     1 |
-| Findings      |     1 |
-| Blocking      |     1 |
-| Warnings      |     0 |
-| Suppressed    |     0 |
-| Downgraded    |     0 |
-| Graph nodes   |     2 |
-| Graph edges   |     2 |
+| Metric | Value |
+| --- | ---: |
+| Risk clusters | 1 |
+| Findings | 1 |
+| Blocking | 1 |
+| Warnings | 0 |
+| Suppressed | 0 |
+| Downgraded | 0 |
+| Graph nodes | 2 |
+| Graph edges | 2 |
 
 ## Decision reasons
 
@@ -39,18 +39,20 @@
 Detects publicly accessible RDS instances.
 
 Evidence:
-
-- `rule` `publicly_accessible`: database is configured as publicly accessible
+- **Rule evidence:** database is configured as publicly accessible
 
 Remediation:
 
-- Set publicly_accessible to false and use private subnets.
+**Primary fix:** Set publicly_accessible to false and use private subnets.
+
+Recommended actions:
 - Restrict security groups to application sources only.
 - Set `publicly_accessible = false`.
 - Use private DB subnet groups.
-- Why this works: The database no longer receives public network exposure and is reachable only through private routing.
-- Fix confidence: `high`
-- Automatic patch: `false`
+
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
 
 Patch suggestion: Disable public RDS accessibility
 
@@ -61,5 +63,10 @@ resource "aws_db_instance" "customer" {
 }
 ```
 
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Review the patch before applying it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.

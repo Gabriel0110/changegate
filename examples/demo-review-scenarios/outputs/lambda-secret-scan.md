@@ -1,22 +1,34 @@
 # ChangeGate: BLOCK
 
-| Metric        | Value |
-| ------------- | ----: |
-| Risk clusters |     2 |
-| Findings      |     4 |
-| Blocking      |     4 |
-| Warnings      |     0 |
-| Suppressed    |     0 |
-| Downgraded    |     0 |
-| Graph nodes   |     4 |
-| Graph edges   |     5 |
+| Metric | Value |
+| --- | ---: |
+| Risk clusters | 4 |
+| Findings | 6 |
+| Blocking | 6 |
+| Warnings | 0 |
+| Suppressed | 0 |
+| Downgraded | 0 |
+| Graph nodes | 4 |
+| Graph edges | 5 |
 
 ## Decision reasons
 
 - `MEETS_BLOCK_THRESHOLD` `Lambda function URL is public`: finding meets block threshold
+- `MEETS_BLOCK_THRESHOLD` `Public Lambda URL reaches sensitive data`: finding meets block threshold
 - `MEETS_BLOCK_THRESHOLD` `Public admin service reaches sensitive data`: Public admin service reaches sensitive data: 3 supporting findings across 3 affected resources
+- `MEETS_BLOCK_THRESHOLD` `Public workload can read secret`: finding meets block threshold
 
 ## Risk clusters
+
+### Public Lambda URL reaches sensitive data
+
+- Decision: `block`
+- Severity: `critical`, confidence: `high`
+- Affected resources: 1
+- Supporting findings: 1
+- Rules: `AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA`
+- Primary fix: Use AWS_IAM authorization or remove the downstream sensitive data capability.
+- Resources: `aws_lambda_function_url.public_handler`
 
 ### Public admin service reaches sensitive data
 
@@ -27,6 +39,16 @@
 - Rules: `AWS_PUBLIC_TO_SENSITIVE_DATASTORE`, `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`
 - Primary fix: Limit secret access to the smallest required workload role.
 - Resources: `aws_lambda_function.public_handler`, `aws_lambda_function_url.public_handler`, `aws_secretsmanager_secret.customer`
+
+### Public workload can read secret
+
+- Decision: `block`
+- Severity: `critical`, confidence: `high`
+- Affected resources: 1
+- Supporting findings: 1
+- Rules: `AWS_PUBLIC_WORKLOAD_READS_SECRET`
+- Primary fix: Remove public exposure from the workload or scope secret access to a private workload path.
+- Resources: `aws_lambda_function.public_handler`
 
 ### Lambda function URL is public
 
@@ -40,7 +62,87 @@
 
 ## Finding details
 
-### Public entrypoint aws_lambda_function_url.public_handler reaches sensitive asset aws_secretsmanager_secret.customer
+### Public workload can read secret
+
+- Rule: `AWS_PUBLIC_WORKLOAD_READS_SECRET`
+- Resource: `aws_lambda_function.public_handler`
+- Severity: `critical`, confidence: `high`
+- Fingerprint: `51a0fe323974fe0d71dc77cb0defe592e650c642f2ae05eaf4cf735632322e59`
+
+Detects internet-exposed workloads with graph-backed access to Secrets Manager secrets.
+
+Evidence:
+- **Graph path:** internet-exposed workload has a high-confidence graph path to a secret
+- **Reachable sensitive asset:** sensitive graph target is reachable from public infrastructure
+- **Graph edge:** Lambda environment references secret value
+- 2 additional evidence items are available in JSON output.
+
+Remediation:
+
+**Primary fix:** Remove public exposure from the workload or scope secret access to a private workload path.
+
+Recommended actions:
+- Remove unauthenticated public entry points that invoke the workload.
+- Scope `secretsmanager:GetSecretValue` to only the secret and role that require it.
+- Split public request handling from private secret access when the endpoint must remain internet-facing.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Owner hint: `service=public-api`
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+### Public Lambda URL reaches sensitive data
+
+- Rule: `AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA`
+- Resource: `aws_lambda_function_url.public_handler`
+- Severity: `critical`, confidence: `high`
+- Fingerprint: `81a4761b98431a8af02278dd7b13a222c71ced8acd72550e7fcc38062b78829a`
+
+Detects unauthenticated Lambda function URLs that invoke a function with graph-backed access to sensitive data.
+
+Evidence:
+- **Graph path:** public Lambda function URL invokes a workload with a high-confidence path to sensitive data
+- **Reachable sensitive asset:** sensitive graph target is reachable from public infrastructure
+- **Graph edge:** Lambda function URL invokes Lambda function
+- **Graph edge:** Lambda environment references secret value
+- 2 additional evidence items are available in JSON output.
+
+Remediation:
+
+**Primary fix:** Use AWS_IAM authorization or remove the downstream sensitive data capability.
+
+Recommended actions:
+- If the function must stay public, split sensitive operations into a private worker role or separate function.
+- Remove secret, KMS, datastore, or bucket access that is not required by this public handler.
+- Set the function URL `authorization_type` to `AWS_IAM` or place it behind an authenticated edge layer.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Patch suggestion: Require IAM authorization for Lambda Function URL
+
+```hcl
+resource "aws_lambda_function_url" "public_handler" {
+  authorization_type = "AWS_IAM"
+}
+```
+
+Review the patch before applying it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+### Public Lambda Function URL aws_lambda_function_url.public_handler reaches secret aws_secretsmanager_secret.customer
 
 - Rule: `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH`
 - Resource: `aws_secretsmanager_secret.customer`
@@ -50,33 +152,34 @@
 ChangeGate detected a high-signal infrastructure attack path.
 
 Evidence:
-
-- `attack_path` `attack_path.id`: attack path attack-path-810cccdbe74f8f34 produced block decision
-- `attack_path` `attack_path.type`: attack path type is public_to_sensitive_data
-- `attack_path` `attack_path.kind`: attack path kind is network
-- `attack_path` `attack_path.confidence_reason`: path confidence is based on mixed graph evidence
-- `attack_path.graph_path` `graph.path`: public entrypoint reaches sensitive asset
-- `attack_path` `attack_path.source`: attack path source is mixed
-- `attack_path` `attack_path.affected_resources`: attack path affected resources are linked to this finding
-- `attack_path.step` `has_public_access`: Lambda function URL is internet exposed
-- `attack_path.step` `routes_to`: cloud context relationship
-- `attack_path.step` `reads_secret`: Lambda environment references secret value
+- **Attack path:** attack path type is public_to_sensitive_data
+- **Attack path:** attack path kind is network
+- **Confidence:** high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence
+- **Graph path:** public entrypoint reaches sensitive asset
+- **Attack path step:** Lambda function URL is internet exposed
+- **Attack path step:** cloud context relationship
+- 4 additional evidence items are available in JSON output.
 
 Remediation:
 
-- Limit secret access to the smallest required workload role.
+**Primary fix:** Limit secret access to the smallest required workload role.
+
+Recommended actions:
 - Allow sensitive assets only from reviewed workload security groups and roles.
-- Limit secret access to the smallest required workload role.
 - Remove direct routing from public workloads to sensitive datastores or secrets.
 - Remove the public route to the workload or restrict ingress to approved CIDRs.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 - Segment the workload from sensitive data stores and secrets.
-- Why this works: Removing any required step breaks the attack path before deployment.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Attack path requires topology review (ChangeGate does not auto-patch multi-resource attack paths because the correct fix depends on service ownership, routing intent, and approved access patterns.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Lambda function URL is public
 
@@ -88,23 +191,37 @@ Remediation:
 Detects Lambda function URLs that allow unauthenticated public access.
 
 Evidence:
-
-- `rule` `authorization_type`: Lambda function URL allows unauthenticated public access
-- `cloud_context` `cloud_context.account`: AWS account context attached
-- `cloud_context` `cloud_context.region`: AWS region context attached
+- **Rule evidence:** Lambda function URL allows unauthenticated public access
+- 2 additional evidence items are available in JSON output.
 
 Remediation:
 
-- Use AWS_IAM authorization or place the function behind an authenticated API layer.
-- Document any intentional public exposure in policy or a time-bounded waiver.
-- Prefer private subnets, internal load balancers, or authenticated edge controls.
-- Remove public CIDRs unless internet access is required.
-- Why this works: Reducing public reachability lowers exploitability and leaves fewer assets directly reachable from the internet.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Public exposure requires review (ChangeGate does not auto-apply exposure changes because safe CIDRs, proxy placement, and business intent are environment-specific.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+**Primary fix:** Use AWS_IAM authorization or place the function behind an authenticated API layer.
+
+Recommended actions:
+- Document any intentionally public function URL with owner approval and monitoring coverage.
+- If anonymous access is required, put the function behind API Gateway, CloudFront, WAF, or another reviewed edge control.
+- Set the Lambda function URL `authorization_type` to `AWS_IAM` when callers can sign requests.
+
+Fix options:
+- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
+- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
+
+Patch suggestion: Require IAM authorization for Lambda Function URL
+
+```hcl
+resource "aws_lambda_function_url" "public_handler" {
+  authorization_type = "AWS_IAM"
+}
+```
+
+Review the patch before applying it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: medium
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -116,26 +233,30 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: Lambda environment references secret value
-- `cloud_context` `cloud_context.account`: AWS account context attached
-- `cloud_context` `cloud_context.region`: AWS region context attached
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** Lambda environment references secret value
+- 2 additional evidence items are available in JSON output.
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Owner hints: `service=public-api`
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Owner hint: `service=public-api`
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
 ### Public resource can reach sensitive datastore
 
@@ -147,23 +268,27 @@ Remediation:
 Detects public resources that can reach sensitive data stores through the graph.
 
 Evidence:
-
-- `rule` `graph.path`: public resource has a high-confidence graph path to sensitive datastore
-- `rule` `graph.target`: sensitive datastore is reachable from public resource
-- `rule` `graph.edge`: Lambda function URL invokes Lambda function
-- `rule` `graph.edge`: Lambda environment references secret value
-- `cloud_context` `cloud_context.account`: AWS account context attached
-- `cloud_context` `cloud_context.region`: AWS region context attached
+- **Graph path:** public resource has a high-confidence graph path to sensitive datastore
+- **Reachable sensitive asset:** sensitive datastore is reachable from public resource
+- **Graph edge:** Lambda function URL invokes Lambda function
+- **Graph edge:** Lambda environment references secret value
+- 2 additional evidence items are available in JSON output.
 
 Remediation:
 
-- Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+**Primary fix:** Break the public-to-sensitive path with private networking, scoped security groups, or service isolation.
+
+Recommended actions:
 - Allow datastore access only from reviewed private workload security groups.
 - Remove direct routing from public workloads to sensitive datastores.
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
-- Why this works: The datastore is reachable only while each graph edge remains in place; removing public exposure, routing, or datastore access breaks the path.
-- Fix confidence: `medium`
-- Automatic patch: `false`
-- Patch suggestion: Datastore reachability requires topology review (ChangeGate does not auto-patch public-to-datastore paths because the correct fix depends on service ownership, routing intent, security groups, and approved access patterns.)
-- Next step: Attach evidence of the selected mitigation before apply.
-- Next step: Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+
+Fix options:
+- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
+- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+
+Review notes:
+- Effort: medium
+- Downtime risk: low
+- Attach evidence of the selected mitigation before apply.
+- Treat as release-blocking unless a reviewer approves a time-bounded waiver.

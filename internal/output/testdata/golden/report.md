@@ -39,11 +39,13 @@
 The planned security group permits public administrative ingress.
 
 Evidence:
-- `attribute` `ingress[0].cidr_blocks`: Ingress allows SSH from the public internet.
-- `attribute` `tags.secret`: Sensitive tag value was redacted.
+- **ingress[0].cidr_blocks:** Ingress allows SSH from the public internet.
+- **tags.secret:** Sensitive tag value was redacted.
 
 Remediation:
-- Restrict administrative ingress to trusted CIDR ranges.
+
+**Primary fix:** Restrict administrative ingress to trusted CIDR ranges.
+
+Recommended actions:
 - Replace 0.0.0.0/0 with a trusted bastion, VPN, or private subnet range.
 - Prefer SSM Session Manager for administrative access.
-

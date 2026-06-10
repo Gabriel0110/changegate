@@ -148,6 +148,42 @@ func TemplateFor(ruleID string, category model.RiskCategory) Template {
 }
 
 var ruleTemplates = map[string]Template{
+	"AWS_LAMBDA_PUBLIC_FUNCTION_URL": {
+		ID:            "AWS_LAMBDA_PUBLIC_FUNCTION_URL",
+		Summary:       "Use AWS_IAM authorization or move the function behind an authenticated API layer.",
+		Steps:         []string{"Set the Lambda function URL `authorization_type` to `AWS_IAM` when callers can sign requests.", "If anonymous access is required, put the function behind API Gateway, CloudFront, WAF, or another reviewed edge control.", "Document any intentionally public function URL with owner approval and monitoring coverage."},
+		WhyThisWorks:  "Authenticated entry points prevent arbitrary internet clients from invoking the function directly.",
+		FixConfidence: model.ConfidenceHigh,
+		WhatHappened:  "The plan exposes a Lambda function URL without authentication.",
+		WhyItMatters:  "Unauthenticated function URLs are direct public entry points; risk increases when the function can reach secrets, data stores, or privileged APIs.",
+		Patches: []model.PatchSuggestion{terraformSnippet("Require IAM authorization for Lambda Function URL", "aws_lambda_function_url", `resource "aws_lambda_function_url" "public_handler" {
+  authorization_type = "AWS_IAM"
+}`)},
+	},
+	"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA": {
+		ID:            "AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA",
+		Summary:       "Require authentication on the Lambda function URL or remove the function's downstream sensitive-data access.",
+		Steps:         []string{"Set the function URL `authorization_type` to `AWS_IAM` or place it behind an authenticated edge layer.", "Remove secret, KMS, datastore, or bucket access that is not required by this public handler.", "If the function must stay public, split sensitive operations into a private worker role or separate function."},
+		References:    []string{"docs/attack-paths.md"},
+		WhyThisWorks:  "The path requires both public invocation and downstream sensitive-data access; removing either step breaks the exposure path.",
+		FixConfidence: model.ConfidenceHigh,
+		WhatHappened:  "The plan exposes a Lambda function URL that invokes code with graph-backed access to sensitive data.",
+		WhyItMatters:  "This is stronger evidence than a standalone public endpoint finding because ChangeGate can trace the path from internet access to the sensitive asset.",
+		Patches: []model.PatchSuggestion{terraformSnippet("Require IAM authorization for Lambda Function URL", "aws_lambda_function_url", `resource "aws_lambda_function_url" "public_handler" {
+  authorization_type = "AWS_IAM"
+}`)},
+	},
+	"AWS_PUBLIC_WORKLOAD_READS_SECRET": {
+		ID:            "AWS_PUBLIC_WORKLOAD_READS_SECRET",
+		Summary:       "Remove public reachability from the workload or move secret access to a private execution path.",
+		Steps:         []string{"Remove unauthenticated public entry points that invoke the workload.", "Scope `secretsmanager:GetSecretValue` to only the secret and role that require it.", "Split public request handling from private secret access when the endpoint must remain internet-facing."},
+		References:    []string{"docs/attack-paths.md"},
+		WhyThisWorks:  "The secret is reachable only while the workload is publicly invokable and allowed to read the secret; removing either condition breaks the path.",
+		FixConfidence: model.ConfidenceHigh,
+		WhatHappened:  "The plan creates or preserves a graph path from an internet-exposed workload to a Secrets Manager secret.",
+		WhyItMatters:  "Public workloads with secret access can turn a request-handling flaw into credential or data exposure.",
+		Patches:       []model.PatchSuggestion{advisorySnippet("Secret-access path requires workload review", "ChangeGate does not auto-patch secret access paths because the safe fix depends on caller authentication, role boundaries, and workload ownership.")},
+	},
 	"AWS_PUBLIC_ADMIN_SERVICE": {
 		ID:            "AWS_PUBLIC_ADMIN_SERVICE",
 		Summary:       "Use an internal load balancer, restrict ingress to trusted networks, or place the admin service behind an authenticated proxy.",
