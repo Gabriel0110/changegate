@@ -54,7 +54,7 @@ changegate baseline create --plan tfplan.json --out .changegate/baseline.json
 changegate scan --plan tfplan.json --baseline .changegate/baseline.json --new-only
 ```
 
-4. Move to default blocking when teams understand the signal.
+4. Move to default blocking when the signal matches your deployment policy.
 
 ## Next Docs
 

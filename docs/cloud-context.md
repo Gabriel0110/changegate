@@ -54,7 +54,7 @@ Partial AWS permission failures are written as snapshot diagnostics instead of c
 
 `permissions-template` prints a read-only IAM policy template for context collection.
 
-The same policy is checked in at [`examples/aws-context-readonly-policy.json`](../examples/aws-context-readonly-policy.json) for teams that prefer to review or vendor the IAM document.
+The same policy is checked in at [`examples/aws-context-readonly-policy.json`](../examples/aws-context-readonly-policy.json) if you prefer to review or vendor the IAM document.
 
 For a read-only sandbox walkthrough, see [AWS cloud context sandbox walkthrough](../examples/cloud-context-sandbox).
 

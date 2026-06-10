@@ -1,6 +1,6 @@
 # Audit-Mode Rollout
 
-ChangeGate is easiest to adopt when teams first collect evidence without blocking deploys.
+Start by collecting evidence without blocking deploys.
 
 ## Phase 1: Observe
 
@@ -16,7 +16,7 @@ Archive the bundle from every CI run. Review the most common findings, owners, a
 changegate baseline create --plan tfplan.json --out .changegate/baseline.json
 ```
 
-Use the baseline to avoid blocking old findings while teams focus on new risk.
+Use the baseline to avoid blocking old findings while you focus on new risk.
 
 ## Phase 3: Warn
 

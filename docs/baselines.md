@@ -1,6 +1,6 @@
 # Baselines
 
-Baselines let teams adopt ChangeGate without fixing every existing infrastructure risk on day one. A baseline records the current finding fingerprints, then `--new-only` enforcement suppresses matching existing risks while still enforcing new or changed findings.
+Baselines let you adopt ChangeGate without fixing every existing infrastructure risk on day one. A baseline records the current finding fingerprints, then `--new-only` enforcement suppresses matching existing risks while still enforcing new or changed findings.
 
 ## Create a baseline
 
@@ -76,7 +76,7 @@ baseline:
   require_expiration: true
 ```
 
-Security teams can require expiring baselines by setting `require_expiration: true` and can warn on old baselines with `max_age_days`.
+Require expiring baselines by setting `require_expiration: true`, and warn on old baselines with `max_age_days`.
 
 ## Multiple plans
 

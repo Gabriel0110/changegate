@@ -15,7 +15,7 @@ custom_rules:
 
 Paths are resolved relative to the policy file. Globs are supported. Malformed custom rules fail `changegate policy validate` and fail scans before evaluation.
 
-`custom_rules.required` controls empty glob behavior. When `false` or omitted, an empty optional custom-rule directory is allowed so teams can share one policy file across repos. When `true`, an empty glob fails `policy validate`.
+`custom_rules.required` controls empty glob behavior. When `false` or omitted, an empty optional custom-rule directory is allowed so one policy file can be reused across repositories. When `true`, an empty glob fails `policy validate`.
 
 ## YAML rule format
 

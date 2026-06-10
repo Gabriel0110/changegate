@@ -42,7 +42,7 @@ Expected shape:
 }
 ```
 
-If permissions are missing, ChangeGate writes diagnostics into the snapshot result instead of failing the whole collection. This lets teams use partial context while seeing exactly which coverage is absent.
+If permissions are missing, ChangeGate writes diagnostics into the snapshot result instead of failing the whole collection. This lets you use partial context while seeing exactly which coverage is absent.
 
 ## 3. Validate Snapshot Coverage
 

@@ -83,7 +83,7 @@ Attack-path remediation is always advisory. Public-to-sensitive, public-admin, P
 
 ## Organization Documentation Links
 
-Teams can attach organization-specific documentation to remediation output through `.changegate.yaml`:
+Attach organization-specific documentation to remediation output through `.changegate.yaml`:
 
 ```yaml
 docs:

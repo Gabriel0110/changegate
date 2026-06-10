@@ -17,7 +17,7 @@ Review Intelligence focuses on six capabilities:
 
 ## User Experience
 
-The workflow helps teams answer these questions from a pull request or CI run:
+The workflow answers these questions from a pull request or CI run:
 
 - What changed?
 - What became public or reachable?

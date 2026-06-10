@@ -69,11 +69,11 @@ AWS_PUBLIC_RDS_INSTANCE:
       - "A.8.22"
 ```
 
-This means compliance reports can help audit teams route evidence without turning checklist metadata into separate blocking risks.
+This means compliance reports can help route evidence without turning checklist metadata into separate blocking risks.
 
 Bundled AWS rules include compliance mappings where the relationship is useful for evidence routing. These mappings are evidence aids, not legal claims of compliance.
 
-Teams can add organization-specific mappings in `.changegate.yaml`:
+Add organization-specific mappings in `.changegate.yaml`:
 
 ```yaml
 compliance:

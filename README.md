@@ -10,7 +10,7 @@
 
 ChangeGate is a fast, graph-aware Terraform/OpenTofu risk gate for CI/CD. It reads the plan that is actually about to apply, builds a graph of changing infrastructure, and returns one deployment decision: `ALLOW`, `WARN`, or `BLOCK`.
 
-It is built for teams that want fewer noisy scanner findings and more trusted deploy decisions.
+Use it when you want fewer noisy scanner findings and more trusted deploy decisions.
 
 ```bash
 terraform plan -out=tfplan
@@ -42,7 +42,7 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 - **Governed adoption:** supports baselines, new-risk-only mode, expiring waivers, audit bundles, and stable finding fingerprints.
 - **External scanner imports:** ingests SARIF, Checkov, Trivy, KICS, Grype, and generic JSON findings for graph-aware correlation.
 - **Optional cloud context:** collects redacted AWS read-only snapshots while keeping normal scans offline and credential-free.
-- **Module risk tests:** lets platform teams write regression tests for infrastructure modules and expected ChangeGate decisions.
+- **Module risk tests:** write regression tests for infrastructure modules and expected ChangeGate decisions.
 - **Portable distribution:** ships a single binary plus release archives, checksums, SBOMs, signed artifacts, Docker images, Linux packages, and an npm installer package.
 
 ## Review Intelligence
@@ -114,7 +114,7 @@ See [Install Options](docs/distribution.md) for Docker tags and npm installer be
 To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
 
 ```bash
-export CHANGEGATE_VERSION=v0.4.0
+export CHANGEGATE_VERSION=v0.5.0
 export CHANGEGATE_VERIFY_SIG=true
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
@@ -167,7 +167,7 @@ changegate init --dry-run
 changegate init --github-actions --audit-mode
 ```
 
-The initializer writes safe audit-mode defaults so teams can collect signal before enforcing block decisions. It never overwrites existing files unless `--force` is passed.
+The initializer writes safe audit-mode defaults so you can collect signal before enforcing block decisions. It never overwrites existing files unless `--force` is passed.
 
 Common options:
 
@@ -226,7 +226,7 @@ See [output formats](docs/output-formats.md) and [audit evidence](docs/audit-com
 
 ## External Scanner Imports
 
-ChangeGate can ingest findings from other scanners and normalize them into the same decision, waiver, baseline, graph-correlation, and output model as native findings. This lets teams keep tools like Checkov, Trivy, KICS, Grype, and SARIF-producing scanners while using ChangeGate as the deployment risk gate.
+ChangeGate can ingest findings from other scanners and normalize them into the same decision, waiver, baseline, graph-correlation, and output model as native findings. Keep tools like Checkov, Trivy, KICS, Grype, and SARIF-producing scanners while using ChangeGate as the deployment risk gate.
 
 ```bash
 changegate scan --plan tfplan.json --import-sarif checkov.sarif
@@ -270,7 +270,7 @@ jobs:
 
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: v0.2.0
+          CHANGEGATE_VERSION: v0.5.0
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
@@ -301,7 +301,7 @@ See [GitHub Actions](docs/github-actions.md), [GitLab CI](docs/gitlab-ci.md), [A
 
 ## Risk Tests
 
-Platform teams can define deterministic risk test manifests for Terraform/OpenTofu module fixtures and run them with `changegate test`. Risk tests assert ChangeGate decisions, required or forbidden findings, attack paths, graph paths, risk movement, waiver state, and stable output snapshots. See [risk tests](docs/risk-tests.md).
+Define deterministic risk test manifests for Terraform/OpenTofu module fixtures and run them with `changegate test`. Risk tests assert ChangeGate decisions, required or forbidden findings, attack paths, graph paths, risk movement, waiver state, and stable output snapshots. See [risk tests](docs/risk-tests.md).
 
 ChangeGate also includes a sanitized example corpus that doubles as executable documentation:
 
@@ -317,7 +317,7 @@ Adopt ChangeGate in phases:
 2. Create a baseline for existing risks.
 3. Enforce only new findings with `--new-only`.
 4. Add expiring waivers for accepted temporary exceptions.
-5. Move from audit to warn to block once teams understand the signal.
+5. Move from audit to warn to block once the signal matches your deployment policy.
 
 ```bash
 changegate scan --plan tfplan.json --mode audit --audit-bundle changegate-audit.zip
@@ -369,7 +369,7 @@ Additional examples:
 
 ## Project Status
 
-ChangeGate is pre-`v1.0` and ready for early adopters who can run it in audit or warning mode against real Terraform/OpenTofu plans. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
+ChangeGate is pre-`v1.0`. Start in audit or warning mode against real Terraform/OpenTofu plans, then move to blocking when the signal matches your deployment policy. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
 
 See [known limitations](docs/limitations.md) for current scope and boundaries.
 

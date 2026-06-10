@@ -4,14 +4,14 @@ Large infrastructure repositories usually have multiple Terraform/OpenTofu roots
 
 ## One Owner Per Root
 
-Run one ChangeGate job per root when teams own policies independently:
+Run one ChangeGate job per root when policies and ownership differ:
 
 ```bash
 changegate scan --plan services/api/tfplan.json --policy services/api/.changegate.yaml
 changegate scan --plan platforms/network/tfplan.json --policy platforms/network/.changegate.yaml
 ```
 
-This gives each team separate evidence, thresholds, waivers, and baselines.
+This keeps evidence, thresholds, waivers, and baselines separate for each root.
 
 ## One Coordinated Change
 

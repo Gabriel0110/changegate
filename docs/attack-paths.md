@@ -19,7 +19,7 @@ changegate attack-paths --plan tfplan.json --format mermaid --out attack-paths.m
 changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 ```
 
-DOT and Mermaid output are intended for teams that already publish diagrams in docs or CI artifacts. `attack-paths visualize` writes a self-contained interactive HTML file with highlighted path edges, role filters, search, and a node evidence inspector. It is the preferred human review artifact when JSON is too dense for pull-request review.
+DOT and Mermaid output work well when diagrams are already published in docs or CI artifacts. `attack-paths visualize` writes a self-contained interactive HTML file with highlighted path edges, role filters, search, and a node evidence inspector. It is the preferred human review artifact when JSON is too dense for pull-request review.
 
 Public-to-sensitive detection uses the blast-radius graph to find public entrypoint paths that pass through a workload and reach a sensitive asset. High-confidence paths to sensitive data block by default; medium-confidence paths warn. Public paths to workloads without sensitive downstream context warn unless the entrypoint is explicitly marked as expected public through tags or cloud context compensating controls such as `expected_public_tls_edge`, `edge_tls`, `waf`, `cloudfront_oac`, or `ip_allowlist`.
 
@@ -30,7 +30,7 @@ Network attack paths include:
 - public workloads that can reach RDS, OpenSearch, ElastiCache, EFS, S3, Secrets Manager, or KMS
 - public EKS endpoints with graph evidence of cluster-admin or privileged role access
 
-Sensitive assets include common AWS data stores, secrets, and KMS keys by default. Teams can extend classification with `.changegate.yaml` selectors for resource addresses, resource types, names, and tags; see [Policy Config Guide](policy-config.md#sensitive-assets). This lets private data platforms, backup vaults, or custom provider resources participate in attack paths and graph-aware rules.
+Sensitive assets include common AWS data stores, secrets, and KMS keys by default. Extend classification with `.changegate.yaml` selectors for resource addresses, resource types, names, and tags; see [Policy Config Guide](policy-config.md#sensitive-assets). This lets private data platforms, backup vaults, or custom provider resources participate in attack paths and graph-aware rules.
 
 When an optional AWS cloud-context snapshot is merged into the graph, attack paths preserve provenance. A path can report `source=plan`, `source=cloud_context`, or `source=mixed` when live AWS context confirms or extends planned graph evidence. Cloud-confirmed edges can raise confidence; partial or ambiguous context lowers confidence and produces warning-oriented output.
 

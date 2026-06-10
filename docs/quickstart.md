@@ -13,13 +13,13 @@ go build -o bin/changegate ./cmd/changegate
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=v0.4.0
+export CHANGEGATE_VERSION=v0.5.0
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
 The install script verifies the downloaded archive against `checksums.txt`. To also verify the signed checksum manifest, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true` before running the same command.
 
-Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for teams that install CLI tools through package mirrors or runner images.
+Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for package mirrors or runner images.
 
 Docker:
 
