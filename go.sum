@@ -26,8 +26,8 @@ github.com/aws/aws-sdk-go-v2/service/cloudfront v1.64.2 h1:zDNNzwo9NgHjQnsG6dBTc
 github.com/aws/aws-sdk-go-v2/service/cloudfront v1.64.2/go.mod h1:ayc0OxRNuG6n7DfgtOT8Cai9/oF4C/3NyslqT1FenAA=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.304.2 h1:puQq1j5XHH/zaeAJS8ngKUaBAlg70VStCvhwH69Vr4o=
 github.com/aws/aws-sdk-go-v2/service/ec2 v1.304.2/go.mod h1:BmEhUktSbAPK6oedmAp9w/j4Yaa2WqTmNTQ4ovydhX4=
-github.com/aws/aws-sdk-go-v2/service/ecs v1.81.2 h1:z/uHv9pZJttDS1jhUyyALaDTzAgS2j/m5+aaYlPtE5w=
-github.com/aws/aws-sdk-go-v2/service/ecs v1.81.2/go.mod h1:fy9/mpkxXirhLwLF0v63BMXzqsy1wwp7eG45U9elb9w=
+github.com/aws/aws-sdk-go-v2/service/ecs v1.82.4 h1:/Ja7kRPjDc4eLx4rfMSAmNN6uLgazF6bNs6CsiOU8vc=
+github.com/aws/aws-sdk-go-v2/service/ecs v1.82.4/go.mod h1:0vahPCh3slyORHbSuAP8YDyJKLEUQAMX7+bzYGxEnVI=
 github.com/aws/aws-sdk-go-v2/service/efs v1.42.0 h1:sXKdeXhXjJ4nu7m+YtTWjk0jfpB+mQ02Nhw4uBsnRzI=
 github.com/aws/aws-sdk-go-v2/service/efs v1.42.0/go.mod h1:pyn/h/jQoVDf5PauBgKvEOOoDADrE/yyQVfWPGqIezQ=
 github.com/aws/aws-sdk-go-v2/service/eks v1.84.2 h1:10g3TklRZU62DJPCuRUAh0vHuymQWUVr65eMn/T60Kk=
