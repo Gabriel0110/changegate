@@ -42,8 +42,7 @@ jobs:
             exit 1
           fi
           gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null
-          release_commit="$(gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" --json targetCommitish --jq '.targetCommitish')"
-          resolved_release_commit="$(git rev-parse "${release_commit}^{commit}")"
+          resolved_release_commit="$(git rev-parse "v${VERSION}^{commit}")"
           head_commit="$(git rev-parse HEAD)"
           if [[ "${head_commit}" != "${resolved_release_commit}" ]]; then
             echo "Checked out ${head_commit}, but release v${VERSION} points to ${resolved_release_commit}"
