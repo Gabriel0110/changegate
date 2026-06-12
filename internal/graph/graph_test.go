@@ -53,6 +53,25 @@ func TestGraphALBToECSPathAndExposure(t *testing.T) {
 	}
 }
 
+func TestGraphDoesNotTreatDisabledCloudFrontAsPublicEntrypoint(t *testing.T) {
+	t.Parallel()
+
+	plan := &model.Plan{Resources: []model.Resource{
+		resource("aws_s3_bucket.logs", "aws_s3_bucket", "logs", map[string]any{"bucket": "logs"}),
+		resource("aws_cloudfront_distribution.disabled", "aws_cloudfront_distribution", "disabled", map[string]any{
+			"enabled": false,
+			"origin":  []any{map[string]any{"domain_name": "logs"}},
+		}),
+	}}
+	g := Build(plan)
+	if g.CanReach(InternetNodeID, "aws_cloudfront_distribution.disabled") {
+		t.Fatalf("disabled CloudFront distribution should not be reachable from internet")
+	}
+	if containsResourceID(g.PublicEntrypoints(), "aws_cloudfront_distribution.disabled") {
+		t.Fatalf("disabled CloudFront distribution should not be a public entrypoint")
+	}
+}
+
 func TestGraphSGToInstanceAndRDS(t *testing.T) {
 	t.Parallel()
 
@@ -83,6 +102,41 @@ func TestGraphLambdaAndIAMRelationships(t *testing.T) {
 	}
 	if !g.hasEdge("aws_iam_role.worker", "aws_secretsmanager_secret.customer", EdgeReadsSecret) {
 		t.Fatalf("role should have explicit secret-read edge")
+	}
+}
+
+func TestGraphIAMPolicyResourceScopeMatchesS3ObjectARN(t *testing.T) {
+	t.Parallel()
+
+	plan := &model.Plan{Resources: []model.Resource{
+		resource("aws_iam_role.public", "aws_iam_role", "public", map[string]any{
+			"arn":  "arn:aws:iam::123456789012:role/public",
+			"name": "public",
+		}),
+		resource("aws_iam_policy.customer_data", "aws_iam_policy", "customer_data", map[string]any{
+			"arn":    "arn:aws:iam::123456789012:policy/customer-data",
+			"policy": `{"Statement":[{"Effect":"Allow","Action":"s3:GetObject","Resource":"arn:aws:s3:::customer-data/*"}]}`,
+		}),
+		resource("aws_iam_role_policy_attachment.customer_data", "aws_iam_role_policy_attachment", "customer_data", map[string]any{
+			"role":       "public",
+			"policy_arn": "arn:aws:iam::123456789012:policy/customer-data",
+		}),
+		resource("aws_s3_bucket.customer_data", "aws_s3_bucket", "customer_data", map[string]any{
+			"bucket": "customer-data",
+			"tags":   map[string]any{"data": "sensitive"},
+		}),
+		resource("aws_s3_bucket.unrelated", "aws_s3_bucket", "unrelated", map[string]any{
+			"bucket": "unrelated-data",
+			"tags":   map[string]any{"data": "sensitive"},
+		}),
+	}}
+
+	g := Build(plan)
+	if !g.hasEdge("aws_iam_role.public", "aws_s3_bucket.customer_data", EdgeCanReadData) {
+		t.Fatalf("role should read bucket when policy resource matches bucket object ARN")
+	}
+	if g.hasEdge("aws_iam_role.public", "aws_s3_bucket.unrelated", EdgeCanReadData) {
+		t.Fatalf("role should not read unrelated sensitive bucket")
 	}
 }
 

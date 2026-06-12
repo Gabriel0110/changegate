@@ -146,8 +146,10 @@ func inferAWSLoadBalancing(g *Graph) {
 				}
 			}
 		case "aws_cloudfront_distribution":
-			g.ensureSynthetic(InternetNodeID, "internet", "internet")
-			g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "enabled", true, "CloudFront distribution is publicly reachable"), nil)
+			if cloudFrontEnabled(values) {
+				g.ensureSynthetic(InternetNodeID, "internet", "internet")
+				g.addEdge(InternetNodeID, id, EdgeRoutesTo, evidence(node.Address, "enabled", true, "CloudFront distribution is publicly reachable"), nil)
+			}
 			for _, origin := range nestedStrings(values["origin"], "domain_name") {
 				if target := findByIDLike(g, origin, ""); target != "" {
 					g.addEdge(id, target, EdgeRoutesTo, evidence(node.Address, "origin.domain_name", target, "CloudFront routes to origin"), nil)
@@ -431,6 +433,21 @@ func publicLambdaURL(values map[string]any) bool {
 	return strings.EqualFold(asString(values["authorization_type"]), "NONE")
 }
 
+func cloudFrontEnabled(values map[string]any) bool {
+	value, exists := values["enabled"]
+	if !exists {
+		return true
+	}
+	switch typed := value.(type) {
+	case bool:
+		return typed
+	case string:
+		return typed == "" || strings.EqualFold(typed, "true")
+	default:
+		return true
+	}
+}
+
 func referencedSecrets(g *Graph, values map[string]any) []ResourceID {
 	if g == nil || len(values) == 0 {
 		return nil
@@ -557,19 +574,22 @@ func inferPolicyAccess(g *Graph, principal ResourceID, policy ResourceID) {
 }
 
 func inferInlinePolicyAccess(g *Graph, principal ResourceID, resource string, policyJSON string) {
-	lower := strings.ToLower(policyJSON)
+	statements := parseGraphPolicyStatements(policyJSON)
+	if len(statements) == 0 {
+		return
+	}
 	for _, id := range sortedNodeIDs(g) {
 		node := g.Nodes[id]
 		if !isSensitiveDataNode(node) {
 			continue
 		}
-		if strings.Contains(lower, "s3:get") || strings.Contains(lower, "rds:describe") || strings.Contains(lower, "secretsmanager:get") || strings.Contains(lower, "*") {
+		if graphPolicyAllows(statements, node, "s3:GetObject", "s3:GetBucket*", "rds:Describe*", "secretsmanager:GetSecretValue", "kms:Decrypt") {
 			g.addEdge(principal, id, EdgeCanReadData, evidence(resource, "policy", id, "IAM policy allows reading sensitive data resource"), nil)
 			if node.Kind == NodeSecret {
 				g.addEdge(principal, id, EdgeReadsSecret, evidence(resource, "policy", id, "IAM policy allows reading secret value"), nil)
 			}
 		}
-		if strings.Contains(lower, "s3:put") || strings.Contains(lower, "rds:modify") || strings.Contains(lower, "secretsmanager:put") || strings.Contains(lower, "*") {
+		if graphPolicyAllows(statements, node, "s3:PutObject", "s3:DeleteObject", "rds:Modify*", "rds:Delete*", "secretsmanager:PutSecretValue", "secretsmanager:UpdateSecret") {
 			g.addEdge(principal, id, EdgeCanWriteData, evidence(resource, "policy", id, "IAM policy allows writing sensitive data resource"), nil)
 			g.addEdge(principal, id, EdgeWritesTo, evidence(resource, "policy", id, "IAM policy allows writing data resource"), nil)
 		}
@@ -579,13 +599,167 @@ func inferInlinePolicyAccess(g *Graph, principal ResourceID, resource string, po
 		if node.Type != "aws_iam_role" {
 			continue
 		}
-		if strings.Contains(lower, "sts:assumerole") || strings.Contains(lower, "*") {
+		if graphPolicyAllows(statements, node, "sts:AssumeRole") {
 			g.addEdge(principal, id, EdgeCanAssume, evidence(resource, "policy", id, "IAM policy allows assuming role"), nil)
 		}
-		if strings.Contains(lower, "iam:passrole") || strings.Contains(lower, "*") {
+		if graphPolicyAllows(statements, node, "iam:PassRole") {
 			g.addEdge(principal, id, EdgeCanPassRole, evidence(resource, "policy", id, "IAM policy allows passing role"), nil)
 		}
 	}
+}
+
+type graphPolicyStatement struct {
+	Effect    string
+	Actions   []string
+	Resources []string
+}
+
+func parseGraphPolicyStatements(policyJSON string) []graphPolicyStatement {
+	if strings.TrimSpace(policyJSON) == "" {
+		return nil
+	}
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(policyJSON), &decoded); err != nil {
+		return nil
+	}
+	out := make([]graphPolicyStatement, 0)
+	for _, raw := range asList(decoded["Statement"]) {
+		statement, ok := raw.(map[string]any)
+		if !ok {
+			continue
+		}
+		if len(stringSlice(statement["NotAction"])) > 0 {
+			continue
+		}
+		out = append(out, graphPolicyStatement{
+			Effect:    strings.ToLower(asString(statement["Effect"])),
+			Actions:   stringSlice(statement["Action"]),
+			Resources: stringSlice(statement["Resource"]),
+		})
+	}
+	return out
+}
+
+func graphPolicyAllows(statements []graphPolicyStatement, node *Node, actions ...string) bool {
+	if node == nil {
+		return false
+	}
+	allowed := false
+	for _, statement := range statements {
+		if !graphPolicyActionMatches(statement.Actions, actions...) || !graphPolicyResourceMatches(statement.Resources, node) {
+			continue
+		}
+		if statement.Effect == "deny" {
+			return false
+		}
+		if statement.Effect == "" || statement.Effect == "allow" {
+			allowed = true
+		}
+	}
+	return allowed
+}
+
+func graphPolicyActionMatches(statementActions []string, required ...string) bool {
+	for _, action := range statementActions {
+		action = strings.ToLower(strings.TrimSpace(action))
+		if action == "*" {
+			return true
+		}
+		for _, candidate := range required {
+			candidate = strings.ToLower(strings.TrimSpace(candidate))
+			if globMatch(action, candidate) || globMatch(candidate, action) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func graphPolicyResourceMatches(resources []string, node *Node) bool {
+	if len(resources) == 0 {
+		return false
+	}
+	candidates := graphPolicyResourceCandidates(node)
+	for _, resource := range resources {
+		resource = strings.TrimSpace(resource)
+		if resource == "" {
+			continue
+		}
+		if resource == "*" {
+			return true
+		}
+		for _, candidate := range candidates {
+			if candidate == "" {
+				continue
+			}
+			if globMatch(resource, candidate) || resource == candidate || strings.HasSuffix(resource, ":"+candidate) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func graphPolicyResourceCandidates(node *Node) []string {
+	values := node.Values
+	candidates := []string{
+		string(node.ID),
+		node.Address,
+		node.Name,
+		asString(values["arn"]),
+		asString(values["id"]),
+		asString(values["bucket"]),
+		asString(values["name"]),
+		asString(values["identifier"]),
+	}
+	if bucket := asString(values["bucket"]); bucket != "" {
+		candidates = append(candidates, "arn:aws:s3:::"+bucket, "arn:aws:s3:::"+bucket+"/*")
+	}
+	return candidates
+}
+
+func stringSlice(value any) []string {
+	items := asList(value)
+	out := make([]string, 0, len(items))
+	for _, item := range items {
+		text := strings.TrimSpace(asString(item))
+		if text != "" {
+			out = append(out, text)
+		}
+	}
+	return out
+}
+
+func globMatch(pattern string, value string) bool {
+	pattern = strings.ToLower(strings.TrimSpace(pattern))
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch {
+	case pattern == value:
+		return true
+	case pattern == "*":
+		return true
+	default:
+		if !strings.Contains(pattern, "*") {
+			return false
+		}
+	}
+	parts := strings.Split(pattern, "*")
+	position := 0
+	for index, part := range parts {
+		if part == "" {
+			continue
+		}
+		found := strings.Index(value[position:], part)
+		if found < 0 {
+			return false
+		}
+		if index == 0 && !strings.HasPrefix(pattern, "*") && found != 0 {
+			return false
+		}
+		position += found + len(part)
+	}
+	last := parts[len(parts)-1]
+	return strings.HasSuffix(pattern, "*") || last == "" || strings.HasSuffix(value, last)
 }
 
 func principalsFromAssumePolicy(policy string) []string {

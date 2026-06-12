@@ -42,18 +42,6 @@
           "message": {
             "text": "Security group opens SSH to the world on aws_security_group.admin"
           },
-          "locations": [
-            {
-              "physicalLocation": {
-                "artifactLocation": {
-                  "uri": "tfplan.json"
-                },
-                "region": {
-                  "startLine": 1
-                }
-              }
-            }
-          ],
           "partialFingerprints": {
             "changegateDedupKey/v1": "AWS_SG_WORLD_OPEN_ADMIN_PORT|aws_security_group.admin|aws|public_exposure|prod",
             "changegateFingerprint/v1": "57487a2798ec56aabc46e5797f4c228a8d23209e9df713b20f0dea470a571ced"

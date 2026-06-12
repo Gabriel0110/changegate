@@ -103,7 +103,7 @@ func RenderMarkdown(statement Statement) string {
 	if len(statement.TopGraphPaths) > 0 {
 		fmt.Fprintf(&b, "## Top Graph Paths\n\n")
 		for _, path := range statement.TopGraphPaths {
-			if len(path.Path) == 0 {
+			if len(path.Path) < 2 {
 				continue
 			}
 			fmt.Fprintf(&b, "- `%s`: %s\n", path.Resource, strings.Join(path.Path, " -> "))
@@ -115,14 +115,11 @@ func RenderMarkdown(statement Statement) string {
 		fmt.Fprintf(&b, "## Attack Paths\n\n")
 		for _, path := range statement.AttackPaths {
 			fmt.Fprintf(&b, "- `%s` `%s/%s` `%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Decision, path.Title)
-			if path.Type != "" || path.Kind != "" || path.Source != "" {
-				fmt.Fprintf(&b, "  - Context: type `%s`, kind `%s`, source `%s`\n", nonEmpty(path.Type, "unknown"), nonEmpty(path.Kind, "unknown"), nonEmpty(path.Source, "unknown"))
-			}
 			if path.ConfidenceReason != "" {
 				fmt.Fprintf(&b, "  - Confidence reason: %s\n", path.ConfidenceReason)
 			}
-			for _, step := range path.Steps {
-				fmt.Fprintf(&b, "  - %s\n", step)
+			if len(path.Steps) > 0 {
+				fmt.Fprintf(&b, "  - Path: %s\n", strings.Join(path.Steps, " -> "))
 			}
 		}
 		b.WriteString("\n")
@@ -159,13 +156,6 @@ func plural(count int) string {
 	return "s"
 }
 
-func nonEmpty(value string, fallback string) string {
-	if value != "" {
-		return value
-	}
-	return fallback
-}
-
 // RenderAuditBundle renders a deterministic ZIP containing impact evidence.
 func RenderAuditBundle(statement Statement, report output.Report) ([]byte, error) {
 	statementJSON, err := RenderJSON(statement)
@@ -189,9 +179,10 @@ func RenderAuditBundle(statement Statement, report output.Report) ([]byte, error
 
 	var buf bytes.Buffer
 	zw := zip.NewWriter(&buf)
+	modified := deterministicZipModifiedTime()
 	for _, name := range names {
 		header := &zip.FileHeader{Name: name, Method: zip.Deflate}
-		header.Modified = time.Unix(0, 0).UTC()
+		header.Modified = modified
 		writer, err := zw.CreateHeader(header)
 		if err != nil {
 			return nil, err
@@ -204,6 +195,10 @@ func RenderAuditBundle(statement Statement, report output.Report) ([]byte, error
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func deterministicZipModifiedTime() time.Time {
+	return time.Date(1980, time.January, 1, 0, 0, 0, 0, time.UTC)
 }
 
 // Statement is the canonical Security Impact Statement model.
@@ -514,7 +509,11 @@ func buildGraphPaths(findings []model.Finding) []GraphPathSummary {
 	out := make([]GraphPathSummary, 0)
 	for _, finding := range findings {
 		for index, evidence := range finding.Evidence {
-			if !isGraphEvidence(evidence) {
+			if !isGraphPathEvidence(evidence) {
+				continue
+			}
+			path := graphPathFromEvidence(evidence)
+			if len(path) < 2 {
 				continue
 			}
 			out = append(out, GraphPathSummary{
@@ -525,7 +524,7 @@ func buildGraphPaths(findings []model.Finding) []GraphPathSummary {
 				Title:       finding.Title,
 				Severity:    finding.Severity,
 				Confidence:  finding.Confidence,
-				Path:        graphPathFromEvidence(evidence),
+				Path:        path,
 				Description: evidence.Message,
 			})
 		}
@@ -533,7 +532,49 @@ func buildGraphPaths(findings []model.Finding) []GraphPathSummary {
 	sort.SliceStable(out, func(i int, j int) bool {
 		return compareGraphPaths(out[i], out[j]) < 0
 	})
+	return maximalGraphPaths(out)
+}
+
+func maximalGraphPaths(paths []GraphPathSummary) []GraphPathSummary {
+	out := make([]GraphPathSummary, 0, len(paths))
+	for _, candidate := range paths {
+		if graphPathCovered(candidate.Path, out) {
+			continue
+		}
+		out = append(out, candidate)
+	}
 	return out
+}
+
+func graphPathCovered(candidate []string, existing []GraphPathSummary) bool {
+	for _, kept := range existing {
+		if len(kept.Path) < len(candidate) {
+			continue
+		}
+		if pathContainsContiguous(kept.Path, candidate) {
+			return true
+		}
+	}
+	return false
+}
+
+func pathContainsContiguous(haystack []string, needle []string) bool {
+	if len(needle) == 0 || len(needle) > len(haystack) {
+		return false
+	}
+	for start := 0; start <= len(haystack)-len(needle); start++ {
+		matched := true
+		for index := range needle {
+			if haystack[start+index] != needle[index] {
+				matched = false
+				break
+			}
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
 }
 
 func buildAttackPaths(findings []model.Finding, decision model.Decision) []AttackPathSummary {
@@ -542,18 +583,26 @@ func buildAttackPaths(findings []model.Finding, decision model.Decision) []Attac
 		if !isAttackPathFinding(finding) && finding.Category != model.RiskCategoryPrivilegeEscalation && !containsFold(finding.RuleID, "PASSROLE") && !containsFold(finding.RuleID, "ASSUME") {
 			continue
 		}
-		steps := make([]string, 0, len(finding.Evidence))
+		pathSteps := make([]string, 0, 1)
+		fallbackSteps := make([]string, 0, len(finding.Evidence))
 		for _, evidence := range finding.Evidence {
 			if isAttackPathMetadataEvidence(evidence) {
 				continue
 			}
-			if isGraphEvidence(evidence) {
-				steps = append(steps, graphPathFromEvidence(evidence)...)
+			if isGraphPathEvidence(evidence) {
+				path := graphPathFromEvidence(evidence)
+				if len(path) > 1 {
+					pathSteps = append(pathSteps, strings.Join(path, " -> "))
+				}
 				continue
 			}
-			if evidence.Message != "" {
-				steps = append(steps, evidence.Message)
+			if evidence.Message != "" && !isAttackPathStepEvidence(evidence) {
+				fallbackSteps = append(fallbackSteps, evidence.Message)
 			}
+		}
+		steps := pathSteps
+		if len(steps) == 0 {
+			steps = fallbackSteps
 		}
 		out = append(out, AttackPathSummary{
 			ID:               stableItemID("attack-path", finding, 0),
@@ -567,7 +616,7 @@ func buildAttackPaths(findings []model.Finding, decision model.Decision) []Attac
 			Confidence:       finding.Confidence,
 			Source:           attackPathEvidenceValue(finding, "attack_path.source"),
 			ConfidenceReason: attackPathEvidenceValue(finding, "attack_path.confidence_reason"),
-			Steps:            dedupeSorted(steps),
+			Steps:            dedupePreserveOrder(steps),
 			Decision:         decisionForFinding(decision, finding),
 			ReasonCodes:      sortedReasonCodes(finding.DecisionReasonCodes),
 		})
@@ -813,10 +862,14 @@ func decisionForFinding(decision model.Decision, finding model.Finding) model.De
 	return model.DecisionAllow
 }
 
-func isGraphEvidence(evidence model.Evidence) bool {
+func isGraphPathEvidence(evidence model.Evidence) bool {
 	lowerType := strings.ToLower(evidence.Type)
 	lowerPath := strings.ToLower(evidence.Path)
-	return strings.Contains(lowerType, "graph") || strings.Contains(lowerPath, "graph")
+	return lowerPath == "graph.path" || strings.Contains(lowerPath, "graph_path") || strings.Contains(lowerType, "graph_path")
+}
+
+func isAttackPathStepEvidence(evidence model.Evidence) bool {
+	return strings.HasPrefix(strings.ToLower(evidence.Type), "attack_path.step")
 }
 
 func graphPathFromEvidence(evidence model.Evidence) []string {
@@ -993,6 +1046,23 @@ func dedupeSorted(values []string) []string {
 		if value != out[len(out)-1] {
 			out = append(out, value)
 		}
+	}
+	return out
+}
+
+func dedupePreserveOrder(values []string) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	seen := make(map[string]bool, len(values))
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" || seen[value] {
+			continue
+		}
+		seen[value] = true
+		out = append(out, value)
 	}
 	return out
 }

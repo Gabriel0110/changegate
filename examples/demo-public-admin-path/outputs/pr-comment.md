@@ -4,8 +4,8 @@
 
 ### Decision Reasons
 
-- `MEETS_BLOCK_THRESHOLD` `Production RDS resilience controls disabled`: Production RDS resilience controls disabled: 2 supporting findings across 1 affected resources
-- `MEETS_BLOCK_THRESHOLD` `Public admin service reaches sensitive data`: Public admin service reaches sensitive data: 9 supporting findings across 5 affected resources
+- **Production RDS resilience controls disabled:** 2 supporting findings across 1 affected resource
+- **Public admin service reaches sensitive data:** 9 supporting findings across 5 affected resources
 
 ### Risk Clusters
 

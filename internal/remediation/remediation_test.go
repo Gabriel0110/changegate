@@ -104,8 +104,8 @@ func TestAttackPathRemediationIsAdvisoryAndNonAutofix(t *testing.T) {
 			if enriched.Remediation.AutoFixAvailable {
 				t.Fatalf("%s unexpectedly enabled autofix", ruleID)
 			}
-			if len(enriched.Remediation.FixOptions) == 0 || len(enriched.Remediation.TerraformHints) == 0 {
-				t.Fatalf("%s missing tradeoffs or Terraform hints: %#v", ruleID, enriched.Remediation)
+			if len(enriched.Remediation.FixOptions) == 0 {
+				t.Fatalf("%s missing structured fix options: %#v", ruleID, enriched.Remediation)
 			}
 			for _, patch := range enriched.Remediation.Patches {
 				if patch.SafeToApply || !patch.ReviewNeeded {

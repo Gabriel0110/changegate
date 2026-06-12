@@ -27,13 +27,13 @@ ChangeGate imported 3 external findings, retained 1 after deduplication, and cor
 | `trivy` | 1 |
 
 Key handling notes:
-- `kics` `correlated` `aws_s3_bucket_policy.assets`: scanner finding matched a changed graph resource through graph.alias
-- `checkov` `superseded_by_native` `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
-- `trivy` `superseded_by_native` `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
+- `kics` correlated `aws_s3_bucket_policy.assets`: scanner finding matched a changed graph resource through resource alias
+- `checkov` is covered by native ChangeGate evidence for `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
+- `trivy` is covered by native ChangeGate evidence for `aws_s3_bucket_policy.assets`: native ChangeGate finding covers the same resource and risk category with plan graph evidence (`AWS_S3_BUCKET_PUBLIC_POLICY`)
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `S3 bucket policy grants public access`: finding meets block threshold
+- **S3 bucket policy grants public access:** Meets the configured block threshold.
 
 ## Risk clusters
 
@@ -76,13 +76,13 @@ Remediation:
 **Primary fix:** Remove public principals from the bucket policy and use CloudFront origin access control or scoped IAM principals.
 
 Recommended actions:
-- Document any intentional public exposure in policy or a time-bounded waiver.
-- Prefer private subnets, internal load balancers, or authenticated edge controls.
-- Remove public CIDRs unless internet access is required.
+- Keep public access block enabled unless the bucket is intentionally public and reviewed.
+- Remove `Principal: "*"` statements that grant S3 read or write access.
+- Use CloudFront origin access control, a specific AWS principal, or an application role instead of public bucket policy access.
 
 Fix options:
-- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
-- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
+- **Remove public bucket policy grants** (preferred): Delete or narrow public principals and wildcard S3 actions from the bucket policy.
+- **Use CloudFront origin access control**: Serve content through CloudFront while keeping the bucket private.
 
 Review notes:
 - Effort: medium
@@ -108,11 +108,11 @@ Remediation:
 
 Recommended actions:
 - Add a targeted fix or a time-bounded waiver if the risk is accepted.
-- Identify the owning team.
+- Identify the resource owner.
 - Inspect the finding evidence.
 
 Fix options:
-- **Review evidence** (preferred): Use the finding evidence and owning team context to select a resource-specific mitigation.
+- **Review evidence** (preferred): Use the finding evidence and resource-owner context to select a resource-specific mitigation.
 
 Review notes:
 - Effort: unknown

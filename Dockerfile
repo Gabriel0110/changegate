@@ -6,6 +6,8 @@ ARG DATE=unknown
 ARG TARGETARCH=amd64
 WORKDIR /src
 
+RUN apk add --no-cache ca-certificates
+
 COPY go.mod go.sum ./
 RUN go mod download
 
@@ -17,6 +19,7 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=${TARGETARCH:-amd64} go build \
     ./cmd/changegate
 
 FROM scratch
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
 COPY --from=build /out/changegate /changegate
 USER 65532:65532
 ENTRYPOINT ["/changegate"]

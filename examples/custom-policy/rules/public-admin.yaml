@@ -16,4 +16,4 @@ where:
     - graph.internet_exposed: true
 remediation: Make the load balancer internal, restrict ingress to approved operator networks, or use an authenticated access proxy.
 references:
-  - https://example.com/security/admin-access
+  - <your-admin-access-standard-url>

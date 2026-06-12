@@ -21,12 +21,13 @@ Detects public ingress to administrative ports.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public admin ports are high-value targets and are often exploited before application controls can help.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Remove `0.0.0.0/0` and `::/0` from admin-port ingress rules.
+- Use SSM Session Manager for instance access where possible.
+- If network access is required, restrict `cidr_blocks` to a reviewed VPN or bastion CIDR.
 
 ## References
 

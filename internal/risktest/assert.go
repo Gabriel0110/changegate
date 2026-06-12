@@ -59,6 +59,19 @@ func assertFindings(testName string, report output.Report, expect FindingExpecta
 			failures = append(failures, Failure{TestName: testName, Assertion: "findings.exclude", Message: fmt.Sprintf("expected finding %s to be absent", ruleID)})
 		}
 	}
+	counts := findingRuleCounts(report.Findings)
+	for ruleID, want := range expect.Counts {
+		if got := counts[ruleID]; got != want {
+			failures = append(failures, Failure{TestName: testName, Assertion: "findings.counts." + ruleID, Message: fmt.Sprintf("expected %d findings for %s, got %d", want, ruleID, got)})
+		}
+	}
+	resources := findingRuleResources(report.Findings)
+	for ruleID, want := range expect.Resources {
+		got := resources[ruleID]
+		if !sameStringSet(got, want) {
+			failures = append(failures, Failure{TestName: testName, Assertion: "findings.resources." + ruleID, Message: fmt.Sprintf("expected resources %s for %s, got %s", displayValues(sortedStrings(want)), ruleID, displayValues(got))})
+		}
+	}
 	return failures
 }
 
@@ -207,6 +220,34 @@ func findingRuleSet(findings []model.Finding) map[string]bool {
 	return out
 }
 
+func findingRuleCounts(findings []model.Finding) map[string]int {
+	out := make(map[string]int)
+	for _, finding := range findings {
+		out[finding.RuleID]++
+	}
+	return out
+}
+
+func findingRuleResources(findings []model.Finding) map[string][]string {
+	sets := make(map[string]map[string]bool)
+	for _, finding := range findings {
+		if finding.RuleID == "" || finding.ResourceAddress == "" {
+			continue
+		}
+		set := sets[finding.RuleID]
+		if set == nil {
+			set = make(map[string]bool)
+			sets[finding.RuleID] = set
+		}
+		set[finding.ResourceAddress] = true
+	}
+	out := make(map[string][]string, len(sets))
+	for ruleID, set := range sets {
+		out[ruleID] = sortedKeys(set)
+	}
+	return out
+}
+
 func attackPathTypes(findings []model.Finding) []string {
 	seen := make(map[string]bool)
 	for _, finding := range findings {
@@ -291,4 +332,24 @@ func sortedKeys(values map[string]bool) []string {
 	}
 	sort.Strings(out)
 	return out
+}
+
+func sortedStrings(values []string) []string {
+	out := append([]string(nil), values...)
+	sort.Strings(out)
+	return out
+}
+
+func sameStringSet(a []string, b []string) bool {
+	a = sortedStrings(a)
+	b = sortedStrings(b)
+	if len(a) != len(b) {
+		return false
+	}
+	for index := range a {
+		if a[index] != b[index] {
+			return false
+		}
+	}
+	return true
 }

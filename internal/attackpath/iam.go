@@ -3,6 +3,7 @@ package attackpath
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -22,9 +23,20 @@ type iamGrant struct {
 	NotActions     []string
 	Resources      []string
 	NotResources   []string
+	DeniedActions  []string
+	Scopes         []iamActionScope
+	DenyScopes     []iamActionScope
 	Confidence     model.Confidence
 	HasDeny        bool
 	Complex        bool
+	BroadNotAction bool
+}
+
+type iamActionScope struct {
+	Actions        []string
+	NotActions     []string
+	Resources      []string
+	NotResources   []string
 	BroadNotAction bool
 }
 
@@ -80,19 +92,25 @@ func detectPassRoleComputeMutation(g *graph.Graph, grants []iamGrant, opts IAMDe
 		if !grantAllows(grant, "iam:PassRole") {
 			continue
 		}
-		mutation := firstAllowedAction(grant, "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:CreateFunction", "ecs:RunTask", "ecs:UpdateService", "ecs:RegisterTaskDefinition")
-		if mutation == "" {
+		if firstAllowedAction(grant, "lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration", "lambda:CreateFunction", "ecs:RunTask", "ecs:UpdateService", "ecs:RegisterTaskDefinition") == "" {
 			continue
 		}
-		mutationConfidenceAdjustment := model.Confidence("")
-		if strings.EqualFold(mutation, "lambda:CreateFunction") && !grantAllows(grant, "lambda:InvokeFunction") {
-			mutationConfidenceAdjustment = model.ConfidenceMedium
-		}
 		for _, role := range passableRoles(g, grant) {
+			mutation := validComputeMutationForRole(g, grant, role)
+			if mutation == "" {
+				continue
+			}
+			mutationConfidenceAdjustment := model.Confidence("")
+			if strings.EqualFold(mutation, "lambda:CreateFunction") && !grantAllows(grant, "lambda:InvokeFunction") {
+				mutationConfidenceAdjustment = model.ConfidenceMedium
+			}
 			decision, severity, confidence := iamDecisionForTarget(g.Nodes[role], grant)
 			if mutationConfidenceAdjustment != "" && confidenceRank(mutationConfidenceAdjustment) < confidenceRank(confidence) {
 				confidence = mutationConfidenceAdjustment
 				decision, severity = iamDecision(confidence, g.Nodes[role])
+			}
+			if !privilegedOrSensitiveRole(g, role) {
+				continue
 			}
 			if decision == model.DecisionWarn && !opts.IncludeWarnings {
 				continue
@@ -112,12 +130,52 @@ func detectPassRoleComputeMutation(g *graph.Graph, grants []iamGrant, opts IAMDe
 				},
 				Evidence:    iamEvidence(grant, role, mutation),
 				Mitigations: []string{"Scope iam:PassRole to non-privileged execution roles and exact services.", "Separate compute mutation permissions from pass-role permissions."},
-				References:  []string{"docs/attack-paths.md"},
+				References:  []string{attackPathsDocsURL},
 				Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "passrole_compute_mutation"}),
 			})
 		}
 	}
 	return out
+}
+
+func validComputeMutationForRole(g *graph.Graph, grant iamGrant, role graph.ResourceID) string {
+	for _, action := range []string{"lambda:UpdateFunctionCode", "lambda:UpdateFunctionConfiguration"} {
+		for _, workload := range sortedNodesByKind(g, graph.NodeWorkload) {
+			node := g.Nodes[workload]
+			if node == nil || node.Type != "aws_lambda_function" || !grantAllowsOn(grant, action, node) {
+				continue
+			}
+			if resourceListContains(rolesUsedBy(g, workload), role) {
+				return action
+			}
+		}
+	}
+	for _, action := range []string{"ecs:UpdateService"} {
+		for _, workload := range sortedNodesByKind(g, graph.NodeWorkload) {
+			node := g.Nodes[workload]
+			if node == nil || node.Type != "aws_ecs_service" || !grantAllowsOn(grant, action, node) {
+				continue
+			}
+			if resourceListContains(ecsServiceRoles(g, workload), role) {
+				return action
+			}
+		}
+	}
+	for _, action := range []string{"lambda:CreateFunction", "ecs:RunTask", "ecs:RegisterTaskDefinition"} {
+		if grantAllowsAnyTarget(grant, action) {
+			return action
+		}
+	}
+	return ""
+}
+
+func resourceListContains(resources []graph.ResourceID, target graph.ResourceID) bool {
+	for _, resource := range resources {
+		if resource == target {
+			return true
+		}
+	}
+	return false
 }
 
 func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionOptions) []AttackPath {
@@ -152,7 +210,7 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 				Message:  "principal can assume a privileged or sensitive role",
 			}},
 			Mitigations: []string{"Remove broad trust or require tightly scoped conditions and approval for privileged role assumption."},
-			References:  []string{"docs/attack-paths.md"},
+			References:  []string{attackPathsDocsURL},
 		})
 	}
 	for _, grant := range grants {
@@ -180,7 +238,7 @@ func detectAssumeAdminRole(g *graph.Graph, grants []iamGrant, opts IAMDetectionO
 				Steps:            []Step{iamStep(grant.Principal, role, "sts:AssumeRole", graph.EdgeCanAssume, "policy allows role assumption", confidence)},
 				Evidence:         iamEvidence(grant, role, "sts:AssumeRole"),
 				Mitigations:      []string{"Scope sts:AssumeRole to exact non-admin roles and require restrictive trust conditions."},
-				References:       []string{"docs/attack-paths.md"},
+				References:       []string{attackPathsDocsURL},
 				Metadata:         iamMetadata(grant, map[string]string{"attack_pattern": "assume_privileged_role"}),
 			})
 		}
@@ -220,7 +278,7 @@ func detectRoleAssumptionChains(g *graph.Graph, opts IAMDetectionOptions) []Atta
 					Message:  "principal can reach a privileged or sensitive role through chained role assumptions",
 				}},
 				Mitigations: []string{"Break chained trust by removing unnecessary intermediate role assumptions.", "Require restrictive external IDs, audience, subject, or principal conditions on each role trust edge."},
-				References:  []string{"docs/attack-paths.md"},
+				References:  []string{attackPathsDocsURL},
 				Metadata:    map[string]string{"attack_pattern": "role_assumption_chain", "chain_length": fmt.Sprint(len(path.Edges))},
 			})
 		}
@@ -231,11 +289,8 @@ func detectRoleAssumptionChains(g *graph.Graph, opts IAMDetectionOptions) []Atta
 func detectFunctionUpdateRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMDetectionOptions) []AttackPath {
 	out := make([]AttackPath, 0)
 	for _, grant := range grants {
-		if !grantAllows(grant, "lambda:UpdateFunctionCode") {
-			continue
-		}
 		for _, fn := range sortedNodesByKind(g, graph.NodeWorkload) {
-			if g.Nodes[fn].Type != "aws_lambda_function" || !resourceCovered(grant.Resources, g.Nodes[fn]) {
+			if g.Nodes[fn].Type != "aws_lambda_function" || !grantAllowsOn(grant, "lambda:UpdateFunctionCode", g.Nodes[fn]) {
 				continue
 			}
 			for _, role := range rolesUsedBy(g, fn) {
@@ -261,7 +316,7 @@ func detectFunctionUpdateRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMD
 					},
 					Evidence:    iamEvidence(grant, role, "lambda:UpdateFunctionCode"),
 					Mitigations: []string{"Remove function update access or move the function to a least-privilege execution role."},
-					References:  []string{"docs/attack-paths.md"},
+					References:  []string{attackPathsDocsURL},
 					Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "lambda_update_execution_role"}),
 				})
 			}
@@ -273,11 +328,8 @@ func detectFunctionUpdateRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMD
 func detectECSUpdateServiceRoleAccess(g *graph.Graph, grants []iamGrant, opts IAMDetectionOptions) []AttackPath {
 	out := make([]AttackPath, 0)
 	for _, grant := range grants {
-		if !grantAllows(grant, "ecs:UpdateService") {
-			continue
-		}
 		for _, service := range sortedNodesByKind(g, graph.NodeWorkload) {
-			if g.Nodes[service].Type != "aws_ecs_service" || !resourceCovered(grant.Resources, g.Nodes[service]) {
+			if g.Nodes[service].Type != "aws_ecs_service" || !grantAllowsOn(grant, "ecs:UpdateService", g.Nodes[service]) {
 				continue
 			}
 			for _, role := range ecsServiceRoles(g, service) {
@@ -303,7 +355,7 @@ func detectECSUpdateServiceRoleAccess(g *graph.Graph, grants []iamGrant, opts IA
 					},
 					Evidence:    iamEvidence(grant, role, "ecs:UpdateService"),
 					Mitigations: []string{"Remove service update access or use a task role without sensitive data access."},
-					References:  []string{"docs/attack-paths.md"},
+					References:  []string{attackPathsDocsURL},
 					Metadata:    iamMetadata(grant, map[string]string{"attack_pattern": "ecs_update_sensitive_task_role"}),
 				})
 			}
@@ -366,6 +418,9 @@ func detectIAMPolicyMutationEscalation(g *graph.Graph, grants []iamGrant, opts I
 				continue
 			}
 			for _, target := range escalationTargets(g, grant, pattern) {
+				if !grantAllowsAllOn(grant, g.Nodes[target], pattern.Actions...) {
+					continue
+				}
 				decision, severity, confidence := iamDecisionForTarget(g.Nodes[target], grant)
 				if grant.BroadNotAction {
 					confidence = model.ConfidenceMedium
@@ -390,7 +445,7 @@ func detectIAMPolicyMutationEscalation(g *graph.Graph, grants []iamGrant, opts I
 					Steps:            steps,
 					Evidence:         iamEvidence(grant, target, strings.Join(pattern.Actions, "+")),
 					Mitigations:      pattern.Mitigations,
-					References:       []string{"docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"},
+					References:       []string{attackPathsDocsURL, "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"},
 					Metadata: iamMetadata(grant, map[string]string{
 						"attack_pattern":     pattern.ID,
 						"pathfinding_source": "DataDog/pathfinding.cloud research catalog",
@@ -410,6 +465,9 @@ func detectPathfindingCatalogEscalation(g *graph.Graph, grants []iamGrant, opts 
 				continue
 			}
 			for _, target := range pathfindingTargets(g, grant, entry) {
+				if !grantAllowsAllOn(grant, g.Nodes[target], entry.RequiredActions...) {
+					continue
+				}
 				decision, severity, confidence := iamDecisionForTarget(g.Nodes[target], grant)
 				if grant.BroadNotAction {
 					confidence = model.ConfidenceMedium
@@ -484,8 +542,8 @@ func pathfindingPassRoleTargets(g *graph.Graph, grant iamGrant) []graph.Resource
 }
 
 func pathfindingPrincipalTargets(g *graph.Graph, grant iamGrant, entry pathfindingCatalogEntry) []graph.ResourceID {
-	candidates := matchingPrincipals(g, grant.Resources)
-	if len(candidates) == 0 && resourceCovered(grant.Resources, g.Nodes[grant.Principal]) {
+	candidates := matchingPrincipalsForGrant(g, grant)
+	if len(candidates) == 0 && grantResourceCovered(grant, g.Nodes[grant.Principal]) {
 		candidates = append(candidates, grant.Principal)
 	}
 	out := make([]graph.ResourceID, 0, len(candidates))
@@ -535,7 +593,7 @@ func pathfindingExistingResourceTargets(g *graph.Graph, grant iamGrant, entry pa
 	out := make([]graph.ResourceID, 0)
 	for _, id := range sortedGraphNodeIDs(g) {
 		node := g.Nodes[id]
-		if node == nil || !pathfindingNodeMatchesServices(node, entry.Services) || !resourceCovered(grant.Resources, node) {
+		if node == nil || !pathfindingNodeMatchesServices(node, entry.Services) || !grantResourceCovered(grant, node) {
 			continue
 		}
 		for _, role := range rolesUsedBy(g, id) {
@@ -654,7 +712,7 @@ func pathfindingMitigations(entry pathfindingCatalogEntry) []string {
 }
 
 func pathfindingReferences(entry pathfindingCatalogEntry) []string {
-	refs := []string{"docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"}
+	refs := []string{attackPathsDocsURL, "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"}
 	refs = append(refs, entry.References...)
 	return dedupeSorted(refs)
 }
@@ -714,6 +772,7 @@ func grantFromObservedActions(principal graph.ResourceID, node *graph.Node) []ia
 		Source:     principal,
 		Actions:    actions,
 		Resources:  []string{"*"},
+		Scopes:     []iamActionScope{{Actions: actions, Resources: []string{"*"}}},
 		Confidence: model.ConfidenceHigh,
 	}}
 }
@@ -741,6 +800,7 @@ func grantsFromCloudActionEdges(g *graph.Graph, principal graph.ResourceID) []ia
 		Source:     principal,
 		Actions:    dedupeSorted(actions),
 		Resources:  []string{"*"},
+		Scopes:     []iamActionScope{{Actions: dedupeSorted(actions), Resources: []string{"*"}}},
 		Confidence: confidence,
 	}}
 }
@@ -762,14 +822,24 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 			grant.Confidence = model.ConfidenceMedium
 		}
 		if effect == "deny" {
+			scope := iamActionScope{
+				Actions:      statement.Actions,
+				NotActions:   statement.NotActions,
+				Resources:    resourcesOrWildcard(statement.Resources),
+				NotResources: statement.NotResources,
+			}
 			for _, action := range statement.Actions {
 				if ActionMatches(action, "iam:PassRole") || ActionMatches(action, "sts:AssumeRole") || ActionMatches(action, "lambda:UpdateFunctionCode") || ActionMatches(action, "lambda:UpdateFunctionConfiguration") || ActionMatches(action, "lambda:CreateFunction") || ActionMatches(action, "ecs:RunTask") || ActionMatches(action, "ecs:UpdateService") || ActionMatches(action, "ecs:RegisterTaskDefinition") {
 					grant.HasDeny = true
+					grant.DeniedActions = append(grant.DeniedActions, action)
 				}
 			}
 			if len(statement.NotActions) > 0 {
 				grant.Complex = true
 				grant.Confidence = model.ConfidenceMedium
+			}
+			if len(scope.Actions) > 0 || len(scope.NotActions) > 0 {
+				grant.DenyScopes = append(grant.DenyScopes, scope)
 			}
 			continue
 		}
@@ -778,8 +848,19 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 		}
 		actions = append(actions, statement.Actions...)
 		notActions = append(notActions, statement.NotActions...)
-		resources = append(resources, statement.Resources...)
+		scopeResources := resourcesOrWildcard(statement.Resources)
+		resources = append(resources, scopeResources...)
 		notResources = append(notResources, statement.NotResources...)
+		scope := iamActionScope{
+			Actions:        statement.Actions,
+			NotActions:     statement.NotActions,
+			Resources:      scopeResources,
+			NotResources:   statement.NotResources,
+			BroadNotAction: len(statement.NotActions) > 0,
+		}
+		if len(scope.Actions) > 0 || len(scope.NotActions) > 0 {
+			grant.Scopes = append(grant.Scopes, scope)
+		}
 		if len(statement.NotActions) > 0 {
 			grant.BroadNotAction = true
 			grant.Complex = true
@@ -794,13 +875,18 @@ func grantFromStatements(principal graph.ResourceID, source graph.ResourceID, st
 	grant.NotActions = dedupeSorted(notActions)
 	grant.Resources = dedupeSorted(resources)
 	grant.NotResources = dedupeSorted(notResources)
+	grant.DeniedActions = dedupeSorted(grant.DeniedActions)
 	if len(grant.Resources) == 0 {
 		grant.Resources = []string{"*"}
 	}
-	if grant.HasDeny && grant.Confidence == model.ConfidenceHigh {
-		grant.Confidence = model.ConfidenceMedium
-	}
 	return grant
+}
+
+func resourcesOrWildcard(resources []string) []string {
+	if len(resources) == 0 {
+		return []string{"*"}
+	}
+	return resources
 }
 
 func principalsForPolicyNode(g *graph.Graph, policy graph.ResourceID, node *graph.Node) []graph.ResourceID {
@@ -899,7 +985,21 @@ func policyMap(value any) map[string]any {
 }
 
 func grantAllows(grant iamGrant, action string) bool {
-	if grant.HasDeny && grant.Confidence == model.ConfidenceHigh {
+	return grantAllowsAnyTarget(grant, action)
+}
+
+func grantAllowsAnyTarget(grant iamGrant, action string) bool {
+	for _, scope := range grant.DenyScopes {
+		if scopeAllowsAction(scope, action) && resourceScopeMatchesAny(scope) {
+			return false
+		}
+	}
+	if len(grant.Scopes) > 0 {
+		for _, scope := range grant.Scopes {
+			if scopeAllowsAction(scope, action) {
+				return true
+			}
+		}
 		return false
 	}
 	for _, pattern := range grant.Actions {
@@ -916,6 +1016,65 @@ func grantAllows(grant iamGrant, action string) bool {
 		return true
 	}
 	return false
+}
+
+func grantAllowsOn(grant iamGrant, action string, node *graph.Node) bool {
+	if node == nil {
+		return grantAllowsAnyTarget(grant, action)
+	}
+	for _, scope := range grant.DenyScopes {
+		if scopeAllowsAction(scope, action) && resourceScopeCovers(scope, node) {
+			return false
+		}
+	}
+	if len(grant.Scopes) > 0 {
+		for _, scope := range grant.Scopes {
+			if scopeAllowsAction(scope, action) && resourceScopeCovers(scope, node) {
+				return true
+			}
+		}
+		return false
+	}
+	return grantAllowsAnyTarget(grant, action) && grantResourceCovered(grant, node)
+}
+
+func grantAllowsAllOn(grant iamGrant, node *graph.Node, actions ...string) bool {
+	for _, action := range actions {
+		if !grantAllowsOn(grant, action, node) {
+			return false
+		}
+	}
+	return true
+}
+
+func scopeAllowsAction(scope iamActionScope, action string) bool {
+	for _, pattern := range scope.Actions {
+		if ActionMatches(pattern, action) {
+			return true
+		}
+	}
+	if scope.BroadNotAction || len(scope.NotActions) > 0 {
+		for _, excluded := range scope.NotActions {
+			if ActionMatches(excluded, action) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
+func resourceScopeMatchesAny(scope iamActionScope) bool {
+	for _, resource := range scope.Resources {
+		if strings.TrimSpace(resource) == "*" || strings.TrimSpace(resource) == "" {
+			return true
+		}
+	}
+	return len(scope.Resources) == 0
+}
+
+func resourceScopeCovers(scope iamActionScope, node *graph.Node) bool {
+	return resourceCovered(scope.Resources, node) && !resourceCovered(scope.NotResources, node)
 }
 
 func grantAllowsAll(grant iamGrant, actions ...string) bool {
@@ -937,21 +1096,21 @@ func firstAllowedAction(grant iamGrant, actions ...string) string {
 }
 
 func passableRoles(g *graph.Graph, grant iamGrant) []graph.ResourceID {
-	return matchingRoles(g, grant.Resources)
+	return matchingRolesForAction(g, grant, "iam:PassRole")
 }
 
 func assumableRoles(g *graph.Graph, grant iamGrant) []graph.ResourceID {
-	return matchingRoles(g, grant.Resources)
+	return matchingRolesForAction(g, grant, "sts:AssumeRole")
 }
 
-func matchingRoles(g *graph.Graph, resources []string) []graph.ResourceID {
+func matchingRolesForAction(g *graph.Graph, grant iamGrant, action string) []graph.ResourceID {
 	out := make([]graph.ResourceID, 0)
 	for _, id := range sortedGraphNodeIDs(g) {
 		node := g.Nodes[id]
 		if node == nil || node.Type != "aws_iam_role" {
 			continue
 		}
-		if resourceCovered(resources, node) {
+		if grantAllowsOn(grant, action, node) {
 			out = append(out, id)
 		}
 	}
@@ -972,6 +1131,20 @@ func matchingPrincipals(g *graph.Graph, resources []string) []graph.ResourceID {
 	return out
 }
 
+func matchingPrincipalsForGrant(g *graph.Graph, grant iamGrant) []graph.ResourceID {
+	out := make([]graph.ResourceID, 0)
+	for _, id := range matchingPrincipals(g, grant.Resources) {
+		if !resourceCovered(grant.NotResources, g.Nodes[id]) {
+			out = append(out, id)
+		}
+	}
+	return out
+}
+
+func grantResourceCovered(grant iamGrant, node *graph.Node) bool {
+	return resourceCovered(grant.Resources, node) && !resourceCovered(grant.NotResources, node)
+}
+
 func resourceCovered(resources []string, node *graph.Node) bool {
 	if node == nil || len(resources) == 0 {
 		return false
@@ -985,12 +1158,42 @@ func resourceCovered(resources []string, node *graph.Node) bool {
 			if candidate == "" {
 				continue
 			}
-			if resource == candidate || strings.HasSuffix(resource, ":"+candidate) || strings.Contains(resource, candidate) || strings.Contains(candidate, resource) {
+			if iamResourceMatches(resource, candidate) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func iamResourceMatches(pattern string, candidate string) bool {
+	pattern = strings.TrimSpace(pattern)
+	candidate = strings.TrimSpace(candidate)
+	if pattern == "" || pattern == "*" || pattern == candidate {
+		return true
+	}
+	if strings.ContainsAny(pattern, "*?") {
+		return iamWildcardMatch(pattern, candidate)
+	}
+	return false
+}
+
+func iamWildcardMatch(pattern string, candidate string) bool {
+	var builder strings.Builder
+	builder.WriteString("^")
+	for _, r := range pattern {
+		switch r {
+		case '*':
+			builder.WriteString(".*")
+		case '?':
+			builder.WriteString(".")
+		default:
+			builder.WriteString(regexp.QuoteMeta(string(r)))
+		}
+	}
+	builder.WriteString("$")
+	matched, err := regexp.MatchString(builder.String(), candidate)
+	return err == nil && matched
 }
 
 func resourceCandidates(node *graph.Node) []string {
@@ -1053,8 +1256,8 @@ func privilegedOrSensitivePrincipal(g *graph.Graph, id graph.ResourceID) bool {
 }
 
 func escalationTargets(g *graph.Graph, grant iamGrant, pattern iamEscalationPattern) []graph.ResourceID {
-	candidates := matchingPrincipals(g, grant.Resources)
-	if len(candidates) == 0 && resourceCovered(grant.Resources, g.Nodes[grant.Principal]) {
+	candidates := matchingPrincipalsForGrant(g, grant)
+	if len(candidates) == 0 && grantResourceCovered(grant, g.Nodes[grant.Principal]) {
 		candidates = append(candidates, grant.Principal)
 	}
 	out := make([]graph.ResourceID, 0, len(candidates))
@@ -1121,7 +1324,7 @@ func ecsServiceRoles(g *graph.Graph, service graph.ResourceID) []graph.ResourceI
 
 func iamDecisionForTarget(target *graph.Node, grant iamGrant) (model.Decision, model.Severity, model.Confidence) {
 	confidence := grant.Confidence
-	if grant.Complex || grant.HasDeny {
+	if grant.Complex {
 		confidence = model.ConfidenceMedium
 	}
 	decision, severity := iamDecision(confidence, target)
@@ -1189,10 +1392,10 @@ func iamConfidenceReason(confidence model.Confidence, grant iamGrant, reason str
 	switch {
 	case grant.BroadNotAction:
 		return "medium confidence: broad IAM NotAction allow implies the required permissions unless excluded, so ChangeGate warns instead of treating it as exact evidence"
-	case grant.Complex || grant.HasDeny || confidence != model.ConfidenceHigh:
-		return "medium confidence: " + reason + ", but policy conditions, deny statements, or broad resource semantics require reviewer confirmation"
+	case grant.Complex || confidence != model.ConfidenceHigh:
+		return "medium confidence: " + reason + ", but policy conditions or broad resource semantics require reviewer confirmation"
 	default:
-		return "high confidence: " + reason + " with explicit IAM policy evidence and no contradicting deny statement"
+		return "high confidence: " + reason + " with explicit IAM policy evidence and no target-matching deny evidence"
 	}
 }
 

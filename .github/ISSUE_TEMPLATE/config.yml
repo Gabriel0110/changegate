@@ -1,5 +1,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Security disclosure
-    url: https://github.com/gtomberlin/changegate/security/policy
+    url: https://github.com/Gabriel0110/changegate/security/policy
     about: Please report vulnerabilities privately through the security policy.

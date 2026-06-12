@@ -13,8 +13,8 @@
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `Production RDS resilience controls disabled`: Production RDS resilience controls disabled: 2 supporting findings across 1 affected resources
-- `MEETS_BLOCK_THRESHOLD` `Public admin service reaches sensitive data`: Public admin service reaches sensitive data: 9 supporting findings across 5 affected resources
+- **Production RDS resilience controls disabled:** 2 supporting findings across 1 affected resource
+- **Public admin service reaches sensitive data:** 9 supporting findings across 5 affected resources
 
 ## Risk clusters
 
@@ -50,12 +50,12 @@
 ChangeGate detected a high-signal infrastructure attack path.
 
 Evidence:
-- **Attack path:** attack path type is public_to_sensitive_data
-- **Attack path:** attack path kind is network
 - **Confidence:** high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence
 - **Graph path:** public entrypoint reaches sensitive asset
 - **Attack path step:** load balancer is internet exposed
 - **Attack path step:** load balancer routes to listener
+- **Attack path step:** listener forwards to target group
+- **Attack path step:** target group routes to ECS service
 - 7 additional evidence items are available in JSON output.
 
 Remediation:
@@ -69,8 +69,8 @@ Recommended actions:
 - Segment the workload from sensitive data stores and secrets.
 
 Fix options:
-- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
-- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+- **Break the reachable path** (preferred): Remove one required edge between the public entrypoint, workload, and sensitive asset.
+- **Constrain sensitive access**: Allow the sensitive asset only from reviewed private workload identities or security groups.
 
 Review notes:
 - Effort: medium
@@ -95,18 +95,16 @@ Remediation:
 **Primary fix:** Set backup retention to a non-zero period aligned with recovery requirements.
 
 Recommended actions:
-- Confirm the planned delete or replacement is intentional.
-- Enable deletion protection where supported.
-- Take a backup or snapshot and document rollback.
+- Apply through the normal database change process.
+- Confirm backup windows and retention meet the service recovery objective.
+- Set `backup_retention_period` to the required production value.
 
 Fix options:
-- **Avoid replacement** (preferred): Prefer an in-place supported change or staged migration instead of replacing stateful infrastructure.
-- **Approve replacement with recovery plan**: If replacement is intentional, require a snapshot, rollback plan, and maintenance window.
+- **Enable production backup retention** (preferred): Set `backup_retention_period` to an approved non-zero value for the database or cluster.
 
 Review notes:
 - Effort: medium
 - Downtime risk: high
-- This change may be destructive; review replacement or deletion behavior before apply.
 - Attach evidence of the selected mitigation before apply.
 - Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
@@ -127,18 +125,16 @@ Remediation:
 **Primary fix:** Enable deletion protection for production databases.
 
 Recommended actions:
-- Confirm the planned delete or replacement is intentional.
-- Enable deletion protection where supported.
-- Take a backup or snapshot and document rollback.
+- Keep stateful deletion controls separate from routine configuration changes.
+- Only disable deletion protection in a reviewed teardown or migration plan.
+- Set `deletion_protection = true` for production databases and clusters.
 
 Fix options:
-- **Avoid replacement** (preferred): Prefer an in-place supported change or staged migration instead of replacing stateful infrastructure.
-- **Approve replacement with recovery plan**: If replacement is intentional, require a snapshot, rollback plan, and maintenance window.
+- **Enable deletion protection** (preferred): Set `deletion_protection = true` before apply.
 
 Review notes:
 - Effort: medium
 - Downtime risk: high
-- This change may be destructive; review replacement or deletion behavior before apply.
 - Attach evidence of the selected mitigation before apply.
 - Treat as release-blocking unless a reviewer approves a time-bounded waiver.
 
@@ -309,8 +305,8 @@ Recommended actions:
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 
 Fix options:
-- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
-- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+- **Remove datastore reachability** (preferred): Eliminate the route, security-group edge, or identity edge that lets the public path reach the datastore.
+- **Allow only private workload access**: Restrict datastore access to reviewed private workload security groups or roles.
 
 Review notes:
 - Owner hint: `service=admin`
@@ -347,8 +343,8 @@ Recommended actions:
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 
 Fix options:
-- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
-- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+- **Remove datastore reachability** (preferred): Eliminate the route, security-group edge, or identity edge that lets the public path reach the datastore.
+- **Allow only private workload access**: Restrict datastore access to reviewed private workload security groups or roles.
 
 Review notes:
 - Owner hint: `service=admin`
@@ -384,8 +380,8 @@ Recommended actions:
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 
 Fix options:
-- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
-- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+- **Remove datastore reachability** (preferred): Eliminate the route, security-group edge, or identity edge that lets the public path reach the datastore.
+- **Allow only private workload access**: Restrict datastore access to reviewed private workload security groups or roles.
 
 Review notes:
 - Effort: medium
@@ -419,8 +415,8 @@ Recommended actions:
 - Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
 
 Fix options:
-- **Enable protection controls** (preferred): Turn on encryption, public-access blocks, and logging where supported.
-- **Segment access**: Limit sensitive asset access to the workloads and roles that require it.
+- **Remove datastore reachability** (preferred): Eliminate the route, security-group edge, or identity edge that lets the public path reach the datastore.
+- **Allow only private workload access**: Restrict datastore access to reviewed private workload security groups or roles.
 
 Review notes:
 - Effort: medium

@@ -14,7 +14,7 @@ body:
     id: version
     attributes:
       label: ChangeGate version
-      placeholder: v0.1.0
+      placeholder: vX.Y.Z
     validations:
       required: true
   - type: textarea

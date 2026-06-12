@@ -39,27 +39,12 @@ This change introduces:
 ## Top Graph Paths
 
 - `aws_db_instance.customer`: internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
-- `aws_ecs_service.admin`: aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
-- `aws_ecs_service.admin`: aws_db_instance.customer
 
 ## Attack Paths
 
 - `AWS_PUBLIC_TO_SENSITIVE_DATA_PATH` `critical/high` `block` Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer
-  - Context: type `public_to_sensitive_data`, kind `network`, source `plan`
   - Confidence reason: high confidence: every step from public entrypoint through workload to sensitive target is backed by explicit plan or cloud-context graph evidence
-  - aws_db_instance.customer
-  - aws_ecs_service.admin
-  - aws_lb.admin
-  - aws_lb_listener.admin
-  - aws_lb_target_group.admin
-  - aws_security_group.public
-  - internet
-  - listener forwards to target group
-  - load balancer is internet exposed
-  - load balancer routes to listener
-  - resource can send traffic through security group
-  - security group applies to resource
-  - target group routes to ECS service
+  - Path: internet -> aws_lb.admin -> aws_lb_listener.admin -> aws_lb_target_group.admin -> aws_ecs_service.admin -> aws_security_group.public -> aws_db_instance.customer
 
 ## Top Findings
 

@@ -21,12 +21,13 @@ Detects production database deletion or replacement configured to skip final sna
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Availability findings identify changes that can weaken recovery, deletion protection, or replacement safety for production or stateful resources.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `skip_final_snapshot = false` for production deletion or replacement.
+- Provide a reviewed `final_snapshot_identifier` where required.
+- Confirm the snapshot retention and restore plan before approving the change.
 
 ## References
 

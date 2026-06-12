@@ -381,12 +381,88 @@ func limitReportFindings(report *output.Report, maxFindings int) error {
 	}
 	omitted := len(report.Findings) - maxFindings
 	report.Findings = append([]model.Finding{}, report.Findings[:maxFindings]...)
+	reconcileLimitedReport(report)
 	report.Diagnostics = append(report.Diagnostics, model.Diagnostic{
 		Severity: model.DiagnosticInfo,
 		Code:     "MAX_FINDINGS_TRUNCATED",
 		Message:  fmt.Sprintf("output limited to %d findings; %d findings omitted from serialized output", maxFindings, omitted),
 	})
 	return nil
+}
+
+func reconcileLimitedReport(report *output.Report) {
+	findingIDs := make(map[string]bool, len(report.Findings))
+	ruleIDs := make(map[string]bool, len(report.Findings))
+	report.RiskSummary = model.RiskSummary{
+		Total:              len(report.Findings),
+		BySeverity:         make(map[model.Severity]int),
+		ByCategory:         make(map[model.RiskCategory]int),
+		SuppressedByReason: make(map[string]int),
+	}
+	reasonCodes := make([]model.DecisionReasonCode, 0)
+	for _, finding := range report.Findings {
+		findingIDs[finding.ID] = true
+		ruleIDs[finding.RuleID] = true
+		report.RiskSummary.BySeverity[finding.Severity]++
+		report.RiskSummary.ByCategory[finding.Category]++
+		if findingHasReason(finding, model.ReasonDowngraded) {
+			report.RiskSummary.Downgraded++
+		}
+		if findingHasReason(finding, model.ReasonUpgraded) {
+			report.RiskSummary.Upgraded++
+		}
+		switch {
+		case findingSuppressed(finding):
+			report.RiskSummary.Suppressed++
+			for _, suppression := range finding.Suppressions {
+				if suppression.Active {
+					report.RiskSummary.SuppressedByReason[suppression.Kind]++
+				}
+			}
+		case findingHasReason(finding, model.ReasonMeetsBlockThreshold):
+			report.RiskSummary.Blocking++
+		case findingHasReason(finding, model.ReasonBelowBlockThreshold):
+			report.RiskSummary.Warnings++
+		default:
+			report.RiskSummary.Informational++
+		}
+		reasonCodes = appendDecisionReasonCodes(reasonCodes, finding.DecisionReasonCodes...)
+	}
+	reasons := make([]model.DecisionReason, 0, len(report.Reasons))
+	for _, reason := range report.Reasons {
+		if reason.FindingID == "" || findingIDs[reason.FindingID] {
+			reasons = append(reasons, reason)
+			reasonCodes = appendDecisionReasonCodes(reasonCodes, reason.Code)
+		}
+	}
+	report.Reasons = reasons
+	report.ReasonCodes = reasonCodes
+	report.RiskClusters = output.BuildRiskClusters(report.Findings)
+	if len(report.Rules) > 0 {
+		for ruleID := range report.Rules {
+			if !ruleIDs[ruleID] {
+				delete(report.Rules, ruleID)
+			}
+		}
+	}
+}
+
+func findingHasReason(finding model.Finding, code model.DecisionReasonCode) bool {
+	for _, current := range finding.DecisionReasonCodes {
+		if current == code {
+			return true
+		}
+	}
+	return false
+}
+
+func findingSuppressed(finding model.Finding) bool {
+	for _, suppression := range finding.Suppressions {
+		if suppression.Active {
+			return true
+		}
+	}
+	return false
 }
 
 func mergeExistingFingerprints(existing map[string]bool, incoming map[string]bool) map[string]bool {
@@ -526,6 +602,9 @@ func scanOnePlan(ctx context.Context, stdin io.Reader, planPath string, branch s
 	}
 	findings = applyGraphConflictDiagnostics(findings, graphDiagnostics)
 	findings = append(findings, attackPathFindings(resourceGraph, basePolicy.AttackPaths, selection)...)
+	if contextSnapshot != nil {
+		findings = suppressLiveOnlyCloudContextFindings(findings, managedResources(plan))
+	}
 	importSummary, importDiagnostics, err := importExternalFindings(imports, findings, resourceGraph, failImport)
 	if err != nil {
 		return output.Report{}, err
@@ -693,6 +772,87 @@ func attackPathRuleSelected(ruleID string, selection rules.Selection) bool {
 	return true
 }
 
+func suppressLiveOnlyCloudContextFindings(findings []model.Finding, managed map[string]bool) []model.Finding {
+	if len(findings) == 0 || len(managed) == 0 {
+		return findings
+	}
+	out := make([]model.Finding, 0, len(findings))
+	for _, finding := range findings {
+		if findingTouchesResourceSet(finding, managed) {
+			out = append(out, finding)
+			continue
+		}
+		finding.Suppressions = append(finding.Suppressions, model.Suppression{
+			Kind:   "cloud_context_live_only",
+			Reason: "live cloud context finding does not touch a resource in the Terraform/OpenTofu plan",
+			Active: true,
+		})
+		finding.DecisionReasons = append(finding.DecisionReasons, model.DecisionReason{
+			FindingID: finding.ID,
+			Resource:  finding.ResourceAddress,
+			Reason:    "suppressed because live cloud context evidence does not touch this plan",
+		})
+		out = append(out, model.NormalizeFinding(finding))
+	}
+	return out
+}
+
+func findingTouchesResourceSet(finding model.Finding, resources map[string]bool) bool {
+	if resources[finding.ResourceAddress] {
+		return true
+	}
+	for _, evidence := range finding.Evidence {
+		if resources[evidence.Resource] || evidenceValueTouchesResourceSet(evidence.Value, resources) {
+			return true
+		}
+	}
+	return false
+}
+
+func evidenceValueTouchesResourceSet(value any, resources map[string]bool) bool {
+	switch typed := value.(type) {
+	case string:
+		return resourceSetMatch(typed, resources)
+	case []string:
+		for _, item := range typed {
+			if resourceSetMatch(item, resources) {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			if evidenceValueTouchesResourceSet(item, resources) {
+				return true
+			}
+		}
+	case map[string]string:
+		for _, item := range typed {
+			if resourceSetMatch(item, resources) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, item := range typed {
+			if evidenceValueTouchesResourceSet(item, resources) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func resourceSetMatch(value string, resources map[string]bool) bool {
+	if resources[value] {
+		return true
+	}
+	for resource := range resources {
+		if strings.HasPrefix(value, resource+":") {
+			return true
+		}
+	}
+	return false
+}
+
 func graphConflictDiagnostic(code string) bool {
 	switch code {
 	case graphpkg.DiagnosticCloudPublicConflict, graphpkg.DiagnosticCloudAttachmentConflict, graphpkg.DiagnosticCloudUnmanagedRelationship:
@@ -811,6 +971,26 @@ func changedResources(plan *model.Plan) map[string]bool {
 	}
 	for _, change := range plan.Changes {
 		out[change.Address] = true
+	}
+	return out
+}
+
+func managedResources(plan *model.Plan) map[string]bool {
+	out := make(map[string]bool)
+	if plan == nil {
+		return out
+	}
+	for _, resource := range plan.Resources {
+		out[resource.Address] = true
+	}
+	for _, resource := range plan.PriorResources {
+		out[resource.Address] = true
+	}
+	for _, change := range plan.Changes {
+		out[change.Address] = true
+		if change.PreviousAddress != "" {
+			out[change.PreviousAddress] = true
+		}
 	}
 	return out
 }
@@ -1054,7 +1234,7 @@ func auditHCPRunTaskEvidence(report output.Report) map[string]any {
 		"included":      false,
 		"reason":        "scan was not invoked by the HCP Terraform run task adapter",
 		"decision":      report.Decision,
-		"would_pass":    report.Decision != model.DecisionBlock,
+		"would_pass":    report.Decision == model.DecisionAllow || report.Decision == model.DecisionWarn,
 		"would_status":  hcpRunTaskStatus(report.Decision),
 		"plan_digest":   auditPlanDigest(report),
 		"policy_digest": auditPolicyDigest(report),
@@ -1062,10 +1242,10 @@ func auditHCPRunTaskEvidence(report output.Report) map[string]any {
 }
 
 func hcpRunTaskStatus(decision model.Decision) string {
-	if decision == model.DecisionBlock {
-		return "failed"
+	if decision == model.DecisionAllow || decision == model.DecisionWarn {
+		return "passed"
 	}
-	return "passed"
+	return "failed"
 }
 
 func auditPlanDigest(report output.Report) string {
@@ -1289,12 +1469,38 @@ func redactionReport(findings []model.Finding) output.RedactionReport {
 			if evidence.Sensitive {
 				report.SensitiveEvidence++
 			}
-			if evidence.Value != nil && evidence.Sensitive {
-				report.RedactedValues++
-			}
+			report.RedactedValues += countRedactedValues(evidence.Value)
 		}
 	}
 	return report
+}
+
+func countRedactedValues(value any) int {
+	switch typed := value.(type) {
+	case string:
+		if typed == "(sensitive)" {
+			return 1
+		}
+	case []any:
+		total := 0
+		for _, item := range typed {
+			total += countRedactedValues(item)
+		}
+		return total
+	case []string:
+		total := 0
+		for _, item := range typed {
+			total += countRedactedValues(item)
+		}
+		return total
+	case map[string]any:
+		total := 0
+		for _, item := range typed {
+			total += countRedactedValues(item)
+		}
+		return total
+	}
+	return 0
 }
 
 func sha256Hex(body []byte) string {

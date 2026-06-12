@@ -19,7 +19,7 @@ jobs:
   changegate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: hashicorp/setup-terraform@v3
       - name: Terraform plan
         working-directory: infra
@@ -29,7 +29,7 @@ jobs:
           terraform show -json tfplan > tfplan.json
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: v0.5.0
+          CHANGEGATE_VERSION: vX.Y.Z
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
@@ -76,9 +76,9 @@ jobs:
 The repository also includes a composite action. The `version` input is required so CI never installs a floating binary:
 
 ```yaml
-- uses: Gabriel0110/changegate@v0.5.0
+- uses: Gabriel0110/changegate@vX.Y.Z
   with:
-    version: v0.5.0
+    version: vX.Y.Z
     plan: infra/tfplan.json
     format: json
     out: infra/changegate.json

@@ -825,7 +825,7 @@ func containsSensitiveAsset(value string) bool {
 }
 
 func applyContext(f Finding, config PolicyConfig) Finding {
-	if config.ChangedResourcesOnly && !config.ChangedResources[f.ResourceAddress] {
+	if config.ChangedResourcesOnly && !findingTouchesChangedResource(f, config.ChangedResources) {
 		f.Suppressions = append(f.Suppressions, Suppression{
 			Kind:   "changed_resource_only",
 			Reason: "finding is outside the changed resource set",
@@ -863,6 +863,65 @@ func applyContext(f Finding, config PolicyConfig) Finding {
 		}
 	}
 	return NormalizeFinding(f)
+}
+
+func findingTouchesChangedResource(f Finding, changed map[string]bool) bool {
+	if len(changed) == 0 {
+		return false
+	}
+	if changed[f.ResourceAddress] {
+		return true
+	}
+	for _, evidence := range f.Evidence {
+		if changed[evidence.Resource] || evidenceValueTouchesChangedResource(evidence.Value, changed) {
+			return true
+		}
+	}
+	return false
+}
+
+func evidenceValueTouchesChangedResource(value any, changed map[string]bool) bool {
+	switch typed := value.(type) {
+	case string:
+		return changedResourceMatch(typed, changed)
+	case []string:
+		for _, item := range typed {
+			if changedResourceMatch(item, changed) {
+				return true
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			if evidenceValueTouchesChangedResource(item, changed) {
+				return true
+			}
+		}
+	case map[string]string:
+		for _, item := range typed {
+			if changedResourceMatch(item, changed) {
+				return true
+			}
+		}
+	case map[string]any:
+		for _, item := range typed {
+			if evidenceValueTouchesChangedResource(item, changed) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func changedResourceMatch(value string, changed map[string]bool) bool {
+	if changed[value] {
+		return true
+	}
+	for resource := range changed {
+		if strings.HasPrefix(value, resource+":") {
+			return true
+		}
+	}
+	return false
 }
 
 // RiskContextFromFinding extracts non-secret movement signals from a finding.

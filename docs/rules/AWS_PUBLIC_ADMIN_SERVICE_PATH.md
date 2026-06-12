@@ -17,22 +17,23 @@ Detects public entrypoints reaching admin-like workloads without sensitive downs
 ## Resources
 
 - `aws_lb`
+- `aws_api_gatewayv2_route`
+- `aws_lambda_function_url`
 - `aws_ecs_service`
 - `aws_lambda_function`
-- `aws_iam_role`
-- `aws_iam_policy`
 - `aws_db_instance`
 - `aws_secretsmanager_secret`
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public reachability becomes materially more important when the graph shows a route to admin functionality or sensitive data.
 
 ## Remediation
 
-- Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.
-- Scope IAM and network access to the minimum required resources.
+- Remove public reachability or require authenticated ingress for the entrypoint.
+- Segment sensitive data stores, secrets, and keys from public workloads.
+- Allow downstream sensitive access only from reviewed private workload identities or security groups.
 
 ## References
 
-- docs/attack-paths.md
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

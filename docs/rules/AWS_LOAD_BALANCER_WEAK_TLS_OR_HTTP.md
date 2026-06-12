@@ -21,12 +21,13 @@ Detects internet-facing load balancer listeners that use plaintext HTTP or legac
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public exposure changes can create reachable entrypoints. ChangeGate reports this when the plan or graph evidence is strong enough to show the exposure path.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Remove public CIDRs unless internet access is required.
+- Prefer private subnets, internal load balancers, or authenticated edge controls.
+- Document any intentional public exposure in policy or a time-bounded waiver.
 
 ## References
 

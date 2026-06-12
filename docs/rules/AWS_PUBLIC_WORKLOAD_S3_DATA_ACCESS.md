@@ -23,12 +23,13 @@ Detects internet-exposed workloads with graph-backed read or write access to sen
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Sensitive-data findings indicate that a change can expose, weaken, or create access to data stores, secrets, or keys.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Enable encryption with managed or customer-managed keys.
+- Enable access logging or equivalent audit telemetry.
+- Restrict access to the workloads that need the data.
 
 ## References
 

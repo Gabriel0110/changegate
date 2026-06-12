@@ -142,7 +142,7 @@ svg.panning { cursor: grabbing; }
 </style>
 </head>
 <body>
-<header><h1>ChangeGate Attack Paths</h1><div class="subtitle">1 detected attack path(s)</div></header>
+<header><h1>ChangeGate Attack Paths</h1><div class="subtitle">1 detected attack path</div></header>
 <main class="shell">
 <aside><div class="toolbar">
 <div class="graph-tools" aria-label="Graph controls">
@@ -170,57 +170,57 @@ svg.panning { cursor: grabbing; }
 </defs>
 <g id="viewport">
 <path class="edge block" data-from="aws_ecs_service.admin" data-to="aws_security_group.public" d="M 460.0 344.0 C 385.0 344.0, 385.0 344.0, 310.0 344.0"/>
-<text class="edge-label" data-from="aws_ecs_service.admin" data-to="aws_security_group.public" x="385.0" y="326.0">allows_egress</text>
+<text class="edge-label" data-from="aws_ecs_service.admin" data-to="aws_security_group.public" x="385.0" y="326.0">allows egress</text>
 <path class="edge block" data-from="aws_lb.admin" data-to="aws_lb_listener.admin" d="M 690.0 122.0 C 765.0 122.0, 765.0 122.0, 840.0 122.0"/>
-<text class="edge-label" data-from="aws_lb.admin" data-to="aws_lb_listener.admin" x="765.0" y="104.0">routes_to</text>
+<text class="edge-label" data-from="aws_lb.admin" data-to="aws_lb_listener.admin" x="765.0" y="104.0">routes to</text>
 <path class="edge block" data-from="aws_lb_listener.admin" data-to="aws_lb_target_group.admin" d="M 1070.0 122.0 C 977.0 122.0, 977.0 344.0, 840.0 344.0"/>
-<text class="edge-label" data-from="aws_lb_listener.admin" data-to="aws_lb_target_group.admin" x="973.0" y="223.0">routes_to</text>
+<text class="edge-label" data-from="aws_lb_listener.admin" data-to="aws_lb_target_group.admin" x="973.0" y="223.0">routes to</text>
 <path class="edge block" data-from="aws_lb_target_group.admin" data-to="aws_ecs_service.admin" d="M 840.0 344.0 C 765.0 344.0, 765.0 344.0, 690.0 344.0"/>
-<text class="edge-label" data-from="aws_lb_target_group.admin" data-to="aws_ecs_service.admin" x="765.0" y="326.0">routes_to</text>
+<text class="edge-label" data-from="aws_lb_target_group.admin" data-to="aws_ecs_service.admin" x="765.0" y="326.0">routes to</text>
 <path class="edge block" data-from="aws_security_group.public" data-to="aws_db_instance.customer" d="M 310.0 344.0 C 195.0 344.0, 195.0 566.0, 80.0 566.0"/>
-<text class="edge-label" data-from="aws_security_group.public" data-to="aws_db_instance.customer" x="213.0" y="445.0">allows_ingress</text>
+<text class="edge-label" data-from="aws_security_group.public" data-to="aws_db_instance.customer" x="213.0" y="445.0">allows ingress</text>
 <path class="edge block" data-from="internet" data-to="aws_lb.admin" d="M 310.0 122.0 C 385.0 122.0, 385.0 122.0, 460.0 122.0"/>
-<text class="edge-label" data-from="internet" data-to="aws_lb.admin" x="385.0" y="104.0">has_public_access</text>
+<text class="edge-label" data-from="internet" data-to="aws_lb.admin" x="385.0" y="104.0">has public access</text>
 <g class="node" data-id="internet" data-role="internet" transform="translate(80.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#e0f2fe" stroke="#0284c7"></rect>
 <text class="node-title" x="14.0" y="24.0">internet</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">internet</text>
 </g>
 <g class="node" data-id="aws_lb.admin" data-role="public" transform="translate(460.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eff6ff" stroke="#2563eb"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb.admin</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">public</text>
 </g>
 <g class="node" data-id="aws_lb_listener.admin" data-role="path" transform="translate(840.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb_listener.admin</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">path</text>
 </g>
 <g class="node" data-id="aws_lb_target_group.admin" data-role="path" transform="translate(840.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb_target_group.admin</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">path</text>
 </g>
 <g class="node" data-id="aws_ecs_service.admin" data-role="path" transform="translate(460.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_ecs_service.admin</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">path</text>
 </g>
 <g class="node" data-id="aws_security_group.public" data-role="path" transform="translate(80.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_security_group.public</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">path</text>
 </g>
 <g class="node" data-id="aws_db_instance.customer" data-role="block" transform="translate(80.0 530.0)">
 <rect width="230" height="72" rx="8" fill="#fee2e2" stroke="#b91c1c"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_db_instance.customer</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">block</text>
 </g>
 </g>
 </svg></section>
 <section class="details" id="details"><h2>Select a node</h2><p class="muted">Click a graph node to inspect its resource identity, role, and evidence details.</p></section>
 </main>
-<script>const CHANGEGATE_DIAGRAM={"description":"1 detected attack path(s)","edges":[{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","resource can send traffic through security group","edge: allows_egress","decision: block"],"from":"aws_ecs_service.admin","label":"allows_egress","role":"block","to":"aws_security_group.public"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","load balancer routes to listener","edge: routes_to","decision: block"],"from":"aws_lb.admin","label":"routes_to","role":"block","to":"aws_lb_listener.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","listener forwards to target group","edge: routes_to","decision: block"],"from":"aws_lb_listener.admin","label":"routes_to","role":"block","to":"aws_lb_target_group.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","target group routes to ECS service","edge: routes_to","decision: block"],"from":"aws_lb_target_group.admin","label":"routes_to","role":"block","to":"aws_ecs_service.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","security group applies to resource","edge: allows_ingress","decision: block"],"from":"aws_security_group.public","label":"allows_ingress","role":"block","to":"aws_db_instance.customer"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","load balancer is internet exposed","edge: has_public_access","decision: block"],"from":"internet","label":"has_public_access","role":"block","to":"aws_lb.admin"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_db_instance.customer","kind":"attack_path","label":"aws_db_instance.customer","role":"block","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_ecs_service.admin","kind":"attack_path","label":"aws_ecs_service.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb.admin","kind":"attack_path","label":"aws_lb.admin","role":"public","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb_listener.admin","kind":"attack_path","label":"aws_lb_listener.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb_target_group.admin","kind":"attack_path","label":"aws_lb_target_group.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_security_group.public","kind":"attack_path","label":"aws_security_group.public","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"internet","kind":"attack_path","label":"internet","role":"internet","severity":"critical","type":""}],"title":"ChangeGate Attack Paths"};
+<script>const CHANGEGATE_DIAGRAM={"description":"1 detected attack path","edges":[{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","resource can send traffic through security group","edge: allows egress","decision: block"],"from":"aws_ecs_service.admin","label":"allows egress","role":"block","to":"aws_security_group.public"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","load balancer routes to listener","edge: routes to","decision: block"],"from":"aws_lb.admin","label":"routes to","role":"block","to":"aws_lb_listener.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","listener forwards to target group","edge: routes to","decision: block"],"from":"aws_lb_listener.admin","label":"routes to","role":"block","to":"aws_lb_target_group.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","target group routes to ECS service","edge: routes to","decision: block"],"from":"aws_lb_target_group.admin","label":"routes to","role":"block","to":"aws_ecs_service.admin"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","security group applies to resource","edge: allows ingress","decision: block"],"from":"aws_security_group.public","label":"allows ingress","role":"block","to":"aws_db_instance.customer"},{"confidence":"","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer","load balancer is internet exposed","edge: has public access","decision: block"],"from":"internet","label":"has public access","role":"block","to":"aws_lb.admin"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_db_instance.customer","kind":"","label":"aws_db_instance.customer","role":"block","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_ecs_service.admin","kind":"","label":"aws_ecs_service.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb.admin","kind":"","label":"aws_lb.admin","role":"public","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb_listener.admin","kind":"","label":"aws_lb_listener.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_lb_target_group.admin","kind":"","label":"aws_lb_target_group.admin","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"aws_security_group.public","kind":"","label":"aws_security_group.public","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Public entrypoint aws_lb.admin reaches sensitive asset aws_db_instance.customer"],"id":"internet","kind":"","label":"internet","role":"internet","severity":"critical","type":""}],"title":"ChangeGate Attack Paths"};
 
 const NODE_WIDTH = CHANGEGATE_DIAGRAM.nodeWidth || 230;
 const NODE_HEIGHT = CHANGEGATE_DIAGRAM.nodeHeight || 72;
@@ -289,7 +289,7 @@ function selectNode(id) {
   const connectedItems = connected.map((edge) => '<li><strong>' + escapeHTML(edge.direction) + '</strong> ' + escapeHTML(edge.label || 'relationship') + ' ' + escapeHTML(edge.other) + formatConfidence(edge) + '</li>').join('');
   const statusRows = [
     rowHTML('Role', node.role || 'default'),
-    rowHTML('Kind', node.kind || 'unknown'),
+    rowHTML('Kind', node.kind || node.role || 'resource'),
     rowHTML('Type', node.type || 'n/a'),
     rowHTML('Changed', node.changed ? 'yes' : 'no')
   ];

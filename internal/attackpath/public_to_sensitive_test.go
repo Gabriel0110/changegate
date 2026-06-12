@@ -169,6 +169,50 @@ func TestDetectPublicToSensitiveBlocksAPIGatewayToSecret(t *testing.T) {
 	}
 }
 
+func TestDetectPublicToSensitiveSkipsAuthenticatedAPIGatewayRoute(t *testing.T) {
+	t.Parallel()
+	g := &graph.Graph{
+		Nodes: map[graph.ResourceID]*graph.Node{
+			graph.InternetNodeID: internetNode(),
+			"aws_apigatewayv2_api.authenticated": {
+				ID:      "aws_apigatewayv2_api.authenticated",
+				Address: "aws_apigatewayv2_api.authenticated",
+				Type:    "aws_apigatewayv2_api",
+				Kind:    graph.NodePublicEntrypoint,
+				Name:    "authenticated",
+				Values:  map[string]any{"id": "api-authenticated"},
+			},
+			"aws_apigatewayv2_route.authenticated": {
+				ID:      "aws_apigatewayv2_route.authenticated",
+				Address: "aws_apigatewayv2_route.authenticated",
+				Type:    "aws_apigatewayv2_route",
+				Kind:    graph.NodeUnknown,
+				Name:    "authenticated",
+				Values:  map[string]any{"api_id": "api-authenticated", "authorization_type": "JWT"},
+			},
+			"aws_lambda_function.authenticated": workloadNode("aws_lambda_function.authenticated", "aws_lambda_function"),
+			"aws_secretsmanager_secret.customer": {
+				ID:          "aws_secretsmanager_secret.customer",
+				Address:     "aws_secretsmanager_secret.customer",
+				Type:        "aws_secretsmanager_secret",
+				Kind:        graph.NodeSecret,
+				Name:        "customer",
+				Environment: "production",
+			},
+		},
+		Edges: []graph.Edge{
+			edge(graph.InternetNodeID, "aws_apigatewayv2_api.authenticated", graph.EdgeRoutesTo),
+			edge("aws_apigatewayv2_api.authenticated", "aws_lambda_function.authenticated", graph.EdgeInvokes),
+			edge("aws_lambda_function.authenticated", "aws_secretsmanager_secret.customer", graph.EdgeReadsSecret),
+		},
+	}
+
+	paths := DetectPublicToSensitive(g, DetectionOptions{})
+	if len(paths) != 0 {
+		t.Fatalf("authenticated API route should not produce attack paths: %#v", paths)
+	}
+}
+
 func TestDetectPublicEKSClusterAdminRiskBlocks(t *testing.T) {
 	t.Parallel()
 	g := &graph.Graph{

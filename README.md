@@ -6,7 +6,6 @@
 
 [![CI](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml/badge.svg)](https://github.com/Gabriel0110/changegate/actions/workflows/ci.yml)
 [![Security](https://github.com/Gabriel0110/changegate/actions/workflows/security.yml/badge.svg)](https://github.com/Gabriel0110/changegate/actions/workflows/security.yml)
-[![Go Reference](https://pkg.go.dev/badge/github.com/Gabriel0110/changegate.svg)](https://pkg.go.dev/github.com/Gabriel0110/changegate)
 
 ChangeGate is a fast, graph-aware Terraform/OpenTofu risk gate for CI/CD. It reads the plan that is actually about to apply, builds a graph of changing infrastructure, and returns one deployment decision: `ALLOW`, `WARN`, or `BLOCK`.
 
@@ -58,7 +57,7 @@ changegate attack-paths --plan tfplan.json --to-sensitive-data
 changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 changegate review github --report changegate.json --comment --annotations
 changegate review gitlab --report changegate.json --comment
-changegate context aws snapshot --out .changegate/aws-context.json --collect
+changegate context aws snapshot --out .changegate/aws-context.json --collect=all
 changegate test examples/risk-tests
 ```
 
@@ -66,7 +65,7 @@ These commands reuse the same deterministic scan engine. The default path remain
 
 ## What It Catches
 
-The built-in AWS rule pack currently includes 53 stable high-confidence rules, including:
+The built-in AWS rule pack currently includes 63 stable high-confidence rules, including:
 
 - public administrative services and database exposure
 - world-open security group ingress on admin, database, and all-port ranges
@@ -85,7 +84,7 @@ See the [rule reference](docs/rules/README.md) for the full list.
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=v0.5.0
+export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
@@ -94,8 +93,8 @@ The installer verifies `checksums.txt` and refuses checksum mismatches. Set `CHA
 Docker:
 
 ```bash
-docker run --rm ghcr.io/gabriel0110/changegate:v0.5.0 version
-docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.5.0 scan --plan /work/tfplan.json
+docker run --rm ghcr.io/gabriel0110/changegate:vX.Y.Z version
+docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:vX.Y.Z scan --plan /work/tfplan.json
 ```
 
 Published image tags include `vX.Y.Z`, `X.Y.Z`, `X.Y`, `X`, and `latest`.
@@ -114,7 +113,7 @@ See [Install Options](docs/distribution.md) for Docker tags and npm installer be
 To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
 
 ```bash
-export CHANGEGATE_VERSION=v0.5.0
+export CHANGEGATE_VERSION=vX.Y.Z
 export CHANGEGATE_VERIFY_SIG=true
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
@@ -156,7 +155,8 @@ Exit codes are stable:
 | `3`       | Input parsing error.              |
 | `4`       | Policy/configuration error.       |
 | `5`       | Cloud-context error.              |
-| `10`      | Internal error.                   |
+| `6`       | Internal error.                   |
+| `7`       | Unsupported input or provider.    |
 
 ## Repository Setup
 
@@ -258,7 +258,7 @@ jobs:
   changegate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: hashicorp/setup-terraform@v3
 
       - name: Terraform plan
@@ -270,7 +270,7 @@ jobs:
 
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: v0.5.0
+          CHANGEGATE_VERSION: vX.Y.Z
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh

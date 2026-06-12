@@ -24,13 +24,14 @@ Detects unauthenticated Lambda function URLs that invoke a function with graph-b
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+This is stronger evidence than a standalone public endpoint finding because ChangeGate can trace the path from internet access to the sensitive asset.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set the function URL `authorization_type` to `AWS_IAM` or place it behind an authenticated edge layer.
+- Remove secret, KMS, datastore, or bucket access that is not required by this public handler.
+- If the function must stay public, split sensitive operations into a private worker role or separate function.
 
 ## References
 
-- No external references.
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

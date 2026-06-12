@@ -4,7 +4,7 @@
 
 ### Decision Reasons
 
-- `MEETS_BLOCK_THRESHOLD` `Security group opens SSH to the world`: high severity and high confidence meets block threshold
+- **Security group opens SSH to the world:** Meets the configured block threshold.
 
 ### Risk Clusters
 

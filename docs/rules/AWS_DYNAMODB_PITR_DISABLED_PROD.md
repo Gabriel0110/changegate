@@ -20,12 +20,13 @@ Detects production DynamoDB tables with point-in-time recovery disabled.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Without PITR, accidental data corruption or deletion can become a longer outage or data-loss event.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `point_in_time_recovery.enabled` to `true` for production tables.
+- Confirm recovery-period requirements with the owning service before disabling PITR.
+- Use a waiver only for intentionally ephemeral production tables with documented recovery alternatives.
 
 ## References
 

@@ -57,6 +57,8 @@ func TestParsePolicyStatements(t *testing.T) {
 func TestDetectIAMPassRoleAndLambdaUpdateBlocks(t *testing.T) {
 	t.Parallel()
 	g := iamBaseGraph()
+	g.Nodes["aws_lambda_function.admin"] = workloadNode("aws_lambda_function.admin", "aws_lambda_function")
+	g.Edges = append(g.Edges, edge("aws_lambda_function.admin", "aws_iam_role.admin_execution", graph.EdgeCanAssume))
 	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
 	  "Statement": [{
 	    "Effect": "Allow",
@@ -196,6 +198,8 @@ func TestDetectIAMECSUpdateSensitiveTaskRoleBlocks(t *testing.T) {
 func TestDetectIAMComplexConditionWarnsNotHighConfidenceBlock(t *testing.T) {
 	t.Parallel()
 	g := iamBaseGraph()
+	g.Nodes["aws_lambda_function.admin"] = workloadNode("aws_lambda_function.admin", "aws_lambda_function")
+	g.Edges = append(g.Edges, edge("aws_lambda_function.admin", "aws_iam_role.admin_execution", graph.EdgeCanAssume))
 	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
 	  "Statement": [{
 	    "Effect": "Allow",
@@ -231,6 +235,122 @@ func TestDetectIAMExplicitDenyAvoidsHighConfidenceBlock(t *testing.T) {
 	if path := findIAMPath(paths, "iam:PassRole"); path != nil {
 		t.Fatalf("explicit deny should avoid default high-confidence path, got %#v", path)
 	}
+	paths = DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	if path := findIAMPath(paths, "iam:PassRole"); path != nil {
+		t.Fatalf("explicit deny should avoid warning path too, got %#v", path)
+	}
+}
+
+func TestDetectIAMScopedDenyDoesNotSuppressDifferentAllowedRole(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_role.blocked_admin"] = &graph.Node{
+		ID:          "aws_iam_role.blocked_admin",
+		Address:     "aws_iam_role.blocked_admin",
+		Type:        "aws_iam_role",
+		Kind:        graph.NodePrincipal,
+		Name:        "blocked_admin",
+		Environment: "production",
+		Values:      map[string]any{"arn": "arn:aws:iam::123456789012:role/blocked_admin"},
+	}
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [
+	    {
+	      "Effect": "Allow",
+	      "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+	      "Resource": "*"
+	    },
+	    {
+	      "Effect": "Deny",
+	      "Action": "iam:PassRole",
+	      "Resource": "arn:aws:iam::123456789012:role/blocked_admin"
+	    }
+	  ]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	if path := pathTargeting(paths, "aws_iam_role.blocked_admin"); path != nil {
+		t.Fatalf("scoped deny target should not produce path, got %#v", path)
+	}
+	if path := pathTargeting(paths, "aws_iam_role.admin_execution"); path == nil {
+		t.Fatalf("scoped deny suppressed unrelated allowed role: %#v", paths)
+	}
+}
+
+func TestDetectIAMStatementActionResourceCouplingAvoidsCrossProduct(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_lambda_function.unrelated"] = workloadNode("aws_lambda_function.unrelated", "aws_lambda_function")
+	g.Nodes["aws_lambda_function.unrelated"].Values = map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:unrelated"}
+	g.Edges = append(g.Edges, edge("aws_lambda_function.unrelated", "aws_iam_role.admin_execution", graph.EdgeCanAssume))
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [
+	    {
+	      "Effect": "Allow",
+	      "Action": "iam:PassRole",
+	      "Resource": "arn:aws:iam::123456789012:role/admin_execution"
+	    },
+	    {
+	      "Effect": "Allow",
+	      "Action": "lambda:UpdateFunctionCode",
+	      "Resource": "arn:aws:lambda:us-east-1:123456789012:function:other"
+	    }
+	  ]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	if path := findIAMPath(paths, "lambda:UpdateFunctionCode"); path != nil {
+		t.Fatalf("unrelated function update resource should not produce path, got %#v", path)
+	}
+}
+
+func TestIAMResourceWildcardMatchingAvoidsSubstringFalsePositive(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_role.app"] = &graph.Node{
+		ID:      "aws_iam_role.app",
+		Address: "aws_iam_role.app",
+		Type:    "aws_iam_role",
+		Kind:    graph.NodePrincipal,
+		Name:    "app",
+		Values:  map[string]any{"arn": "arn:aws:iam::123456789012:role/app"},
+	}
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+	    "Resource": "arn:aws:iam::123456789012:role/app"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	if path := pathTargeting(paths, "aws_iam_role.admin_execution"); path != nil {
+		t.Fatalf("substring resource match produced admin path: %#v", path)
+	}
+
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "lambda:CreateFunction", "lambda:InvokeFunction"],
+	    "Resource": "arn:aws:iam::*:role/admin*"
+	  }]
+	}`)
+	paths = DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{})
+	if path := pathTargeting(paths, "aws_iam_role.admin_execution"); path == nil {
+		t.Fatalf("IAM wildcard resource did not match admin role: %#v", paths)
+	}
+}
+
+func pathTargeting(paths []AttackPath, target string) *AttackPath {
+	for i := range paths {
+		if paths[i].Target == target {
+			return &paths[i]
+		}
+	}
+	return nil
 }
 
 func TestParsePolicyStatementsSeparatesNotAction(t *testing.T) {
@@ -275,6 +395,25 @@ func TestDetectIAMBroadNotActionWarns(t *testing.T) {
 	}
 	if len(path.FindingRuleIDs) == 0 || path.FindingRuleIDs[0] != RuleIAMBroadNotActionEscalation {
 		t.Fatalf("finding rule ids = %#v", path.FindingRuleIDs)
+	}
+}
+
+func TestDetectIAMNotResourceExcludesEscalationTarget(t *testing.T) {
+	t.Parallel()
+	g := iamBaseGraph()
+	g.Nodes["aws_iam_policy.deploy"] = policyNode("aws_iam_policy.deploy", `{
+	  "Statement": [{
+	    "Effect": "Allow",
+	    "Action": ["iam:PassRole", "lambda:UpdateFunctionCode"],
+	    "Resource": "*",
+	    "NotResource": "arn:aws:iam::123456789012:role/admin_execution"
+	  }]
+	}`)
+	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
+
+	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
+	if path := findIAMPath(paths, "iam:PassRole"); path != nil {
+		t.Fatalf("NotResource-excluded admin role should not produce IAM path, got %#v", path)
 	}
 }
 
@@ -446,12 +585,15 @@ func TestDetectPathfindingBroadNotActionWarns(t *testing.T) {
 	g.Edges = append(g.Edges, edge("aws_iam_role.github_actions", "aws_iam_policy.deploy", graph.EdgeAttachedTo))
 
 	paths := DetectIAMPrivilegeEscalation(g, IAMDetectionOptions{IncludeWarnings: true})
-	path := findPathfindingPath(paths, "codebuild-001")
+	path := findPathWithRule(paths, RuleIAMBroadNotActionEscalation)
 	if path == nil {
-		t.Fatalf("missing broad NotAction catalog path: %#v", paths)
+		t.Fatalf("missing broad NotAction escalation path: %#v", paths)
 	}
 	if path.Decision != model.DecisionWarn || path.Confidence != model.ConfidenceMedium {
 		t.Fatalf("unexpected path: %#v", path)
+	}
+	if path.Metadata["iam_semantics"] != "not_action_broad_allow" {
+		t.Fatalf("iam semantics = %q, want not_action_broad_allow", path.Metadata["iam_semantics"])
 	}
 }
 
@@ -474,6 +616,7 @@ func adminRoleNode() *graph.Node {
 		Kind:        graph.NodePrincipal,
 		Name:        "admin_execution",
 		Environment: "production",
+		Values:      map[string]any{"arn": "arn:aws:iam::123456789012:role/admin_execution"},
 	}
 }
 
@@ -507,6 +650,17 @@ func findPathfindingPath(paths []AttackPath, id string) *AttackPath {
 	for i := range paths {
 		if paths[i].Metadata["pathfinding_id"] == id {
 			return &paths[i]
+		}
+	}
+	return nil
+}
+
+func findPathWithRule(paths []AttackPath, ruleID string) *AttackPath {
+	for i := range paths {
+		for _, pathRule := range paths[i].FindingRuleIDs {
+			if pathRule == ruleID {
+				return &paths[i]
+			}
 		}
 	}
 	return nil

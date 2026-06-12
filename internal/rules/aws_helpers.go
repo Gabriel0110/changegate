@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
 
 	"github.com/Gabriel0110/changegate/internal/graph"
 	"github.com/Gabriel0110/changegate/internal/model"
@@ -65,6 +66,7 @@ func firstHighConfidencePath(g *graph.Graph, from graph.ResourceID, to graph.Res
 		MaxDepth: 12,
 		MaxPaths: 1,
 		AllowedEdges: []graph.EdgeType{
+			graph.EdgeHasPublicAccess,
 			graph.EdgeRoutesTo,
 			graph.EdgeInvokes,
 			graph.EdgeAllowsIngress,
@@ -94,6 +96,7 @@ func firstHighConfidenceSensitiveCapabilityPath(g *graph.Graph, from graph.Resou
 		MaxDepth: 14,
 		MaxPaths: 1,
 		AllowedEdges: []graph.EdgeType{
+			graph.EdgeHasPublicAccess,
 			graph.EdgeRoutesTo,
 			graph.EdgeInvokes,
 			graph.EdgeAllowsIngress,
@@ -212,7 +215,7 @@ func publicEntrypointToSensitiveDataFindings(input RuleInput, meta Metadata, ent
 				continue
 			}
 			path, ok := firstHighConfidenceSensitiveCapabilityPath(input.Graph, entryID, targetID)
-			if !ok || !pathHasWorkload(input.Graph, path) {
+			if !ok || !pathHasWorkload(input.Graph, path) || !pathHasSensitiveAccessEdge(path) {
 				continue
 			}
 			key := string(entryID) + "=>" + string(targetID)
@@ -307,6 +310,7 @@ func hasHighConfidencePublicWorkloadExposure(input RuleInput, workloadID graph.R
 		MaxDepth: 10,
 		MaxPaths: 5,
 		AllowedEdges: []graph.EdgeType{
+			graph.EdgeHasPublicAccess,
 			graph.EdgeRoutesTo,
 			graph.EdgeInvokes,
 			graph.EdgeAllowsIngress,
@@ -344,6 +348,10 @@ func pathRequiresAuthenticatedAPI(g *graph.Graph, path graph.Path, unauthenticat
 		}
 	}
 	return false
+}
+
+func pathHasSensitiveAccessEdge(path graph.Path) bool {
+	return pathContainsEdge(path, graph.EdgeCanReadData, graph.EdgeCanWriteData, graph.EdgeReadsSecret, graph.EdgeWritesTo)
 }
 
 func apiGatewayNodeType(resourceType string) bool {
@@ -623,13 +631,26 @@ func hasProductionOrSensitiveContext(change model.Change) bool {
 	if envFromChange(change) == "production" {
 		return true
 	}
-	text := normalizedChangeText(change)
+	tokens := contextTokens(normalizedChangeText(change))
 	for _, marker := range []string{"prod", "production", "sensitive", "customer", "payment", "pii", "secret", "backup", "audit", "security"} {
-		if strings.Contains(text, marker) {
+		if tokens[marker] {
 			return true
 		}
 	}
 	return false
+}
+
+func contextTokens(text string) map[string]bool {
+	out := make(map[string]bool)
+	for _, token := range strings.FieldsFunc(strings.ToLower(text), func(r rune) bool {
+		return !(unicode.IsLetter(r) || unicode.IsDigit(r))
+	}) {
+		if token == "" {
+			continue
+		}
+		out[token] = true
+	}
+	return out
 }
 
 type s3BucketContext struct {
@@ -1011,18 +1032,6 @@ func isSensitiveNode(node *graph.Node) bool {
 	default:
 		return false
 	}
-}
-
-func hasResourceType(g *graph.Graph, typ string) bool {
-	if g == nil {
-		return false
-	}
-	for _, node := range g.Nodes {
-		if node.Type == typ {
-			return true
-		}
-	}
-	return false
 }
 
 func hasAnyChangedType(plan *model.Plan, types ...string) bool {

@@ -119,6 +119,7 @@ func Normalize(paths []AttackPath) []AttackPath {
 		current.Metadata = copyMetadata(current.Metadata)
 		out = append(out, current)
 	}
+	out = dedupeSemanticAttackPaths(out)
 	Sort(out)
 	return out
 }
@@ -162,6 +163,77 @@ func StableID(path AttackPath) string {
 	}
 	sum := hex.EncodeToString(hash.Sum(nil))
 	return "attack-path-" + sum[:16]
+}
+
+func dedupeSemanticAttackPaths(paths []AttackPath) []AttackPath {
+	selected := make(map[string]AttackPath, len(paths))
+	keys := make([]string, 0, len(paths))
+	for _, path := range paths {
+		key := semanticAttackPathKey(path)
+		current, ok := selected[key]
+		if !ok {
+			selected[key] = path
+			keys = append(keys, key)
+			continue
+		}
+		if betterAttackPath(path, current) {
+			selected[key] = path
+		}
+	}
+	out := make([]AttackPath, 0, len(keys))
+	for _, key := range keys {
+		out = append(out, selected[key])
+	}
+	return out
+}
+
+func semanticAttackPathKey(path AttackPath) string {
+	return strings.Join([]string{
+		string(path.Type),
+		string(path.Kind),
+		path.Principal,
+		path.Entrypoint,
+		path.Target,
+	}, "\x00")
+}
+
+func betterAttackPath(candidate AttackPath, current AttackPath) bool {
+	for _, cmp := range []int{
+		compareInt(confidenceRank(candidate.Confidence), confidenceRank(current.Confidence)),
+		compareInt(sourcePreference(candidate.Source), sourcePreference(current.Source)),
+		compareInt(-cloudContextStepCount(candidate), -cloudContextStepCount(current)),
+		compareInt(len(candidate.Steps), len(current.Steps)),
+	} {
+		if cmp != 0 {
+			return cmp > 0
+		}
+	}
+	return candidate.ID < current.ID
+}
+
+func sourcePreference(source graph.EdgeSource) int {
+	switch source {
+	case graph.SourcePlan:
+		return 4
+	case graph.SourceMixed:
+		return 3
+	case graph.SourceCloudContext:
+		return 2
+	case graph.SourceInferred:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func cloudContextStepCount(path AttackPath) int {
+	count := 0
+	for _, step := range path.Steps {
+		if step.Source == graph.SourceCloudContext {
+			count++
+		}
+	}
+	return count
 }
 
 func normalizeSteps(steps []Step) []Step {

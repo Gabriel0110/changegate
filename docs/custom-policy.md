@@ -38,7 +38,7 @@ where:
     - graph.internet_exposed: true
 remediation: Place admin service behind VPN, private ALB, or authenticated proxy.
 references:
-  - https://example.com/security/admin-access-standard
+  - <your-admin-access-standard-url>
 ```
 
 Rule files can also contain multiple rules:

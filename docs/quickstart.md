@@ -13,7 +13,7 @@ go build -o bin/changegate ./cmd/changegate
 Release install:
 
 ```bash
-export CHANGEGATE_VERSION=v0.5.0
+export CHANGEGATE_VERSION=vX.Y.Z
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
@@ -24,8 +24,8 @@ Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifact
 Docker:
 
 ```bash
-docker run --rm ghcr.io/gabriel0110/changegate:v0.5.0 version
-docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.5.0 scan --plan /work/tfplan.json
+docker run --rm ghcr.io/gabriel0110/changegate:vX.Y.Z version
+docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:vX.Y.Z scan --plan /work/tfplan.json
 ```
 
 npm:

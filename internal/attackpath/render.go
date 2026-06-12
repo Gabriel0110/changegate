@@ -26,19 +26,10 @@ func RenderMarkdown(paths []AttackPath) string {
 	}
 	for index, path := range paths {
 		fmt.Fprintf(&b, "## %s\n\n", path.Title)
-		fmt.Fprintf(&b, "- ID: `%s`\n", path.ID)
-		fmt.Fprintf(&b, "- Type: `%s`\n", path.Type)
-		if path.Kind != "" {
-			fmt.Fprintf(&b, "- Kind: `%s`\n", path.Kind)
-		}
 		fmt.Fprintf(&b, "- Decision: `%s`\n", path.Decision)
-		fmt.Fprintf(&b, "- Severity: `%s`\n", path.Severity)
-		fmt.Fprintf(&b, "- Confidence: `%s`\n", path.Confidence)
+		fmt.Fprintf(&b, "- Severity: `%s`, confidence: `%s`\n", path.Severity, path.Confidence)
 		if path.ConfidenceReason != "" {
 			fmt.Fprintf(&b, "- Confidence reason: %s\n", path.ConfidenceReason)
-		}
-		if path.Source != "" {
-			fmt.Fprintf(&b, "- Source: `%s`\n", path.Source)
 		}
 		if len(path.FindingRuleIDs) > 0 {
 			fmt.Fprintf(&b, "- Finding rules: `%s`\n", strings.Join(path.FindingRuleIDs, "`, `"))
@@ -55,12 +46,13 @@ func RenderMarkdown(paths []AttackPath) string {
 		if len(path.AffectedResources) > 0 {
 			b.WriteString("\nAffected resources:\n")
 			for _, resource := range path.AffectedResources {
-				fmt.Fprintf(&b, "- `%s`", resource.Resource)
 				if resource.Role != "" {
-					fmt.Fprintf(&b, " `%s`", resource.Role)
+					fmt.Fprintf(&b, "- **%s:** `%s`", humanizeToken(resource.Role), resource.Resource)
+				} else {
+					fmt.Fprintf(&b, "- `%s`", resource.Resource)
 				}
 				if resource.Type != "" {
-					fmt.Fprintf(&b, " `%s`", resource.Type)
+					fmt.Fprintf(&b, " (`%s`)", resource.Type)
 				}
 				b.WriteString("\n")
 			}
@@ -70,10 +62,7 @@ func RenderMarkdown(paths []AttackPath) string {
 			for _, step := range path.Steps {
 				fmt.Fprintf(&b, "1. `%s` -> `%s`", step.From, step.To)
 				if step.Action != "" {
-					fmt.Fprintf(&b, " via `%s`", step.Action)
-				}
-				if step.Source != "" || step.Confidence != "" {
-					fmt.Fprintf(&b, " (`%s/%s`)", nonEmpty(string(step.Source), "unknown"), nonEmpty(string(step.Confidence), "unknown"))
+					fmt.Fprintf(&b, " via %s", humanizeToken(step.Action))
 				}
 				if step.Explanation != "" {
 					fmt.Fprintf(&b, ": %s", step.Explanation)
@@ -97,12 +86,31 @@ func RenderMarkdown(paths []AttackPath) string {
 			b.WriteString("\n")
 		}
 	}
-	return b.String()
+	return normalizeMarkdownFinalNewline(b.String())
 }
 
-func nonEmpty(value string, fallback string) string {
-	if value != "" {
+func humanizeToken(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	switch value {
+	case "iam:PassRole", "sts:AssumeRole", "lambda:UpdateFunctionCode", "lambda:CreateFunction", "ecs:UpdateService":
 		return value
 	}
-	return fallback
+	value = strings.ReplaceAll(value, "_", " ")
+	value = strings.ReplaceAll(value, "-", " ")
+	words := strings.Fields(value)
+	for index, word := range words {
+		if strings.HasPrefix(word, "aws") || strings.Contains(word, ":") {
+			continue
+		}
+		words[index] = strings.ToUpper(word[:1]) + word[1:]
+	}
+	return strings.Join(words, " ")
+}
+
+func normalizeMarkdownFinalNewline(value string) string {
+	value = strings.TrimRight(value, "\n") + "\n"
+	return value
 }

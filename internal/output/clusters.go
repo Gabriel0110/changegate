@@ -39,8 +39,9 @@ func BuildRiskClusters(findings []model.Finding) []RiskCluster {
 		return nil
 	}
 	drafts := make(map[string]*clusterDraft)
+	publicAdminResources := publicAdminResources(findings)
 	for _, finding := range findings {
-		key, title, category := classifyCluster(finding)
+		key, title, category := classifyCluster(finding, publicAdminResources)
 		draft := drafts[key]
 		if draft == nil {
 			draft = &clusterDraft{key: key, title: title, category: category}
@@ -73,10 +74,12 @@ func BuildRiskClusters(findings []model.Finding) []RiskCluster {
 	return clusters
 }
 
-func classifyCluster(finding model.Finding) (string, string, model.RiskCategory) {
+func classifyCluster(finding model.Finding, publicAdminResources map[string]bool) (string, string, model.RiskCategory) {
 	switch {
-	case isPublicAdminSensitivePath(finding):
+	case isPublicAdminSensitivePath(finding, publicAdminResources):
 		return "public-admin-sensitive-path", "Public admin service reaches sensitive data", model.RiskCategorySensitiveData
+	case isPublicSensitiveDataPath(finding):
+		return "public-sensitive-data-path", "Public entrypoint reaches sensitive data", model.RiskCategorySensitiveData
 	case isRDSResilienceFinding(finding):
 		return "production-rds-resilience", "Production RDS resilience controls disabled", model.RiskCategoryAvailability
 	case isIAMEscalationFinding(finding):
@@ -88,9 +91,94 @@ func classifyCluster(finding model.Finding) (string, string, model.RiskCategory)
 	}
 }
 
-func isPublicAdminSensitivePath(finding model.Finding) bool {
+func publicAdminResources(findings []model.Finding) map[string]bool {
+	out := make(map[string]bool)
+	for _, finding := range findings {
+		if finding.RuleID == "AWS_PUBLIC_ADMIN_SERVICE" || finding.RuleID == "AWS_PUBLIC_ADMIN_SERVICE_PATH" {
+			out[finding.ResourceAddress] = true
+			for _, evidence := range finding.Evidence {
+				for _, resource := range evidenceResources(evidence) {
+					out[resource] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
+func isPublicAdminSensitivePath(finding model.Finding, publicAdminResources map[string]bool) bool {
 	switch finding.RuleID {
-	case "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH", "AWS_PUBLIC_TO_SENSITIVE_DATASTORE", "AWS_PUBLIC_ADMIN_SERVICE", "AWS_PUBLIC_ADMIN_SERVICE_PATH":
+	case "AWS_PUBLIC_ADMIN_SERVICE", "AWS_PUBLIC_ADMIN_SERVICE_PATH":
+		return true
+	case "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH", "AWS_PUBLIC_TO_SENSITIVE_DATASTORE":
+		return findingReferencesAnyResource(finding, publicAdminResources)
+	default:
+		return false
+	}
+}
+
+func findingReferencesAnyResource(finding model.Finding, resources map[string]bool) bool {
+	if len(resources) == 0 {
+		return false
+	}
+	if resources[finding.ResourceAddress] {
+		return true
+	}
+	for _, evidence := range finding.Evidence {
+		for _, resource := range evidenceResources(evidence) {
+			if resources[resource] {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func evidenceResources(evidence model.Evidence) []string {
+	out := make([]string, 0, 4)
+	if evidence.Resource != "" {
+		out = append(out, evidence.Resource)
+	}
+	collectEvidenceValueResources(evidence.Value, &out)
+	return out
+}
+
+func collectEvidenceValueResources(value any, out *[]string) {
+	switch typed := value.(type) {
+	case string:
+		if looksLikeResourceAddress(typed) {
+			*out = append(*out, typed)
+		}
+	case []string:
+		for _, item := range typed {
+			if looksLikeResourceAddress(item) {
+				*out = append(*out, item)
+			}
+		}
+	case []any:
+		for _, item := range typed {
+			collectEvidenceValueResources(item, out)
+		}
+	case map[string]any:
+		for _, item := range typed {
+			collectEvidenceValueResources(item, out)
+		}
+	}
+}
+
+func looksLikeResourceAddress(value string) bool {
+	return strings.Contains(value, ".") && !strings.ContainsAny(value, " \t\n")
+}
+
+func isPublicSensitiveDataPath(finding model.Finding) bool {
+	switch finding.RuleID {
+	case "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+		"AWS_PUBLIC_TO_SENSITIVE_DATASTORE",
+		"AWS_PUBLIC_LAMBDA_URL_TO_SENSITIVE_DATA",
+		"AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA",
+		"AWS_PUBLIC_WORKLOAD_READS_SECRET",
+		"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
+		"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS":
 		return true
 	default:
 		return false

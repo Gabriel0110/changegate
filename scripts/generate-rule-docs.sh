@@ -27,9 +27,9 @@ jq -r '.result[] | select(.status == "stable") | .id' "${tmp}/rules.json" | whil
     "## Resources\n\n" +
     (($r.resources // []) | map("- `" + . + "`") | join("\n")) + "\n\n" +
     "## Why It Matters\n\n" +
-    (($r.documentation.rationale // "Review the planned infrastructure change before apply.") + "\n\n") +
+    (($r.documentation.rationale // "ChangeGate detected evidence that this planned infrastructure change may create deployment risk.") + "\n\n") +
     "## Remediation\n\n" +
-    (($r.documentation.remediation // []) | if length == 0 then "- Review the planned infrastructure change before apply." else map("- " + .) | join("\n") end) + "\n\n" +
+    (($r.documentation.remediation // []) | if length == 0 then "- Review the finding evidence and adjust the planned infrastructure change before apply." else map("- " + .) | join("\n") end) + "\n\n" +
     "## References\n\n" +
     (($r.documentation.references // []) | if length == 0 then "- No external references." else map("- " + .) | join("\n") end) + "\n"
   ' "${tmp}/${rule_id}.json" > "${out_dir}/${rule_id}.md"
@@ -38,9 +38,11 @@ done
 {
   echo "# Rule Reference"
   echo
-  echo "Generated from built-in stable rule metadata."
+  echo "This reference lists ChangeGate's built-in stable rules."
   echo
   echo "| Rule | Category | Severity | Confidence |"
   echo "| --- | --- | --- | --- |"
   jq -r '.result[] | select(.status == "stable") | "| [`" + .id + "`](" + .id + ".md) | `" + .category + "` | `" + .severity + "` | `" + .confidence + "` |"' "${tmp}/rules.json"
 } > "${out_dir}/README.md"
+
+perl -0pi -e 's/\n+\z/\n/' "${out_dir}"/*.md

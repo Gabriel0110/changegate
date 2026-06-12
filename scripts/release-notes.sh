@@ -26,11 +26,16 @@ $(if [[ -n "${range}" ]]; then git log --format='- %s' "${range}"; else echo "- 
 
 ### Verification
 
-Verify checksums before installing:
+Verify the downloaded archive and checksum manifest:
 
 \`\`\`bash
-shasum -a 256 -c checksums.txt
-cosign verify-blob --bundle checksums.txt.sigstore.json checksums.txt
+artifact="changegate_${version#v}_linux_amd64.tar.gz"
+grep "  \${artifact}$" checksums.txt | shasum -a 256 -c -
+cosign verify-blob \\
+  --bundle checksums.txt.sigstore.json \\
+  --certificate-identity "https://github.com/Gabriel0110/changegate/.github/workflows/release.yml@refs/tags/${version}" \\
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \\
+  checksums.txt
 \`\`\`
 
 ### Supply chain evidence

@@ -623,7 +623,7 @@ function selectNode(id) {
   const connectedItems = connected.map((edge) => '<li><strong>' + escapeHTML(edge.direction) + '</strong> ' + escapeHTML(edge.label || 'relationship') + ' ' + escapeHTML(edge.other) + formatConfidence(edge) + '</li>').join('');
   const statusRows = [
     rowHTML('Role', node.role || 'default'),
-    rowHTML('Kind', node.kind || 'unknown'),
+    rowHTML('Kind', node.kind || node.role || 'resource'),
     rowHTML('Type', node.type || 'n/a'),
     rowHTML('Changed', node.changed ? 'yes' : 'no')
   ];

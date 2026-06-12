@@ -23,13 +23,14 @@ Detects internet-exposed workloads with graph-backed access to sensitive KMS key
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Publicly reachable code with decrypt access can become a data exposure path if the workload is compromised.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Restrict the public entrypoint with authentication or approved CIDRs.
+- Scope `kms:Decrypt` to the exact key and private workload role that requires it.
+- Separate public request handling from code paths that decrypt sensitive data.
 
 ## References
 
-- No external references.
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

@@ -1,6 +1,6 @@
 # Audit Evidence and Compliance Metadata
 
-ChangeGate can emit a security-team archive for every CI scan:
+ChangeGate can emit a portable evidence archive for every CI scan:
 
 ```bash
 changegate scan --plan tfplan.json --audit-bundle changegate-audit.zip
@@ -73,7 +73,7 @@ This means compliance reports can help route evidence without turning checklist 
 
 Bundled AWS rules include compliance mappings where the relationship is useful for evidence routing. These mappings are evidence aids, not legal claims of compliance.
 
-Add organization-specific mappings in `.changegate.yaml`:
+Add custom mappings in `.changegate.yaml`:
 
 ```yaml
 compliance:

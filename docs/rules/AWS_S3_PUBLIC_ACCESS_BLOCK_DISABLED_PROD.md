@@ -20,12 +20,13 @@ Detects production S3 public access block resources that disable one or more pro
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public exposure changes can create reachable entrypoints. ChangeGate reports this when the plan or graph evidence is strong enough to show the exposure path.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `block_public_acls`, `block_public_policy`, `ignore_public_acls`, and `restrict_public_buckets` to `true`.
+- Review any intentionally public production bucket through a policy exception or waiver.
+- Confirm dependent CloudFront or application access uses private origin or scoped IAM access.
 
 ## References
 

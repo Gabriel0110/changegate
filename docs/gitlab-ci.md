@@ -12,7 +12,7 @@ changegate:
     name: hashicorp/terraform:1.8
     entrypoint: [""]
   variables:
-    CHANGEGATE_VERSION: v0.5.0
+    CHANGEGATE_VERSION: vX.Y.Z
     TF_IN_AUTOMATION: "true"
   before_script:
     - apk add --no-cache bash curl tar perl-utils

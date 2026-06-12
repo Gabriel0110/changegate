@@ -9,6 +9,8 @@ npx changegate scan --plan tfplan.json
 
 During installation, the package downloads the matching ChangeGate release archive from GitHub Releases, verifies it against the published `checksums.txt`, and installs a local CLI shim named `changegate`.
 
+When installing from a source checkout instead of the published npm package, set `CHANGEGATE_VERSION` to the release you want to download or set `CHANGEGATE_INSTALL_BINARY` to an already-built local binary.
+
 ## Supported Platforms
 
 - macOS arm64 and amd64

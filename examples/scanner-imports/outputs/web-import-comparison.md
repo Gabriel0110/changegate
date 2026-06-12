@@ -27,13 +27,13 @@ ChangeGate imported 2 external findings, retained 2 after deduplication, and cor
 | `sarif` | 1 |
 
 Key handling notes:
-- `sarif` `correlated` `aws_lb.web`: scanner finding matched a changed graph resource through graph.alias
-- `grype` `downgraded` `openssl`: imported finding did not correlate to a changed graph resource
-- `sarif` `upgraded` `aws_lb.web`: graph context increases materiality of imported finding
+- `sarif` correlated `aws_lb.web`: scanner finding matched a changed graph resource through resource alias
+- `grype` downgraded `openssl`: imported finding did not correlate to a changed graph resource
+- `sarif` upgraded `aws_lb.web`: graph context increases materiality of imported finding
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `Public web load balancer should have compensating controls.`: graph context increases materiality of imported finding
+- **Public web load balancer should have compensating controls:** graph context increases materiality of imported finding
 
 ## Risk clusters
 
@@ -54,7 +54,7 @@ Key handling notes:
 - Affected resources: 1
 - Supporting findings: 1
 - Rules: `EXT_GRYPE_CVE_2026_0001`
-- Primary fix: Review the control-specific requirement and update the Terraform/OpenTofu resource or policy exception.
+- Primary fix: Upgrade or replace the affected package version, or document an accepted vulnerability exception with an owner and expiration.
 - Resources: `openssl`
 
 ## Finding details
@@ -108,17 +108,18 @@ Evidence:
 
 Remediation:
 
-**Primary fix:** Review the control-specific requirement and update the Terraform/OpenTofu resource or policy exception.
+**Primary fix:** Upgrade or replace the affected package version, or document an accepted vulnerability exception with an owner and expiration.
 
 Recommended actions:
-- Attach evidence to the pull request.
-- Confirm whether the control applies to this environment.
-- Update the resource configuration or add a time-bounded waiver with owner approval.
+- Rebuild and rescan the artifact that produced the imported vulnerability finding.
+- Upgrade the affected package to a fixed version when one is available.
+- Use a time-bounded waiver only when the vulnerability is not exploitable in the deployed context.
 
 Fix options:
-- **Review evidence** (preferred): Use the finding evidence and owning team context to select a resource-specific mitigation.
+- **Upgrade package** (preferred): Move the affected dependency or OS package to a fixed version and regenerate the scanner output.
+- **Accept with expiration**: Use a waiver only when compensating controls or non-exploitability are documented.
 
 Review notes:
-- Effort: unknown
-- Downtime risk: unknown
+- Effort: medium
+- Downtime risk: low
 - Fix before merge when practical, or track with an owner and due date.

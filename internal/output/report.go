@@ -10,6 +10,8 @@ import (
 	"encoding/xml"
 	"fmt"
 	"html"
+	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -17,6 +19,8 @@ import (
 	"github.com/Gabriel0110/changegate/internal/baseline"
 	"github.com/Gabriel0110/changegate/internal/model"
 )
+
+var markdownSecretPattern = regexp.MustCompile(`(?i)\b(secret|password|token|private_key)\s*[:=]\s*[^,\s;]+`)
 
 const (
 	// ReportSchemaVersion is the stable external scan report schema version.
@@ -251,10 +255,10 @@ func RenderConsole(report Report) string {
 	fmt.Fprintf(&b, "Suppressed or downgraded: %d\n", report.RiskSummary.Suppressed+report.RiskSummary.Downgraded)
 	for _, reason := range collapsedDecisionReasons(report) {
 		if reason.Resource == "" {
-			fmt.Fprintf(&b, "Reason: %s\n", reason.Reason)
+			fmt.Fprintf(&b, "Reason: %s\n", humanDecisionReason(reason))
 			continue
 		}
-		fmt.Fprintf(&b, "Reason: %s %s - %s\n", reason.Code, reason.Resource, reason.Reason)
+		fmt.Fprintf(&b, "Reason: %s - %s\n", cleanLabel(reason.Resource), humanDecisionReason(reason))
 	}
 	for _, diagnostic := range report.Diagnostics {
 		fmt.Fprintf(&b, "Warning: %s\n", diagnostic.Message)
@@ -329,10 +333,10 @@ func RenderMarkdown(report Report) string {
 		b.WriteString("## Decision reasons\n\n")
 		for _, reason := range reasons {
 			if reason.Resource == "" {
-				fmt.Fprintf(&b, "- `%s`: %s\n", reason.Code, reason.Reason)
+				fmt.Fprintf(&b, "- %s\n", humanDecisionReason(reason))
 				continue
 			}
-			fmt.Fprintf(&b, "- `%s` `%s`: %s\n", reason.Code, reason.Resource, reason.Reason)
+			fmt.Fprintf(&b, "- **%s:** %s\n", cleanLabel(reason.Resource), humanDecisionReason(reason))
 		}
 		b.WriteString("\n")
 	}
@@ -369,13 +373,13 @@ func RenderMarkdown(report Report) string {
 	}
 	b.WriteString("## Finding details\n\n")
 	for _, finding := range report.Findings {
-		fmt.Fprintf(&b, "### %s\n\n", finding.Title)
+		fmt.Fprintf(&b, "### %s\n\n", markdownText(finding.Title))
 		fmt.Fprintf(&b, "- Rule: `%s`\n", finding.RuleID)
 		fmt.Fprintf(&b, "- Resource: `%s`\n", finding.ResourceAddress)
 		fmt.Fprintf(&b, "- Severity: `%s`, confidence: `%s`\n", finding.Severity, finding.Confidence)
 		fmt.Fprintf(&b, "- Fingerprint: `%s`\n", finding.Fingerprint)
 		if finding.Description != "" {
-			fmt.Fprintf(&b, "\n%s\n", finding.Description)
+			fmt.Fprintf(&b, "\n%s\n", markdownText(finding.Description))
 		}
 		writeFindingEvidenceMarkdown(&b, finding.Evidence)
 		writeFindingRemediationMarkdown(&b, finding)
@@ -398,15 +402,21 @@ func writeFindingEvidenceMarkdown(b *strings.Builder, evidence []model.Evidence)
 		if message == "" {
 			message = evidenceFallbackMessage(item)
 		}
+		message = markdownText(message)
 		if label == "" {
 			fmt.Fprintf(b, "- %s\n", message)
 			continue
 		}
-		fmt.Fprintf(b, "- **%s:** %s\n", label, message)
+		fmt.Fprintf(b, "- **%s:** %s\n", markdownText(label), message)
 	}
 	if omitted > 0 {
 		fmt.Fprintf(b, "- %d additional evidence item%s available in JSON output.\n", omitted, pluralize(omitted, " is", "s are"))
 	}
+}
+
+func markdownText(value string) string {
+	value = markdownSecretPattern.ReplaceAllString(value, "$1=(sensitive)")
+	return html.EscapeString(value)
 }
 
 func curatedFindingEvidence(evidence []model.Evidence, limit int) ([]model.Evidence, int) {
@@ -447,7 +457,9 @@ func isLowSignalEvidence(evidence model.Evidence) bool {
 	switch {
 	case typ == "cloud_context" && (path == "cloud_context.account" || path == "cloud_context.region"):
 		return true
-	case path == "attack_path.id" || path == "attack_path.source" || path == "attack_path.affected_resources":
+	case path == "attack_path.id" || path == "attack_path.source" || path == "attack_path.type" || path == "attack_path.kind" || path == "attack_path.affected_resources":
+		return true
+	case strings.EqualFold(strings.TrimSpace(evidence.Message), "cloud context relationship"):
 		return true
 	default:
 		return false
@@ -502,6 +514,10 @@ func evidenceFallbackMessage(evidence model.Evidence) string {
 }
 
 func writeFindingRemediationMarkdown(b *strings.Builder, finding model.Finding) {
+	if findingSuppressed(finding) {
+		writeFindingSuppressionMarkdown(b, finding)
+		return
+	}
 	remediation := finding.Remediation
 	if !hasRenderableRemediation(remediation) {
 		return
@@ -524,6 +540,66 @@ func writeFindingRemediationMarkdown(b *strings.Builder, finding model.Finding) 
 	writePatchSuggestionsMarkdown(b, finding.ResourceAddress, remediation)
 	writeReviewNotesMarkdown(b, remediation)
 	writeDocsMarkdown(b, remediation.Docs)
+}
+
+func writeFindingSuppressionMarkdown(b *strings.Builder, finding model.Finding) {
+	lines := suppressionLines(finding)
+	if len(lines) == 0 {
+		return
+	}
+	b.WriteString("\nSuppression:\n")
+	for _, line := range lines {
+		fmt.Fprintf(b, "- %s\n", line)
+	}
+}
+
+func suppressionLines(finding model.Finding) []string {
+	lines := make([]string, 0, len(finding.Suppressions)+len(finding.DecisionReasonCodes))
+	for _, suppression := range finding.Suppressions {
+		if !suppression.Active {
+			continue
+		}
+		reason := strings.TrimSpace(suppression.Reason)
+		if suppression.Kind == "existing_risk" || suppression.Kind == "baseline" || suppression.Kind == "changed_resource_only" {
+			reason = humanSuppressionKind(suppression.Kind)
+		}
+		if reason == "" {
+			reason = humanSuppressionKind(suppression.Kind)
+		}
+		if suppression.ExpiresAt != nil {
+			reason += " until " + suppression.ExpiresAt.Format("2006-01-02")
+		}
+		lines = append(lines, reason)
+	}
+	if len(lines) == 0 {
+		for _, code := range finding.DecisionReasonCodes {
+			switch code {
+			case model.ReasonExistingRisk:
+				lines = append(lines, "Existing baseline risk; not enforced in new-risk-only mode.")
+			case model.ReasonChangedResourceOnly:
+				lines = append(lines, "Outside the changed resource set for this scan.")
+			case model.ReasonSuppressed:
+				lines = append(lines, "Suppressed by an active waiver or policy suppression.")
+			}
+		}
+	}
+	return uniqueMarkdownStrings(lines)
+}
+
+func humanSuppressionKind(kind string) string {
+	switch strings.ToLower(strings.TrimSpace(kind)) {
+	case "existing_risk", "baseline":
+		return "Existing baseline risk; not enforced in new-risk-only mode."
+	case "changed_resource_only":
+		return "Outside the changed resource set for this scan."
+	case "waiver":
+		return "Active waiver."
+	default:
+		if kind == "" {
+			return "Suppressed by policy."
+		}
+		return "Suppressed by " + strings.ReplaceAll(kind, "_", " ") + "."
+	}
 }
 
 func hasRenderableRemediation(remediation model.Remediation) bool {
@@ -747,10 +823,11 @@ func RenderPRComment(report Report) string {
 				fmt.Fprintf(&b, "- ... %d more reasons\n", len(reasons)-index)
 				break
 			}
+			summary := humanDecisionReason(reason)
 			if reason.Resource == "" {
-				fmt.Fprintf(&b, "- `%s`: %s\n", reason.Code, reason.Reason)
+				fmt.Fprintf(&b, "- %s\n", summary)
 			} else {
-				fmt.Fprintf(&b, "- `%s` `%s`: %s\n", reason.Code, reason.Resource, reason.Reason)
+				fmt.Fprintf(&b, "- **%s:** %s\n", cleanLabel(reason.Resource), summary)
 			}
 		}
 		b.WriteString("\n")
@@ -846,7 +923,7 @@ func writeImportIntelligenceMarkdown(b *strings.Builder, imports *ImportSummary)
 		if target == "" {
 			target = insight.Source
 		}
-		fmt.Fprintf(b, "- `%s` `%s` `%s`: %s", insight.Source, insight.Action, target, insight.Reason)
+		fmt.Fprintf(b, "- `%s` %s `%s`: %s", insight.Source, humanImportAction(insight.Action), target, cleanImportReason(insight.Reason))
 		if insight.NativeRuleID != "" {
 			fmt.Fprintf(b, " (`%s`)", insight.NativeRuleID)
 		}
@@ -906,7 +983,11 @@ func RenderGitHubAnnotations(report Report) string {
 		}
 		title := githubAnnotationEscape(finding.RuleID + " " + string(finding.Severity) + "/" + string(finding.Confidence))
 		message := githubAnnotationEscape(finding.Title + " on " + finding.ResourceAddress)
-		fmt.Fprintf(&b, "::%s file=%s,line=1,title=%s::%s\n", level, githubAnnotationEscape(report.Plan.Path), title, message)
+		if hasReliablePlanLocation(report.Plan.Path) {
+			fmt.Fprintf(&b, "::%s file=%s,line=1,title=%s::%s\n", level, githubAnnotationEscape(report.Plan.Path), title, message)
+			continue
+		}
+		fmt.Fprintf(&b, "::%s title=%s::%s\n", level, title, message)
 	}
 	return b.String()
 }
@@ -969,9 +1050,119 @@ func collapsedDecisionReasons(report Report) []model.DecisionReason {
 
 func clusterReason(cluster RiskCluster, reason model.DecisionReason) string {
 	if len(cluster.SupportingFindings) == 1 {
-		return reason.Reason
+		return cleanDecisionReason(reason.Reason)
 	}
-	return fmt.Sprintf("%s: %d supporting findings across %d affected resources", cluster.Title, len(cluster.SupportingFindings), len(cluster.AffectedResources))
+	return fmt.Sprintf("%d supporting findings across %d affected %s", len(cluster.SupportingFindings), len(cluster.AffectedResources), pluralize(len(cluster.AffectedResources), "resource", "resources"))
+}
+
+func humanDecisionReason(reason model.DecisionReason) string {
+	clean := cleanDecisionReason(reason.Reason)
+	switch reason.Code {
+	case model.ReasonMeetsBlockThreshold:
+		if clean == "" {
+			return "Meets the configured block threshold."
+		}
+		return clean
+	case model.ReasonBelowBlockThreshold:
+		if clean == "" {
+			return "Below the block threshold; emitted as a warning."
+		}
+		return clean
+	case model.ReasonExistingRisk:
+		return "Existing baseline risk; not enforced in new-risk-only mode."
+	case model.ReasonChangedResourceOnly:
+		return "Outside the changed resource set for this scan."
+	case model.ReasonSuppressed:
+		return "Suppressed by an active waiver or policy suppression."
+	case model.ReasonAuditMode:
+		return "Audit mode is enabled, so findings do not block."
+	case model.ReasonWarnMode:
+		return "Warn mode is enabled, so findings do not block."
+	case model.ReasonNoFindings:
+		if clean == "" {
+			return "No findings met warn or block thresholds."
+		}
+		return clean
+	case model.ReasonDowngraded:
+		if clean == "" {
+			return "Downgraded by policy context."
+		}
+		return clean
+	case model.ReasonUpgraded:
+		if clean == "" {
+			return "Upgraded by policy context."
+		}
+		return clean
+	default:
+		if clean == "" {
+			return "Evaluated by policy."
+		}
+		return clean
+	}
+}
+
+func cleanLabel(value string) string {
+	return strings.TrimRight(strings.TrimSpace(value), ".:;")
+}
+
+func cleanDecisionReason(value string) string {
+	value = strings.TrimSpace(value)
+	replacements := map[string]string{
+		"finding meets block threshold":                            "Meets the configured block threshold.",
+		"finding meets warn threshold":                             "Below the block threshold; emitted as a warning.",
+		"findings did not meet block threshold":                    "No findings met the configured block threshold.",
+		"suppressed because new-risk-only mode is enabled":         "Existing baseline risk; not enforced in new-risk-only mode.",
+		"suppressed because changed-resource-only mode is enabled": "Outside the changed resource set for this scan.",
+	}
+	if replacement, ok := replacements[strings.ToLower(value)]; ok {
+		return replacement
+	}
+	lower := strings.ToLower(value)
+	if strings.Contains(lower, "meets block threshold") {
+		return "Meets the configured block threshold."
+	}
+	if strings.Contains(lower, "meets warn threshold") {
+		return "Below the block threshold; emitted as a warning."
+	}
+	return value
+}
+
+func humanImportAction(action string) string {
+	switch strings.ToLower(strings.TrimSpace(action)) {
+	case "superseded_by_native":
+		return "is covered by native ChangeGate evidence for"
+	case "deduplicated":
+		return "deduplicated"
+	case "downgraded":
+		return "downgraded"
+	case "upgraded":
+		return "upgraded"
+	case "correlated":
+		return "correlated"
+	case "retained":
+		return "retained"
+	default:
+		if action == "" {
+			return "handled"
+		}
+		return strings.ReplaceAll(action, "_", " ")
+	}
+}
+
+func cleanImportReason(reason string) string {
+	reason = strings.TrimSpace(reason)
+	reason = strings.ReplaceAll(reason, "graph.alias", "resource alias")
+	reason = strings.ReplaceAll(reason, "superseded_by_native", "covered by native evidence")
+	return reason
+}
+
+func hasReliablePlanLocation(path string) bool {
+	path = strings.TrimSpace(path)
+	if path == "" || path == "-" || path == "stdin" || strings.Contains(path, "*") {
+		return false
+	}
+	base := strings.ToLower(filepath.Base(path))
+	return base != "tfplan.json" && base != "plan.json"
 }
 
 func escapeMarkdownTable(value string) string {
@@ -1042,7 +1233,7 @@ type sarifResult struct {
 	RuleID              string                 `json:"ruleId"`
 	Level               string                 `json:"level"`
 	Message             sarifText              `json:"message"`
-	Locations           []sarifLocation        `json:"locations"`
+	Locations           []sarifLocation        `json:"locations,omitempty"`
 	PartialFingerprints map[string]string      `json:"partialFingerprints"`
 	Properties          map[string]interface{} `json:"properties,omitempty"`
 }
@@ -1066,36 +1257,27 @@ type sarifRegion struct {
 
 // RenderSARIF renders SARIF 2.1.0 for GitHub code scanning and compatible tools.
 func RenderSARIF(report Report) ([]byte, error) {
-	rules := make([]sarifRule, 0, len(report.Rules))
+	rules := make([]sarifRule, 0, len(report.Rules)+len(report.Findings))
+	seenRules := make(map[string]bool, len(report.Rules)+len(report.Findings))
 	for _, id := range sortedRuleIDs(report.Rules) {
 		rule := report.Rules[id]
-		rules = append(rules, sarifRule{
-			ID:               rule.ID,
-			Name:             rule.Name,
-			ShortDescription: sarifText{Text: firstNonEmpty(rule.Name, rule.ID)},
-			FullDescription:  sarifText{Text: rule.Description},
-			Help:             sarifText{Markdown: remediationMarkdown(rule)},
-			Properties: sarifRuleProperties{
-				Category:   rule.Category,
-				Severity:   rule.Severity,
-				Confidence: rule.Confidence,
-				Tags:       []string{"security", "terraform", "opentofu", string(rule.Category)},
-			},
-		})
+		rules = append(rules, sarifRuleFromSummary(rule))
+		seenRules[id] = true
+	}
+	for _, finding := range report.Findings {
+		if finding.RuleID == "" || seenRules[finding.RuleID] {
+			continue
+		}
+		rules = append(rules, sarifRuleFromFinding(finding))
+		seenRules[finding.RuleID] = true
 	}
 
 	results := make([]sarifResult, 0, len(report.Findings))
 	for _, finding := range report.Findings {
-		results = append(results, sarifResult{
+		result := sarifResult{
 			RuleID:  finding.RuleID,
 			Level:   sarifLevel(finding.Severity),
 			Message: sarifText{Text: finding.Title + " on " + finding.ResourceAddress},
-			Locations: []sarifLocation{{
-				PhysicalLocation: sarifPhysicalLocation{
-					ArtifactLocation: sarifArtifactLocation{URI: report.Plan.Path},
-					Region:           sarifRegion{StartLine: 1},
-				},
-			}},
 			PartialFingerprints: map[string]string{
 				"changegateFingerprint/v1": finding.Fingerprint,
 				"changegateDedupKey/v1":    finding.DeduplicationKey,
@@ -1107,7 +1289,16 @@ func RenderSARIF(report Report) ([]byte, error) {
 				"category":    finding.Category,
 				"remediation": finding.Remediation,
 			},
-		})
+		}
+		if hasReliablePlanLocation(report.Plan.Path) {
+			result.Locations = []sarifLocation{{
+				PhysicalLocation: sarifPhysicalLocation{
+					ArtifactLocation: sarifArtifactLocation{URI: report.Plan.Path},
+					Region:           sarifRegion{StartLine: 1},
+				},
+			}}
+		}
+		results = append(results, result)
 	}
 
 	return json.MarshalIndent(sarifLog{
@@ -1122,6 +1313,38 @@ func RenderSARIF(report Report) ([]byte, error) {
 			Results: results,
 		}},
 	}, "", "  ")
+}
+
+func sarifRuleFromSummary(rule RuleSummary) sarifRule {
+	return sarifRule{
+		ID:               rule.ID,
+		Name:             rule.Name,
+		ShortDescription: sarifText{Text: firstNonEmpty(rule.Name, rule.ID)},
+		FullDescription:  sarifText{Text: rule.Description},
+		Help:             sarifText{Markdown: remediationMarkdown(rule)},
+		Properties: sarifRuleProperties{
+			Category:   rule.Category,
+			Severity:   rule.Severity,
+			Confidence: rule.Confidence,
+			Tags:       []string{"security", "terraform", "opentofu", string(rule.Category)},
+		},
+	}
+}
+
+func sarifRuleFromFinding(finding model.Finding) sarifRule {
+	return sarifRule{
+		ID:               finding.RuleID,
+		Name:             firstNonEmpty(finding.RuleName, finding.Title, finding.RuleID),
+		ShortDescription: sarifText{Text: firstNonEmpty(finding.Title, finding.RuleName, finding.RuleID)},
+		FullDescription:  sarifText{Text: finding.Description},
+		Help:             sarifText{Markdown: finding.Remediation.Summary},
+		Properties: sarifRuleProperties{
+			Category:   finding.Category,
+			Severity:   finding.Severity,
+			Confidence: finding.Confidence,
+			Tags:       []string{"security", "terraform", "opentofu", string(finding.Category), "external-scanner"},
+		},
+	}
 }
 
 type junitTestsuites struct {
@@ -1222,6 +1445,9 @@ type gitLabLineRef struct {
 // RenderGitLabCodeQuality renders a GitLab Code Quality compatible issue array.
 func RenderGitLabCodeQuality(report Report) ([]byte, error) {
 	issues := make([]gitLabIssue, 0, len(report.Findings))
+	if !hasReliablePlanLocation(report.Plan.Path) {
+		return json.MarshalIndent(issues, "", "  ")
+	}
 	for _, finding := range report.Findings {
 		issues = append(issues, gitLabIssue{
 			Description: finding.Title + " on " + finding.ResourceAddress,

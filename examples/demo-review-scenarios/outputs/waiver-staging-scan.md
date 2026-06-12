@@ -13,7 +13,7 @@
 
 ## Decision reasons
 
-- `BELOW_BLOCK_THRESHOLD`: findings did not meet block threshold
+- No findings met the configured block threshold.
 
 ## Risk clusters
 
@@ -41,32 +41,5 @@ Detects publicly accessible RDS instances.
 Evidence:
 - **Rule evidence:** database is configured as publicly accessible
 
-Remediation:
-
-**Primary fix:** Set publicly_accessible to false and use private subnets.
-
-Recommended actions:
-- Restrict security groups to application sources only.
-- Set `publicly_accessible = false`.
-- Use private DB subnet groups.
-
-Fix options:
-- **Make the endpoint private** (preferred): Move the exposed resource behind private networking or an internal load balancer.
-- **Restrict ingress**: Keep the endpoint public only for reviewed CIDRs or authenticated edge controls.
-
-Patch suggestion: Disable public RDS accessibility
-
-```hcl
-resource "aws_db_instance" "customer" {
-  publicly_accessible = false
-  db_subnet_group_name = aws_db_subnet_group.private.name
-}
-```
-
-Review the patch before applying it.
-
-Review notes:
-- Effort: medium
-- Downtime risk: medium
-- Attach evidence of the selected mitigation before apply.
-- Treat as release-blocking unless a reviewer approves a time-bounded waiver.
+Suppression:
+- WVR-STAGING-PUBLIC-RDS: Synthetic staging exception fixture. Production must not match this waiver.

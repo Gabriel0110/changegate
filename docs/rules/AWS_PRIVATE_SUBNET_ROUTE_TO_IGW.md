@@ -22,12 +22,13 @@ Detects route table changes that route private subnets to an internet gateway.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Network blast-radius findings identify routing or security-group changes that can expand reachable infrastructure paths.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Avoid broad `0.0.0.0/0` routes from sensitive networks.
+- Use explicit route tables for public and private tiers.
+- Review transitive connectivity through peering and transit gateways.
 
 ## References
 

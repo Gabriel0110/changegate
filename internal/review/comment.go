@@ -264,20 +264,43 @@ func writeAttackPaths(b *strings.Builder, statement impact.Statement, opts Comme
 	limit := boundedLimit(len(statement.AttackPaths), opts.MaxAttackPaths)
 	for _, path := range statement.AttackPaths[:limit] {
 		fmt.Fprintf(b, "- `%s` `%s/%s` `%s` %s\n", path.RuleID, path.Severity, path.Confidence, path.Decision, safeInline(path.Title))
-		if path.Type != "" || path.Kind != "" || path.Source != "" {
-			fmt.Fprintf(b, "  - Context: type `%s`, kind `%s`, source `%s`\n", safeInline(nonEmpty(path.Type, "unknown")), safeInline(nonEmpty(path.Kind, "unknown")), safeInline(nonEmpty(path.Source, "unknown")))
-		}
 		if path.ConfidenceReason != "" {
 			fmt.Fprintf(b, "  - Confidence reason: %s\n", safeInline(path.ConfidenceReason))
 		}
 		if len(path.Steps) > 0 {
-			fmt.Fprintf(b, "  - Path: `%s`\n", safeInline(strings.Join(path.Steps, " -> ")))
+			if len(path.Steps) == 1 || looksLikePathTokens(path.Steps) {
+				fmt.Fprintf(b, "  - Path: `%s`\n", safeInline(renderAttackPathSteps(path.Steps)))
+			} else {
+				b.WriteString("  - Paths:\n")
+				for _, step := range path.Steps {
+					fmt.Fprintf(b, "    - `%s`\n", safeInline(step))
+				}
+			}
 		}
 	}
 	if len(statement.AttackPaths) > limit {
 		fmt.Fprintf(b, "- ... %d more attack path%s\n", len(statement.AttackPaths)-limit, plural(len(statement.AttackPaths)-limit))
 	}
 	b.WriteString("\n")
+}
+
+func looksLikePathTokens(steps []string) bool {
+	if len(steps) < 2 {
+		return false
+	}
+	for _, step := range steps {
+		if strings.Contains(step, "->") {
+			return false
+		}
+	}
+	return true
+}
+
+func renderAttackPathSteps(steps []string) string {
+	if len(steps) == 1 {
+		return steps[0]
+	}
+	return strings.Join(steps, " -> ")
 }
 
 func writeWaiverBaseline(b *strings.Builder, statement impact.Statement) {
@@ -433,13 +456,6 @@ func yesNo(value bool) string {
 		return "yes"
 	}
 	return "no"
-}
-
-func nonEmpty(value string, fallback string) string {
-	if value != "" {
-		return value
-	}
-	return fallback
 }
 
 func plural(count int) string {

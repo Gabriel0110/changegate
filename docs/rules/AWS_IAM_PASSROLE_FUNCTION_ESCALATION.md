@@ -16,23 +16,22 @@ Detects iam:PassRole combined with Lambda or ECS compute mutation.
 
 ## Resources
 
-- `aws_lb`
-- `aws_ecs_service`
-- `aws_lambda_function`
 - `aws_iam_role`
+- `aws_iam_user`
 - `aws_iam_policy`
-- `aws_db_instance`
-- `aws_secretsmanager_secret`
+- `aws_lambda_function`
+- `aws_ecs_service`
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Privilege-escalation paths are higher risk than standalone IAM grants because they show how a principal can move from its current access to administrator or sensitive access.
 
 ## Remediation
 
-- Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.
-- Scope IAM and network access to the minimum required resources.
+- Remove or narrow the IAM actions that create the escalation path.
+- Scope role assumption, pass-role, and policy mutation permissions to exact non-privileged resources.
+- Add restrictive IAM conditions such as iam:PassedToService, repository/branch OIDC constraints, or explicit permission boundaries where applicable.
 
 ## References
 
-- docs/attack-paths.md
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

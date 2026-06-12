@@ -68,9 +68,9 @@ waivers:
 
 docs:
   links:
-    default: https://docs.example.com/security/changegate
-    public_exposure: https://docs.example.com/security/public-exposure
-    AWS_PUBLIC_ADMIN_SERVICE: https://docs.example.com/security/admin-services
+    default: <your-changegate-security-doc-url>
+    public_exposure: <your-public-exposure-doc-url>
+    AWS_PUBLIC_ADMIN_SERVICE: <your-admin-service-doc-url>
 
 compliance:
   mappings:

@@ -1,8 +1,8 @@
 name: ChangeGate
-description: Install a pinned ChangeGate release and optionally scan a Terraform/OpenTofu plan.
+description: Install a pinned ChangeGate release and optionally scan a Terraform/OpenTofu plan on Linux or macOS runners.
 inputs:
   version:
-    description: ChangeGate release version to install, for example v0.1.0. Required to avoid floating installs.
+    description: ChangeGate release version to install, for example vX.Y.Z. Required to avoid floating installs.
     required: true
   verify_sig:
     description: Set to true to verify the signed checksum manifest with cosign during install.
@@ -63,6 +63,12 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Check runner support
+      if: ${{ runner.os == 'Windows' }}
+      shell: pwsh
+      run: |
+        Write-Error "The ChangeGate composite action currently supports Linux and macOS runners. Use the npm package or release archive on Windows."
+
     - name: Install ChangeGate
       shell: bash
       env:

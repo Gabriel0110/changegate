@@ -42,6 +42,10 @@ func TestAssertPassesSupportedExpectations(t *testing.T) {
 		Findings: FindingExpectations{
 			Include: []string{"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH"},
 			Exclude: []string{"AWS_PUBLIC_RDS_INSTANCE"},
+			Counts:  map[string]int{"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH": 1},
+			Resources: map[string][]string{
+				"AWS_PUBLIC_TO_SENSITIVE_DATA_PATH": {"aws_db_instance.customer"},
+			},
 		},
 		SeverityCount: map[model.Severity]int{model.SeverityCritical: 1, model.SeverityHigh: 1},
 		AttackPaths:   PathExpectations{Include: []string{"public_to_sensitive_data"}, Exclude: []string{"iam_privilege_escalation"}},
@@ -103,6 +107,37 @@ func TestAssertReportsPreciseFailures(t *testing.T) {
 	bodyText := normalizeTestNewlines(body)
 	if bodyText != wantText {
 		t.Fatalf("failure output mismatch\nwant:\n%s\ngot:\n%s", wantText, bodyText)
+	}
+}
+
+func TestAssertFindingCountsAndResourcesReportPreciseFailures(t *testing.T) {
+	t.Parallel()
+
+	report := output.Report{
+		Decision: model.DecisionBlock,
+		Findings: []model.Finding{
+			{RuleID: "AWS_PUBLIC_ADMIN_SERVICE", ResourceAddress: "aws_lb.admin"},
+			{RuleID: "AWS_PUBLIC_ADMIN_SERVICE", ResourceAddress: "aws_ecs_service.admin"},
+		},
+	}
+	expect := Expectations{
+		Findings: FindingExpectations{
+			Counts: map[string]int{"AWS_PUBLIC_ADMIN_SERVICE": 1},
+			Resources: map[string][]string{
+				"AWS_PUBLIC_ADMIN_SERVICE": {"aws_lb.admin"},
+			},
+		},
+	}
+
+	failures := Assert("noisy_admin", report, expect, "", false)
+	if len(failures) != 2 {
+		t.Fatalf("failures = %#v, want count and resource failures", failures)
+	}
+	if failures[0].Assertion != "findings.counts.AWS_PUBLIC_ADMIN_SERVICE" {
+		t.Fatalf("first failure = %#v", failures[0])
+	}
+	if failures[1].Assertion != "findings.resources.AWS_PUBLIC_ADMIN_SERVICE" {
+		t.Fatalf("second failure = %#v", failures[1])
 	}
 }
 

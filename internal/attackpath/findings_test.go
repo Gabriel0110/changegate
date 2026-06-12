@@ -104,11 +104,11 @@ func TestPublicToSensitiveFindingCarriesStableBaselineContext(t *testing.T) {
 	right.Evidence[0].Message = "cloud context confirmed path to sensitive asset"
 
 	findings := Findings([]AttackPath{left, right}, model.DefaultAttackPathPolicy())
-	if len(findings) != 2 {
-		t.Fatalf("findings = %d, want 2", len(findings))
+	if len(findings) != 1 {
+		t.Fatalf("findings = %d, want 1", len(findings))
 	}
-	if findings[0].Fingerprint != findings[1].Fingerprint {
-		t.Fatalf("fingerprints differ for equivalent path lineage: %s != %s", findings[0].Fingerprint, findings[1].Fingerprint)
+	if findings[0].Fingerprint == "" {
+		t.Fatalf("finding fingerprint was empty: %#v", findings[0])
 	}
 	if !model.RiskContextFromFinding(findings[0]).GraphSensitiveData {
 		t.Fatalf("public-to-sensitive attack path finding did not expose graph-sensitive movement context: %#v", findings[0].Evidence)

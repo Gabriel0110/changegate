@@ -20,12 +20,13 @@ Detects production ECR repositories with mutable image tags or image scanning di
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Mutable production tags weaken release provenance, and disabled scanning reduces visibility into vulnerable images.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `image_tag_mutability` to `IMMUTABLE` for production repositories.
+- Enable `image_scanning_configuration.scan_on_push` or an equivalent registry scanning workflow.
+- Use explicit release tags or digests for production deployment references.
 
 ## References
 

@@ -1,1 +1,1 @@
-::error file=tfplan.json,line=1,title=AWS_SG_WORLD_OPEN_ADMIN_PORT high/high::Security group opens SSH to the world on aws_security_group.admin
+::error title=AWS_SG_WORLD_OPEN_ADMIN_PORT high/high::Security group opens SSH to the world on aws_security_group.admin

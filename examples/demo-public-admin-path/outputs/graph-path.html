@@ -183,17 +183,17 @@ svg.panning { cursor: grabbing; }
 <g class="node" data-id="aws_lb.admin" data-role="public" transform="translate(80.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eff6ff" stroke="#2563eb"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb.admin</text>
-<text class="node-kind" x="14" y="58">public_entrypoint</text>
+<text class="node-kind" x="14" y="58">public entrypoint</text>
 </g>
 <g class="node" data-id="aws_lb_listener.admin" data-role="path" transform="translate(460.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb_listener.admin</text>
-<text class="node-kind" x="14" y="58">unknown</text>
+<text class="node-kind" x="14" y="58">resource</text>
 </g>
 <g class="node" data-id="aws_lb_target_group.admin" data-role="path" transform="translate(840.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lb_target_group.admin</text>
-<text class="node-kind" x="14" y="58">unknown</text>
+<text class="node-kind" x="14" y="58">resource</text>
 </g>
 <g class="node" data-id="aws_ecs_service.admin" data-role="workload" transform="translate(840.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#ecfeff" stroke="#0891b2"></rect>
@@ -203,18 +203,18 @@ svg.panning { cursor: grabbing; }
 <g class="node" data-id="aws_security_group.public" data-role="network" transform="translate(460.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_security_group.public</text>
-<text class="node-kind" x="14" y="58">network_boundary</text>
+<text class="node-kind" x="14" y="58">network boundary</text>
 </g>
 <g class="node" data-id="aws_db_instance.customer" data-role="sensitive" transform="translate(80.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#fef2f2" stroke="#dc2626"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_db_instance.customer</text>
-<text class="node-kind" x="14" y="58">data_store</text>
+<text class="node-kind" x="14" y="58">data store</text>
 </g>
 </g>
 </svg></section>
 <section class="details" id="details"><h2>Select a node</h2><p class="muted">Click a graph node to inspect its resource identity, role, and evidence details.</p></section>
 </main>
-<script>const CHANGEGATE_DIAGRAM={"description":"aws_lb.admin to aws_db_instance.customer","edges":[{"confidence":"high","details":["aws_ecs_service.admin -\u003e aws_security_group.public","type: allows_egress","source: plan","confidence: high"],"from":"aws_ecs_service.admin","label":"allows egress","role":"path","to":"aws_security_group.public"},{"confidence":"high","details":["aws_lb.admin -\u003e aws_lb_listener.admin","type: routes_to","source: plan","confidence: high"],"from":"aws_lb.admin","label":"routes to","role":"path","to":"aws_lb_listener.admin"},{"confidence":"high","details":["aws_lb_listener.admin -\u003e aws_lb_target_group.admin","type: routes_to","source: plan","confidence: high"],"from":"aws_lb_listener.admin","label":"routes to","role":"path","to":"aws_lb_target_group.admin"},{"confidence":"high","details":["aws_lb_target_group.admin -\u003e aws_ecs_service.admin","type: routes_to","source: plan","confidence: high"],"from":"aws_lb_target_group.admin","label":"routes to","role":"path","to":"aws_ecs_service.admin"},{"confidence":"high","details":["aws_security_group.public -\u003e aws_db_instance.customer","type: allows_ingress","source: plan","confidence: high"],"from":"aws_security_group.public","label":"allows ingress","role":"path","to":"aws_db_instance.customer"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":true,"decision":"","details":["aws_db_instance.customer","type: aws_db_instance","kind: data_store","environment: production","actions: update"],"id":"aws_db_instance.customer","kind":"data_store","label":"aws_db_instance.customer","role":"sensitive","severity":"","type":"aws_db_instance"},{"changed":true,"decision":"","details":["aws_ecs_service.admin","type: aws_ecs_service","kind: workload","environment: production","actions: update"],"id":"aws_ecs_service.admin","kind":"workload","label":"aws_ecs_service.admin","role":"workload","severity":"","type":"aws_ecs_service"},{"changed":true,"decision":"","details":["aws_lb.admin","type: aws_lb","kind: public_entrypoint","environment: production","actions: update"],"id":"aws_lb.admin","kind":"public_entrypoint","label":"aws_lb.admin","role":"public","severity":"","type":"aws_lb"},{"changed":false,"decision":"","details":["aws_lb_listener.admin","type: aws_lb_listener","kind: unknown","environment: production"],"id":"aws_lb_listener.admin","kind":"unknown","label":"aws_lb_listener.admin","role":"path","severity":"","type":"aws_lb_listener"},{"changed":false,"decision":"","details":["aws_lb_target_group.admin","type: aws_lb_target_group","kind: unknown","environment: production"],"id":"aws_lb_target_group.admin","kind":"unknown","label":"aws_lb_target_group.admin","role":"path","severity":"","type":"aws_lb_target_group"},{"changed":false,"decision":"","details":["aws_security_group.public","type: aws_security_group","kind: network_boundary","environment: production"],"id":"aws_security_group.public","kind":"network_boundary","label":"aws_security_group.public","role":"network","severity":"","type":"aws_security_group"}],"title":"ChangeGate Graph Path"};
+<script>const CHANGEGATE_DIAGRAM={"description":"aws_lb.admin to aws_db_instance.customer","edges":[{"confidence":"high","details":["aws_ecs_service.admin -\u003e aws_security_group.public","type: allows egress","source: plan","confidence: high"],"from":"aws_ecs_service.admin","label":"allows egress","role":"path","to":"aws_security_group.public"},{"confidence":"high","details":["aws_lb.admin -\u003e aws_lb_listener.admin","type: routes to","source: plan","confidence: high"],"from":"aws_lb.admin","label":"routes to","role":"path","to":"aws_lb_listener.admin"},{"confidence":"high","details":["aws_lb_listener.admin -\u003e aws_lb_target_group.admin","type: routes to","source: plan","confidence: high"],"from":"aws_lb_listener.admin","label":"routes to","role":"path","to":"aws_lb_target_group.admin"},{"confidence":"high","details":["aws_lb_target_group.admin -\u003e aws_ecs_service.admin","type: routes to","source: plan","confidence: high"],"from":"aws_lb_target_group.admin","label":"routes to","role":"path","to":"aws_ecs_service.admin"},{"confidence":"high","details":["aws_security_group.public -\u003e aws_db_instance.customer","type: allows ingress","source: plan","confidence: high"],"from":"aws_security_group.public","label":"allows ingress","role":"path","to":"aws_db_instance.customer"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":true,"decision":"","details":["type: aws_db_instance","kind: data store","environment: production","actions: update"],"id":"aws_db_instance.customer","kind":"data store","label":"aws_db_instance.customer","role":"sensitive","severity":"","type":"aws_db_instance"},{"changed":true,"decision":"","details":["type: aws_ecs_service","kind: workload","environment: production","actions: update"],"id":"aws_ecs_service.admin","kind":"workload","label":"aws_ecs_service.admin","role":"workload","severity":"","type":"aws_ecs_service"},{"changed":true,"decision":"","details":["type: aws_lb","kind: public entrypoint","environment: production","actions: update"],"id":"aws_lb.admin","kind":"public entrypoint","label":"aws_lb.admin","role":"public","severity":"","type":"aws_lb"},{"changed":false,"decision":"","details":["type: aws_lb_listener","kind: resource","environment: production"],"id":"aws_lb_listener.admin","kind":"resource","label":"aws_lb_listener.admin","role":"path","severity":"","type":"aws_lb_listener"},{"changed":false,"decision":"","details":["type: aws_lb_target_group","kind: resource","environment: production"],"id":"aws_lb_target_group.admin","kind":"resource","label":"aws_lb_target_group.admin","role":"path","severity":"","type":"aws_lb_target_group"},{"changed":false,"decision":"","details":["type: aws_security_group","kind: network boundary","environment: production"],"id":"aws_security_group.public","kind":"network boundary","label":"aws_security_group.public","role":"network","severity":"","type":"aws_security_group"}],"title":"ChangeGate Graph Path"};
 
 const NODE_WIDTH = CHANGEGATE_DIAGRAM.nodeWidth || 230;
 const NODE_HEIGHT = CHANGEGATE_DIAGRAM.nodeHeight || 72;
@@ -283,7 +283,7 @@ function selectNode(id) {
   const connectedItems = connected.map((edge) => '<li><strong>' + escapeHTML(edge.direction) + '</strong> ' + escapeHTML(edge.label || 'relationship') + ' ' + escapeHTML(edge.other) + formatConfidence(edge) + '</li>').join('');
   const statusRows = [
     rowHTML('Role', node.role || 'default'),
-    rowHTML('Kind', node.kind || 'unknown'),
+    rowHTML('Kind', node.kind || node.role || 'resource'),
     rowHTML('Type', node.type || 'n/a'),
     rowHTML('Changed', node.changed ? 'yes' : 'no')
   ];

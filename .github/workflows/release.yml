@@ -35,6 +35,26 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
 
+      - name: Validate release commit
+        run: |
+          go vet ./...
+          go test ./...
+          go run ./cmd/changegate --no-color test examples/risk-tests
+          go run github.com/goreleaser/goreleaser/v2@v2.16.0 check
+
+      - name: Distribution smoke tests
+        run: |
+          docker build -t changegate:release-smoke .
+          docker run --rm changegate:release-smoke version
+          docker run --rm -v "$PWD/examples/risk-tests/fixtures:/fixtures:ro" changegate:release-smoke scan --plan /fixtures/public-web-alb.json --format json | jq -e '.decision == "allow"'
+          set +e
+          docker run --rm -v "$PWD/examples/demo-public-admin-path:/demo:ro" changegate:release-smoke scan --plan /demo/tfplan.json --format json >/tmp/changegate-release-block.json
+          code=$?
+          set -e
+          test "$code" -eq 1
+          jq -e '.decision == "block"' /tmp/changegate-release-block.json
+          scripts/test-npm-package.sh
+
       - name: Resolve image name
         run: echo "REGISTRY_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"
 
@@ -57,7 +77,10 @@ jobs:
       - name: Generate artifact attestations
         uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
         with:
-          subject-path: "dist/*"
+          subject-path: |
+            dist/*
+            dist/checksums.txt
+            dist/digests.txt
 
       - name: Generate Homebrew formula
         run: scripts/homebrew-formula.sh "${GITHUB_REF_NAME}" dist/checksums.txt /tmp/changegate.rb

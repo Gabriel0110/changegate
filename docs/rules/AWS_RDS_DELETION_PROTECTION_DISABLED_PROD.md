@@ -21,12 +21,13 @@ Detects production databases without deletion protection.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Availability findings identify changes that can weaken recovery, deletion protection, or replacement safety for production or stateful resources.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `deletion_protection = true` for production databases and clusters.
+- Only disable deletion protection in a reviewed teardown or migration plan.
+- Keep stateful deletion controls separate from routine configuration changes.
 
 ## References
 

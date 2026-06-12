@@ -142,7 +142,7 @@ svg.panning { cursor: grabbing; }
 </style>
 </head>
 <body>
-<header><h1>ChangeGate Attack Paths</h1><div class="subtitle">5 detected attack path(s)</div></header>
+<header><h1>ChangeGate Attack Paths</h1><div class="subtitle">2 detected attack paths</div></header>
 <main class="shell">
 <aside><div class="toolbar">
 <div class="graph-tools" aria-label="Graph controls">
@@ -157,8 +157,8 @@ svg.panning { cursor: grabbing; }
 <label class="check"><input type="checkbox" data-role="path" checked><span class="swatch" style="background:#eef2ff;border-color:#4f46e5"></span>path (1)</label>
 <label class="check"><input type="checkbox" data-role="principal" checked><span class="swatch" style="background:#f5f3ff;border-color:#7c3aed"></span>principal (2)</label>
 </div>
-<div class="metrics"><div class="metric"><strong>4</strong><span>nodes</span></div><div class="metric"><strong>7</strong><span>edges</span></div></div>
-<div class="metric"><strong>5</strong><span>highlighted paths</span></div>
+<div class="metrics"><div class="metric"><strong>4</strong><span>nodes</span></div><div class="metric"><strong>3</strong><span>edges</span></div></div>
+<div class="metric"><strong>2</strong><span>highlighted paths</span></div>
 </div></aside>
 <section class="canvas-wrap"><svg id="graph" viewBox="0 0 1150 640" width="1150" height="640" role="img" aria-label="ChangeGate Attack Paths">
 <defs>
@@ -170,43 +170,35 @@ svg.panning { cursor: grabbing; }
 <g id="viewport">
 <path class="edge block" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.admin_execution" d="M 310.0 122.0 C 385.0 122.0, 385.0 122.0, 460.0 122.0"/>
 <text class="edge-label" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.admin_execution" x="385.0" y="104.0">iam:PassRole</text>
-<path class="edge block" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.admin_execution" d="M 310.0 122.0 C 385.0 122.0, 385.0 122.0, 460.0 122.0"/>
-<text class="edge-label" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.admin_execution" x="385.0" y="104.0">sts:AssumeRole</text>
-<path class="edge block" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.github_actions" d="M 310.0 122.0 C 195.0 122.0, 195.0 122.0, 80.0 122.0"/>
-<text class="edge-label" data-from="aws_iam_role.github_actions" data-to="aws_iam_role.github_actions" x="195.0" y="104.0">iam:PassRole</text>
 <path class="edge block" data-from="aws_iam_role.github_actions" data-to="aws_lambda_function.*" d="M 310.0 122.0 C 575.0 122.0, 575.0 122.0, 840.0 122.0"/>
 <text class="edge-label" data-from="aws_iam_role.github_actions" data-to="aws_lambda_function.*" x="575.0" y="104.0">lambda:UpdateFunctionCode</text>
-<path class="edge block" data-from="aws_iam_role.github_actions" data-to="aws_lambda_function.worker" d="M 310.0 122.0 C 575.0 122.0, 575.0 344.0, 840.0 344.0"/>
-<text class="edge-label" data-from="aws_iam_role.github_actions" data-to="aws_lambda_function.worker" x="593.0" y="223.0">lambda:UpdateFunctionCode</text>
 <path class="edge block" data-from="aws_lambda_function.worker" data-to="aws_iam_role.admin_execution" d="M 840.0 344.0 C 787.0 344.0, 787.0 122.0, 690.0 122.0"/>
 <text class="edge-label" data-from="aws_lambda_function.worker" data-to="aws_iam_role.admin_execution" x="783.0" y="223.0">sts:AssumeRole</text>
-<path class="edge block" data-from="aws_lambda_function.worker" data-to="aws_iam_role.admin_execution" d="M 840.0 344.0 C 743.0 344.0, 743.0 122.0, 690.0 122.0"/>
-<text class="edge-label" data-from="aws_lambda_function.worker" data-to="aws_iam_role.admin_execution" x="783.0" y="223.0">uses execution role</text>
 <g class="node" data-id="aws_iam_role.github_actions" data-role="principal" transform="translate(80.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#f5f3ff" stroke="#7c3aed"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_iam_role.github_actions</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">principal</text>
 </g>
 <g class="node" data-id="aws_iam_role.admin_execution" data-role="block" transform="translate(460.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#fee2e2" stroke="#b91c1c"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_iam_role.admin_execution</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">block</text>
 </g>
 <g class="node" data-id="aws_lambda_function.*" data-role="path" transform="translate(840.0 86.0)">
 <rect width="230" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lambda_function.*</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">path</text>
 </g>
 <g class="node" data-id="aws_lambda_function.worker" data-role="principal" transform="translate(840.0 308.0)">
 <rect width="230" height="72" rx="8" fill="#f5f3ff" stroke="#7c3aed"></rect>
 <text class="node-title" x="14.0" y="24.0">aws_lambda_function.worker</text>
-<text class="node-kind" x="14" y="58">attack_path</text>
+<text class="node-kind" x="14" y="58">principal</text>
 </g>
 </g>
 </svg></section>
 <section class="details" id="details"><h2>Select a node</h2><p class="muted">Click a graph node to inspect its resource identity, role, and evidence details.</p></section>
 </main>
-<script>const CHANGEGATE_DIAGRAM={"description":"5 detected attack path(s)","edges":[{"confidence":"","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","principal can pass a privileged or sensitive execution role","edge: can_pass_role","decision: block"],"from":"aws_iam_role.github_actions","label":"iam:PassRole","role":"block","to":"aws_iam_role.admin_execution"},{"confidence":"","details":["Principal aws_iam_role.github_actions can assume privileged role aws_iam_role.admin_execution","IAM policy allows assuming role","edge: can_assume","decision: block"],"from":"aws_iam_role.github_actions","label":"sts:AssumeRole","role":"block","to":"aws_iam_role.admin_execution"},{"confidence":"","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode","principal can pass a privileged or sensitive execution role","edge: can_pass_role","decision: block"],"from":"aws_iam_role.github_actions","label":"iam:PassRole","role":"block","to":"aws_iam_role.github_actions"},{"confidence":"","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode","principal can mutate or launch compute that can use the passed role","edge: grants_permission","decision: block"],"from":"aws_iam_role.github_actions","label":"lambda:UpdateFunctionCode","role":"block","to":"aws_lambda_function.*"},{"confidence":"","details":["Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","principal can update executable Lambda code","edge: grants_permission","decision: block"],"from":"aws_iam_role.github_actions","label":"lambda:UpdateFunctionCode","role":"block","to":"aws_lambda_function.worker"},{"confidence":"","details":["Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution","Lambda function assumes execution role","edge: can_assume","decision: block"],"from":"aws_lambda_function.worker","label":"sts:AssumeRole","role":"block","to":"aws_iam_role.admin_execution"},{"confidence":"","details":["Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","function executes with privileged or sensitive role access","edge: can_assume","decision: block"],"from":"aws_lambda_function.worker","label":"uses execution role","role":"block","to":"aws_iam_role.admin_execution"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can assume privileged role aws_iam_role.admin_execution","Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution"],"id":"aws_iam_role.admin_execution","kind":"attack_path","label":"aws_iam_role.admin_execution","role":"block","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can assume privileged role aws_iam_role.admin_execution","Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode"],"id":"aws_iam_role.github_actions","kind":"attack_path","label":"aws_iam_role.github_actions","role":"principal","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","Principal aws_iam_role.github_actions can pass aws_iam_role.github_actions and run lambda:UpdateFunctionCode"],"id":"aws_lambda_function.*","kind":"attack_path","label":"aws_lambda_function.*","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","Principal aws_iam_role.github_actions can update Lambda aws_lambda_function.worker with privileged execution role","Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution"],"id":"aws_lambda_function.worker","kind":"attack_path","label":"aws_lambda_function.worker","role":"principal","severity":"critical","type":""}],"title":"ChangeGate Attack Paths"};
+<script>const CHANGEGATE_DIAGRAM={"description":"2 detected attack paths","edges":[{"confidence":"","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","principal can pass a privileged or sensitive execution role","edge: can pass role","decision: block"],"from":"aws_iam_role.github_actions","label":"iam:PassRole","role":"block","to":"aws_iam_role.admin_execution"},{"confidence":"","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","principal can mutate or launch compute that can use the passed role","edge: grants permission","decision: block"],"from":"aws_iam_role.github_actions","label":"lambda:UpdateFunctionCode","role":"block","to":"aws_lambda_function.*"},{"confidence":"","details":["Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution","Lambda function assumes execution role","edge: can assume","decision: block"],"from":"aws_lambda_function.worker","label":"sts:AssumeRole","role":"block","to":"aws_iam_role.admin_execution"}],"nodeHeight":72,"nodeWidth":230,"nodes":[{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode","Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution"],"id":"aws_iam_role.admin_execution","kind":"","label":"aws_iam_role.admin_execution","role":"block","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode"],"id":"aws_iam_role.github_actions","kind":"","label":"aws_iam_role.github_actions","role":"principal","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_iam_role.github_actions can pass aws_iam_role.admin_execution and run lambda:UpdateFunctionCode"],"id":"aws_lambda_function.*","kind":"","label":"aws_lambda_function.*","role":"path","severity":"critical","type":""},{"changed":false,"decision":"block","details":["Principal aws_lambda_function.worker can assume privileged role aws_iam_role.admin_execution"],"id":"aws_lambda_function.worker","kind":"","label":"aws_lambda_function.worker","role":"principal","severity":"critical","type":""}],"title":"ChangeGate Attack Paths"};
 
 const NODE_WIDTH = CHANGEGATE_DIAGRAM.nodeWidth || 230;
 const NODE_HEIGHT = CHANGEGATE_DIAGRAM.nodeHeight || 72;
@@ -275,7 +267,7 @@ function selectNode(id) {
   const connectedItems = connected.map((edge) => '<li><strong>' + escapeHTML(edge.direction) + '</strong> ' + escapeHTML(edge.label || 'relationship') + ' ' + escapeHTML(edge.other) + formatConfidence(edge) + '</li>').join('');
   const statusRows = [
     rowHTML('Role', node.role || 'default'),
-    rowHTML('Kind', node.kind || 'unknown'),
+    rowHTML('Kind', node.kind || node.role || 'resource'),
     rowHTML('Type', node.type || 'n/a'),
     rowHTML('Changed', node.changed ? 'yes' : 'no')
   ];

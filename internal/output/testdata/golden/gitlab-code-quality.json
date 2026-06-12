@@ -1,14 +1,1 @@
-[
-  {
-    "description": "Security group opens SSH to the world on aws_security_group.admin",
-    "check_name": "AWS_SG_WORLD_OPEN_ADMIN_PORT",
-    "fingerprint": "57487a2798ec56aabc46e5797f4c228a8d23209e9df713b20f0dea470a571ced",
-    "severity": "major",
-    "location": {
-      "path": "tfplan.json",
-      "lines": {
-        "begin": 1
-      }
-    }
-  }
-]
+[]

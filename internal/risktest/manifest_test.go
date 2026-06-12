@@ -43,6 +43,11 @@ tests:
           - AWS_PUBLIC_ADMIN_SERVICE
         exclude:
           - AWS_PUBLIC_RDS_INSTANCE
+        counts:
+          AWS_PUBLIC_ADMIN_SERVICE: 1
+        resources:
+          AWS_PUBLIC_ADMIN_SERVICE:
+            - aws_lb.admin
       severity_count:
         critical: 1
       attack_paths:
@@ -70,6 +75,12 @@ tests:
 	}
 	if test.Expect.RiskMovement.NewHigh == nil || *test.Expect.RiskMovement.NewHigh != 2 {
 		t.Fatalf("risk movement not parsed: %#v", test.Expect.RiskMovement)
+	}
+	if test.Expect.Findings.Counts["AWS_PUBLIC_ADMIN_SERVICE"] != 1 {
+		t.Fatalf("finding counts not parsed: %#v", test.Expect.Findings.Counts)
+	}
+	if got := strings.Join(test.Expect.Findings.Resources["AWS_PUBLIC_ADMIN_SERVICE"], ","); got != "aws_lb.admin" {
+		t.Fatalf("finding resources not parsed: %#v", test.Expect.Findings.Resources)
 	}
 }
 

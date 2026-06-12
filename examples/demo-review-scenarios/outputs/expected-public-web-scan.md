@@ -13,6 +13,6 @@
 
 ## Decision reasons
 
-- `NO_FINDINGS`: no findings met warn or block thresholds
+- no findings met warn or block thresholds
 
 No findings.

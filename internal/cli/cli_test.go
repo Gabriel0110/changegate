@@ -14,6 +14,7 @@ import (
 
 	graphpkg "github.com/Gabriel0110/changegate/internal/graph"
 	"github.com/Gabriel0110/changegate/internal/model"
+	"github.com/Gabriel0110/changegate/internal/output"
 )
 
 func TestGoldenOutput(t *testing.T) {
@@ -132,6 +133,43 @@ func TestGoldenOutput(t *testing.T) {
 
 			assertGolden(t, tt.golden, got)
 		})
+	}
+}
+
+func TestSuppressLiveOnlyCloudContextFindingsKeepsPlanParticipantEvidence(t *testing.T) {
+	t.Parallel()
+
+	findings := []model.Finding{
+		model.NormalizeFinding(model.Finding{
+			RuleID:          "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+			Title:           "live-only path",
+			ResourceAddress: "aws_db_instance.customer",
+			Category:        model.RiskCategorySensitiveData,
+			Severity:        model.SeverityCritical,
+			Confidence:      model.ConfidenceHigh,
+			Evidence: []model.Evidence{{
+				Type:    "attack_path",
+				Path:    "attack_path.affected_resources",
+				Value:   []string{"aws_lb.admin:entrypoint", "aws_db_instance.customer:sensitive_asset"},
+				Message: "attack path affected resources are linked to this finding",
+			}},
+		}),
+		model.NormalizeFinding(model.Finding{
+			RuleID:          "AWS_PUBLIC_TO_SENSITIVE_DATA_PATH",
+			Title:           "unrelated live-only path",
+			ResourceAddress: "aws_db_instance.unmanaged",
+			Category:        model.RiskCategorySensitiveData,
+			Severity:        model.SeverityCritical,
+			Confidence:      model.ConfidenceHigh,
+		}),
+	}
+
+	result := suppressLiveOnlyCloudContextFindings(findings, map[string]bool{"aws_lb.admin": true})
+	if len(result[0].Suppressions) != 0 {
+		t.Fatalf("plan-participating finding was suppressed: %#v", result[0].Suppressions)
+	}
+	if len(result[1].Suppressions) != 1 || result[1].Suppressions[0].Kind != "cloud_context_live_only" {
+		t.Fatalf("live-only finding suppression = %#v", result[1].Suppressions)
 	}
 }
 
@@ -1048,8 +1086,14 @@ func TestScanPerformanceControls(t *testing.T) {
 		t.Fatalf("stderr = %q, want empty", stderr)
 	}
 	var report struct {
-		Findings    []any `json:"findings"`
-		Diagnostics []struct {
+		Findings []struct {
+			ID     string `json:"id"`
+			RuleID string `json:"rule_id"`
+		} `json:"findings"`
+		RiskSummary  model.RiskSummary    `json:"risk_summary"`
+		RiskClusters []output.RiskCluster `json:"risk_clusters"`
+		Rules        map[string]any       `json:"rules"`
+		Diagnostics  []struct {
 			Code string `json:"code"`
 		} `json:"diagnostics"`
 	}
@@ -1058,6 +1102,23 @@ func TestScanPerformanceControls(t *testing.T) {
 	}
 	if len(report.Findings) != 1 {
 		t.Fatalf("findings = %d, want capped to 1\n%s", len(report.Findings), stdout)
+	}
+	if report.RiskSummary.Total != 1 {
+		t.Fatalf("risk summary total = %d, want 1\n%s", report.RiskSummary.Total, stdout)
+	}
+	findingIDs := map[string]bool{report.Findings[0].ID: true}
+	ruleIDs := map[string]bool{report.Findings[0].RuleID: true}
+	for _, cluster := range report.RiskClusters {
+		for _, supporting := range cluster.SupportingFindings {
+			if !findingIDs[supporting] {
+				t.Fatalf("cluster references omitted finding %q\n%s", supporting, stdout)
+			}
+		}
+	}
+	for ruleID := range report.Rules {
+		if !ruleIDs[ruleID] {
+			t.Fatalf("rules contains omitted rule %q\n%s", ruleID, stdout)
+		}
 	}
 	if !diagnosticCodePresent(report.Diagnostics, "MAX_FINDINGS_TRUNCATED") {
 		t.Fatalf("missing max findings diagnostic:\n%s", stdout)
@@ -1765,7 +1826,7 @@ func TestExplainCommand(t *testing.T) {
 	if code != exitAllowed {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
-	for _, want := range []string{"What happened:", "Why it matters:", "Recommended fix:", "Fix confidence:", "Automatic patch: not generated"} {
+	for _, want := range []string{"What happened:", "Why it matters:", "Recommended fix:", "Fix confidence:", "Patch guidance:"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("explain output missing %q:\n%s", want, stdout)
 		}

@@ -4,6 +4,35 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v0.6.0 - 2026-06-12
+
+### Added
+
+- Added regression coverage for IAM action/resource coupling, scoped deny handling, IAM wildcard resource matching, changed-only attack-path enforcement, and live-only cloud-context suppression.
+- Added release preflight coverage for Docker runtime behavior and npm package installation before publishing release artifacts.
+
+### Changed
+
+- Tightened IAM attack-path detection to preserve statement-level action/resource semantics and apply Deny/NotResource evidence only to matching targets.
+- Improved attack-path deduplication so equivalent paths collapse into stable, lower-noise findings and review output.
+- Updated cloud-context enforcement so live AWS snapshot evidence enriches plan findings without blocking on unrelated live-only resources.
+- Updated the AWS context collector read-only policy to include internet gateway inventory.
+- Hardened npm publishing to check out the release tag, verify the release target commit, smoke-test the real release download path, and use the `npm-publish` environment.
+- Updated install snippets, CI examples, and public docs to use release placeholders instead of stale version-specific examples.
+
+### Fixed
+
+- Fixed `--changed-only` handling for attack-path findings whose changed resource is a causal entrypoint or IAM policy rather than the terminal target.
+- Fixed IAM false positives caused by flattening actions and resources across unrelated policy statements.
+- Fixed IAM false negatives caused by treating scoped Deny statements as global action denies.
+- Fixed resource matching that could confuse similarly named IAM ARNs.
+- Fixed a missing `ec2:DescribeInternetGateways` permission in the AWS context collector policy template.
+- Regenerated demo outputs after attack-path and graph evidence wording changes.
+
+### Breaking changes
+
+- None.
+
 ## v0.5.0 - 2026-06-08
 
 ### Added

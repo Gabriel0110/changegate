@@ -113,7 +113,7 @@ func NewGraphDiagram(g *graphpkg.Graph, opts GraphOptions) Diagram {
 		node := Node{
 			ID:      string(source.ID),
 			Label:   labelForGraphNode(source),
-			Kind:    string(source.Kind),
+			Kind:    displayGraphKind(source.Kind),
 			Type:    source.Type,
 			Role:    roleForGraphNode(source),
 			Changed: source.Changed,
@@ -134,7 +134,7 @@ func NewGraphDiagram(g *graphpkg.Graph, opts GraphOptions) Diagram {
 		edge := Edge{
 			From:       string(source.From),
 			To:         string(source.To),
-			Label:      strings.ReplaceAll(string(source.Type), "_", " "),
+			Label:      humanizeEdgeLabel(string(source.Type)),
 			Role:       RoleDefault,
 			Confidence: string(source.Confidence),
 			Details:    graphEdgeDetails(source),
@@ -234,8 +234,9 @@ func NewAttackPathDiagram(paths []attackpath.AttackPath) Diagram {
 			upsertAttackNode(nodesByID, to, path)
 			label := step.Action
 			if label == "" {
-				label = strings.ReplaceAll(string(step.EdgeType), "_", " ")
+				label = string(step.EdgeType)
 			}
+			label = humanizeEdgeLabel(label)
 			key := edgeKey(from, to, label)
 			edgesByKey[key] = Edge{
 				From:    from,
@@ -259,7 +260,7 @@ func NewAttackPathDiagram(paths []attackpath.AttackPath) Diagram {
 	}
 	return Diagram{
 		Title:       "ChangeGate Attack Paths",
-		Description: fmt.Sprintf("%d detected attack path(s)", len(paths)),
+		Description: fmt.Sprintf("%d detected %s", len(paths), pluralizeNoun(len(paths), "attack path", "attack paths")),
 		Nodes:       nodes,
 		Edges:       edges,
 		FocusPaths:  focusPaths,
@@ -273,7 +274,7 @@ func upsertAttackNode(nodes map[string]Node, id string, path attackpath.AttackPa
 		node = Node{
 			ID:       id,
 			Label:    id,
-			Kind:     "attack_path",
+			Kind:     "",
 			Role:     role,
 			Decision: path.Decision,
 			Severity: path.Severity,
@@ -282,7 +283,7 @@ func upsertAttackNode(nodes map[string]Node, id string, path attackpath.AttackPa
 	if roleRank(role) > roleRank(node.Role) {
 		node.Role = role
 	}
-	node.Details = append(node.Details, path.Title)
+	node.Details = appendUniqueString(node.Details, path.Title)
 	nodes[id] = node
 }
 
@@ -376,12 +377,12 @@ func graphNodeDetails(node *graphpkg.Node) []string {
 	if node == nil {
 		return nil
 	}
-	details := []string{string(node.ID)}
+	details := make([]string, 0, 4)
 	if node.Type != "" {
 		details = append(details, "type: "+node.Type)
 	}
-	if node.Kind != "" {
-		details = append(details, "kind: "+string(node.Kind))
+	if kind := displayGraphKind(node.Kind); kind != "" {
+		details = append(details, "kind: "+kind)
 	}
 	if node.Environment != "" {
 		details = append(details, "environment: "+node.Environment)
@@ -403,7 +404,7 @@ func graphNodeDetails(node *graphpkg.Node) []string {
 func graphEdgeDetails(edge graphpkg.Edge) []string {
 	details := []string{fmt.Sprintf("%s -> %s", edge.From, edge.To)}
 	if edge.Type != "" {
-		details = append(details, "type: "+string(edge.Type))
+		details = append(details, "type: "+humanizeEdgeLabel(string(edge.Type)))
 	}
 	if edge.Source != "" {
 		details = append(details, "source: "+string(edge.Source))
@@ -420,12 +421,55 @@ func attackStepDetails(path attackpath.AttackPath, step attackpath.Step) []strin
 		details = append(details, step.Explanation)
 	}
 	if step.EdgeType != "" {
-		details = append(details, "edge: "+string(step.EdgeType))
+		details = append(details, "edge: "+humanizeEdgeLabel(string(step.EdgeType)))
 	}
 	if path.Decision != "" {
 		details = append(details, "decision: "+string(path.Decision))
 	}
 	return details
+}
+
+func displayGraphKind(kind graphpkg.NodeKind) string {
+	switch kind {
+	case "", graphpkg.NodeUnknown:
+		return "resource"
+	default:
+		return strings.ReplaceAll(string(kind), "_", " ")
+	}
+}
+
+func humanizeEdgeLabel(value string) string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return ""
+	}
+	switch value {
+	case "iam:PassRole", "sts:AssumeRole", "lambda:UpdateFunctionCode", "lambda:CreateFunction", "ecs:UpdateService":
+		return value
+	default:
+		value = strings.ReplaceAll(value, "_", " ")
+		return strings.Join(strings.Fields(value), " ")
+	}
+}
+
+func appendUniqueString(values []string, value string) []string {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return values
+	}
+	for _, existing := range values {
+		if existing == value {
+			return values
+		}
+	}
+	return append(values, value)
+}
+
+func pluralizeNoun(count int, singular string, plural string) string {
+	if count == 1 {
+		return singular
+	}
+	return plural
 }
 
 func dedupeResourceIDs(values []graphpkg.ResourceID) []graphpkg.ResourceID {

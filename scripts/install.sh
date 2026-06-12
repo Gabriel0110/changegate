@@ -3,7 +3,13 @@ set -euo pipefail
 
 version="${CHANGEGATE_VERSION:-${1:-}}"
 repo="${CHANGEGATE_REPO:-Gabriel0110/changegate}"
-install_dir="${CHANGEGATE_INSTALL_DIR:-/usr/local/bin}"
+if [[ -n "${CHANGEGATE_INSTALL_DIR:-}" ]]; then
+  install_dir="${CHANGEGATE_INSTALL_DIR}"
+elif [[ "$(id -u)" == "0" ]]; then
+  install_dir="/usr/local/bin"
+else
+  install_dir="${HOME}/.local/bin"
+fi
 verify_sig="${CHANGEGATE_VERIFY_SIG:-false}"
 
 if [[ -z "${version}" ]]; then

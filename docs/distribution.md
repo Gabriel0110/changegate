@@ -7,8 +7,8 @@ ChangeGate is distributed as a single CLI binary, release archives, Linux packag
 Use the official image from GitHub Container Registry when ChangeGate runs inside CI, containerized build workers, or local Docker workflows:
 
 ```bash
-docker run --rm ghcr.io/gabriel0110/changegate:v0.5.0 version
-docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:v0.5.0 scan --plan /work/tfplan.json
+docker run --rm ghcr.io/gabriel0110/changegate:vX.Y.Z version
+docker run --rm -v "$PWD:/work:ro" ghcr.io/gabriel0110/changegate:vX.Y.Z scan --plan /work/tfplan.json
 ```
 
 Published tags:
@@ -35,7 +35,7 @@ The installer supports macOS, Linux, and Windows on `amd64`/`arm64`. It download
 Set `CHANGEGATE_VERSION` when you need a specific ChangeGate release:
 
 ```bash
-CHANGEGATE_VERSION=v0.5.0 npx changegate version
+CHANGEGATE_VERSION=vX.Y.Z npx changegate version
 ```
 
 Advanced install environments can use `CHANGEGATE_RELEASE_BASE_URL` to point the installer at an internal artifact mirror that serves the same release archive names and `checksums.txt` format.

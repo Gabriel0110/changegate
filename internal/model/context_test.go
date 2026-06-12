@@ -61,6 +61,32 @@ func TestContextualSuppressions(t *testing.T) {
 	}
 }
 
+func TestChangedOnlyKeepsFindingWithChangedAffectedResourceEvidence(t *testing.T) {
+	t.Parallel()
+
+	finding := sampleFinding()
+	finding.ResourceAddress = "aws_db_instance.customer"
+	finding.Evidence = []Evidence{{
+		Type:     "attack_path",
+		Resource: "aws_db_instance.customer",
+		Path:     "attack_path.affected_resources",
+		Value:    []string{"aws_lb.admin:entrypoint", "aws_db_instance.customer:sensitive_asset"},
+		Message:  "attack path affected resources are linked to this finding",
+	}}
+	finding = NormalizeFinding(finding)
+
+	config := DefaultPolicyConfig()
+	config.ChangedResourcesOnly = true
+	config.ChangedResources = map[string]bool{"aws_lb.admin": true}
+	outcome := EvaluatePolicy([]Finding{finding}, config)
+	if outcome.Decision != DecisionBlock {
+		t.Fatalf("Decision = %q, want block for finding with changed causal resource evidence", outcome.Decision)
+	}
+	if outcome.Summary.Suppressed != 0 {
+		t.Fatalf("Suppressed = %d, want 0", outcome.Summary.Suppressed)
+	}
+}
+
 func TestNewOnlyDoesNotSuppressWorsenedExistingRisk(t *testing.T) {
 	t.Parallel()
 

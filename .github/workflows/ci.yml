@@ -6,6 +6,8 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*.*.*"
 
 permissions:
   contents: read
@@ -124,6 +126,13 @@ jobs:
           test "${status}" -eq 1
           test -s /tmp/changegate-docker-scan.json
           jq -e '.decision == "block" and (.findings | length > 0)' /tmp/changegate-docker-scan.json >/dev/null
+
+      - name: GoReleaser Dockerfile smoke
+        run: |
+          mkdir -p /tmp/changegate-goreleaser-docker/linux/amd64
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o /tmp/changegate-goreleaser-docker/linux/amd64/changegate ./cmd/changegate
+          docker build -f Dockerfile.goreleaser --build-arg TARGETPLATFORM=linux/amd64 -t changegate:goreleaser-ci /tmp/changegate-goreleaser-docker
+          docker run --rm changegate:goreleaser-ci version
 
       - name: npm package smoke
         run: scripts/test-npm-package.sh

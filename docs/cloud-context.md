@@ -10,8 +10,8 @@ changegate scan --plan tfplan.json --context-file .changegate/aws-context.json
 To collect real read-only AWS context, opt in with `--collect`:
 
 ```bash
-changegate context aws snapshot --out .changegate/aws-context.json --collect
-changegate context aws snapshot --out .changegate/aws-context.json --collect network,edge,iam,compute,data --regions us-east-1,us-west-2 --profile prod-readonly
+changegate context aws snapshot --out .changegate/aws-context.json --collect=all
+changegate context aws snapshot --out .changegate/aws-context.json --collect=network,edge,iam,compute,data --regions us-east-1,us-west-2 --profile prod-readonly
 ```
 
 Or through an explicit provider flag with a cached snapshot:

@@ -21,12 +21,13 @@ Detects replacement of production RDS instances.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Availability findings identify changes that can weaken recovery, deletion protection, or replacement safety for production or stateful resources.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Prefer in-place supported changes where possible.
+- Snapshot the database immediately before apply.
+- Schedule maintenance and document rollback.
 
 ## References
 

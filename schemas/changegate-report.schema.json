@@ -136,6 +136,22 @@
       "type": "array",
       "items": { "$ref": "#/$defs/risk_cluster" }
     },
+    "risk_movement": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "new_critical": { "type": "integer", "minimum": 0 },
+        "new_high": { "type": "integer", "minimum": 0 },
+        "new_medium": { "type": "integer", "minimum": 0 },
+        "resolved_critical": { "type": "integer", "minimum": 0 },
+        "resolved_high": { "type": "integer", "minimum": 0 },
+        "existing_unchanged": { "type": "integer", "minimum": 0 },
+        "existing_worsened": { "type": "integer", "minimum": 0 },
+        "existing_improved": { "type": "integer", "minimum": 0 },
+        "waived_active": { "type": "integer", "minimum": 0 },
+        "waived_expired": { "type": "integer", "minimum": 0 }
+      }
+    },
     "findings": {
       "type": "array",
       "items": { "$ref": "#/$defs/finding" }

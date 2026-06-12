@@ -35,7 +35,7 @@ Ambiguous graph or IAM evidence lowers confidence and should not create high-con
 
 ## Rules And False Positives
 
-The built-in rule pack is intentionally high-confidence. This means ChangeGate will miss some risky patterns that require organization-specific context, business intent, runtime configuration, or broad static analysis.
+The built-in rule pack is intentionally high-confidence. This means ChangeGate will miss some risky patterns that require local context, business intent, runtime configuration, or broad static analysis.
 
 Use external scanner imports when you want broad coverage from tools like Checkov, Trivy, KICS, Grype, or other SARIF producers. Use ChangeGate to correlate that evidence with the planned deployment decision.
 

@@ -1,6 +1,6 @@
 # Waivers
 
-Waivers are reviewed, expiring exceptions for findings that should not block temporarily. They are intended for security-team workflows where every exception needs an owner, reason, scope, and expiration.
+Waivers are reviewed, expiring exceptions for findings that should not block temporarily. Every waiver needs an owner, reason, scope, and expiration.
 
 ## Waiver file
 

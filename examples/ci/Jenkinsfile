@@ -2,7 +2,7 @@ pipeline {
   agent any
 
   environment {
-    CHANGEGATE_VERSION = 'v0.2.0'
+    CHANGEGATE_VERSION = 'vX.Y.Z'
   }
 
   stages {

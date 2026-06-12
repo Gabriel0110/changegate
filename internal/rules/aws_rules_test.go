@@ -82,6 +82,125 @@ func TestAWSRulesPassOnEmptyPlan(t *testing.T) {
 	}
 }
 
+func TestAWSExternalPrincipalRulesUseResourceAccountAsLocalAccount(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		change model.Change
+		want   string
+	}{
+		{
+			name: "external role trust",
+			change: model.Change{
+				Address: "aws_iam_role.deploy",
+				Type:    "aws_iam_role",
+				Name:    "deploy",
+				Actions: []model.Action{model.ActionCreate},
+				After: map[string]any{
+					"arn":                "arn:aws:iam::123456789012:role/deploy",
+					"assume_role_policy": `{"Statement":[{"Effect":"Allow","Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::999999999999:root"}}]}`,
+				},
+			},
+			want: "AWS_EXTERNAL_ACCOUNT_TRUST",
+		},
+		{
+			name: "same account role trust",
+			change: model.Change{
+				Address: "aws_iam_role.deploy",
+				Type:    "aws_iam_role",
+				Name:    "deploy",
+				Actions: []model.Action{model.ActionCreate},
+				After: map[string]any{
+					"arn":                "arn:aws:iam::123456789012:role/deploy",
+					"assume_role_policy": `{"Statement":[{"Effect":"Allow","Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::123456789012:role/ci"}}]}`,
+				},
+			},
+		},
+		{
+			name: "external kms key policy",
+			change: model.Change{
+				Address: "aws_kms_key.customer",
+				Type:    "aws_kms_key",
+				Name:    "customer",
+				Actions: []model.Action{model.ActionCreate},
+				After: map[string]any{
+					"arn":    "arn:aws:kms:us-east-1:123456789012:key/customer",
+					"policy": `{"Statement":[{"Effect":"Allow","Action":"kms:Decrypt","Principal":{"AWS":"arn:aws:iam::999999999999:role/external"},"Resource":"*"}]}`,
+				},
+			},
+			want: "AWS_KMS_KEY_POLICY_PUBLIC_OR_EXTERNAL_ADMIN",
+		},
+		{
+			name: "same account kms key policy",
+			change: model.Change{
+				Address: "aws_kms_key.customer",
+				Type:    "aws_kms_key",
+				Name:    "customer",
+				Actions: []model.Action{model.ActionCreate},
+				After: map[string]any{
+					"arn":    "arn:aws:kms:us-east-1:123456789012:key/customer",
+					"policy": `{"Statement":[{"Effect":"Allow","Action":"kms:Decrypt","Principal":{"AWS":"arn:aws:iam::123456789012:role/app"},"Resource":"*"}]}`,
+				},
+			},
+		},
+	}
+
+	registry, err := DefaultRegistry()
+	if err != nil {
+		t.Fatalf("DefaultRegistry returned error: %v", err)
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			plan := &model.Plan{Changes: []model.Change{tt.change}}
+			result := NewRunner(registry).Evaluate(context.Background(), RuleInput{
+				Plan:  plan,
+				Graph: graph.Build(plan),
+			}, Selection{})
+			if tt.want == "" {
+				for _, unexpected := range []string{"AWS_EXTERNAL_ACCOUNT_TRUST", "AWS_KMS_KEY_POLICY_PUBLIC_OR_EXTERNAL_ADMIN"} {
+					if hasFinding(result.Findings, unexpected) {
+						t.Fatalf("unexpected %s in findings: %#v", unexpected, result.Findings)
+					}
+				}
+				return
+			}
+			if !hasFinding(result.Findings, tt.want) {
+				t.Fatalf("missing %s in findings: %#v", tt.want, result.Findings)
+			}
+		})
+	}
+}
+
+func TestProductionContextRequiresTokenMatch(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		text string
+		want bool
+	}{
+		{name: "prod token", text: "customer-prod-db", want: true},
+		{name: "production token", text: "payments production", want: true},
+		{name: "nonprod is not prod", text: "nonprod-api", want: false},
+		{name: "product is not prod", text: "product-catalog", want: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := hasProductionOrSensitiveContext(model.Change{
+				Address: "aws_db_instance." + tt.text,
+				Type:    "aws_db_instance",
+				After:   map[string]any{"name": tt.text},
+			})
+			if got != tt.want {
+				t.Fatalf("hasProductionOrSensitiveContext(%q) = %v, want %v", tt.text, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestAWSRulesFailingFixture(t *testing.T) {
 	t.Parallel()
 
@@ -146,6 +265,7 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 		res("aws_cloudtrail.devtrail", "aws_cloudtrail", "devtrail", map[string]any{"enable_logging": false, "enable_log_file_validation": false, "tags": map[string]any{"env": "dev"}}),
 		res("aws_ecr_repository.devapp", "aws_ecr_repository", "devapp", map[string]any{"image_tag_mutability": "MUTABLE", "image_scanning_configuration": []any{map[string]any{"scan_on_push": false}}, "tags": map[string]any{"env": "dev"}}),
 		res("aws_config_configuration_recorder_status.dev", "aws_config_configuration_recorder_status", "dev", map[string]any{"is_enabled": false, "tags": map[string]any{"env": "dev"}}),
+		res("aws_route.private_nat", "aws_route", "private_nat", map[string]any{"nat_gateway_id": "nat-123", "destination_cidr_block": "0.0.0.0/0", "tags": map[string]any{"tier": "private"}}),
 	}, Changes: []model.Change{
 		{Address: "aws_lb.internal", Type: "aws_lb", Name: "internal", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"arn": "internal-alb-arn", "scheme": "internal", "tags": map[string]any{"env": "prod"}}, Tags: map[string]string{"env": "prod"}},
 		{Address: "aws_lb_listener.internal", Type: "aws_lb_listener", Name: "internal", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"load_balancer_arn": "internal-alb-arn", "protocol": "HTTP"}},
@@ -160,6 +280,7 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 		{Address: "aws_cloudtrail.devtrail", Type: "aws_cloudtrail", Name: "devtrail", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionUpdate}, After: map[string]any{"enable_logging": false, "enable_log_file_validation": false, "tags": map[string]any{"env": "dev"}}, Tags: map[string]string{"env": "dev"}},
 		{Address: "aws_ecr_repository.devapp", Type: "aws_ecr_repository", Name: "devapp", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionUpdate}, After: map[string]any{"image_tag_mutability": "MUTABLE", "image_scanning_configuration": []any{map[string]any{"scan_on_push": false}}, "tags": map[string]any{"env": "dev"}}, Tags: map[string]string{"env": "dev"}},
 		{Address: "aws_config_configuration_recorder_status.dev", Type: "aws_config_configuration_recorder_status", Name: "dev", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionUpdate}, After: map[string]any{"is_enabled": false, "tags": map[string]any{"env": "dev"}}, Tags: map[string]string{"env": "dev"}},
+		{Address: "aws_route.private_nat", Type: "aws_route", Name: "private_nat", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionCreate}, After: map[string]any{"nat_gateway_id": "nat-123", "destination_cidr_block": "0.0.0.0/0", "tags": map[string]any{"tier": "private"}}, Tags: map[string]string{"tier": "private"}},
 		{Address: "aws_db_instance.dev_retention", Type: "aws_db_instance", Name: "dev_retention", Provider: "registry.terraform.io/hashicorp/aws", Actions: []model.Action{model.ActionUpdate}, Before: map[string]any{"backup_retention_period": 30, "tags": map[string]any{"env": "dev"}}, After: map[string]any{"backup_retention_period": 7, "tags": map[string]any{"env": "dev"}}, Tags: map[string]string{"env": "dev"}},
 	}}
 	result := NewRunner(registry).Evaluate(context.Background(), RuleInput{
@@ -177,6 +298,7 @@ func TestNewAWSStableRulesAvoidBenignPlans(t *testing.T) {
 			"AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS",
 			"AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS",
 			"AWS_S3_BUCKET_PUBLIC_POLICY",
+			"AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG",
 			"AWS_CLOUDTRAIL_LOGGING_DISABLED_PROD",
 			"AWS_CLOUDTRAIL_LOG_FILE_VALIDATION_DISABLED_PROD",
 			"AWS_ECR_REPOSITORY_MUTABLE_OR_SCAN_DISABLED_PROD",
@@ -358,11 +480,18 @@ func awsFailingPlan() *model.Plan {
 			"egress": []any{map[string]any{"cidr_blocks": []any{"0.0.0.0/0"}, "from_port": 0, "to_port": 0}},
 			"tags":   map[string]any{"env": "prod"},
 		}),
+		res("aws_security_group.internal_admin", "aws_security_group", "internal_admin", map[string]any{
+			"id": "sg-internal-admin",
+			"ingress": []any{
+				map[string]any{"cidr_blocks": []any{"0.0.0.0/0"}, "from_port": 443, "to_port": 443},
+			},
+			"tags": map[string]any{"env": "prod", "tier": "private", "service": "admin"},
+		}),
 		res("aws_lb.admin", "aws_lb", "admin", map[string]any{"arn": "alb-arn", "scheme": "internet-facing", "security_groups": []any{"sg-public"}, "tags": map[string]any{"env": "prod"}}),
 		res("aws_lb_listener.admin", "aws_lb_listener", "admin", map[string]any{"load_balancer_arn": "alb-arn", "protocol": "HTTP", "default_action": []any{map[string]any{"target_group_arn": "tg-arn"}}}),
 		res("aws_lb_target_group.admin", "aws_lb_target_group", "admin", map[string]any{"arn": "tg-arn"}),
 		res("aws_ecs_service.admin", "aws_ecs_service", "admin", map[string]any{"load_balancer": []any{map[string]any{"target_group_arn": "tg-arn"}}, "security_groups": []any{"sg-public"}, "task_definition": "task-arn", "tags": map[string]any{"env": "prod", "service": "internal"}}),
-		res("aws_ecs_task_definition.admin", "aws_ecs_task_definition", "admin", map[string]any{"arn": "task-arn", "task_role_arn": "worker-role-arn"}),
+		res("aws_ecs_task_definition.admin", "aws_ecs_task_definition", "admin", map[string]any{"arn": "task-arn", "task_role_arn": "arn:aws:iam::123456789012:role/worker"}),
 		res("aws_instance.admin", "aws_instance", "admin", map[string]any{"associate_public_ip_address": true, "security_groups": []any{"sg-public"}, "tags": map[string]any{"env": "prod"}}),
 		res("aws_subnet.public", "aws_subnet", "public", map[string]any{"id": "subnet-public", "tags": map[string]any{"tier": "public", "env": "prod"}}),
 		res("aws_db_subnet_group.public", "aws_db_subnet_group", "public", map[string]any{"name": "public-db-subnets", "subnet_ids": []any{"subnet-public"}, "tags": map[string]any{"env": "prod"}}),
@@ -372,24 +501,25 @@ func awsFailingPlan() *model.Plan {
 		res("aws_opensearch_domain.search", "aws_opensearch_domain", "search", map[string]any{"access_policies": `{"Statement":[{"Principal":"*"}]}`}),
 		res("aws_eks_cluster.prod", "aws_eks_cluster", "prod", map[string]any{"endpoint_public_access": true, "tags": map[string]any{"env": "prod"}}),
 		res("aws_s3_bucket_public_access_block.logs", "aws_s3_bucket_public_access_block", "logs", map[string]any{"bucket": "logs", "block_public_acls": false, "block_public_policy": false, "ignore_public_acls": false, "restrict_public_buckets": false, "tags": map[string]any{"env": "prod"}}),
-		res("aws_cloudfront_distribution.cdn", "aws_cloudfront_distribution", "cdn", map[string]any{"enabled": true}),
+		res("aws_cloudfront_distribution.cdn", "aws_cloudfront_distribution", "cdn", map[string]any{"enabled": true, "origin": []any{map[string]any{"domain_name": "logs"}}}),
 		res("aws_s3_bucket.logs", "aws_s3_bucket", "logs", map[string]any{"bucket": "logs", "server_side_encryption_configuration": []any{}, "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
+		res("aws_s3_bucket.customer_data", "aws_s3_bucket", "customer_data", map[string]any{"bucket": "customer-data", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
 		res("aws_s3_bucket_acl.logs", "aws_s3_bucket_acl", "logs", map[string]any{"bucket": "logs", "acl": "public-read", "tags": map[string]any{"env": "prod"}}),
 		res("aws_s3_bucket_versioning.logs", "aws_s3_bucket_versioning", "logs", map[string]any{"bucket": "logs", "versioning_configuration": []any{map[string]any{"status": "Suspended"}}, "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
 		res("aws_s3_bucket_policy.logs", "aws_s3_bucket_policy", "logs", map[string]any{"bucket": "logs", "policy": `{"Statement":[{"Principal":"*","Action":"s3:GetObject"}]}`}),
 		res("aws_secretsmanager_secret.customer", "aws_secretsmanager_secret", "customer", map[string]any{"arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer", "name": "customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
 		res("aws_kms_key.customer", "aws_kms_key", "customer", map[string]any{"arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "tags": map[string]any{"env": "prod", "data": "sensitive"}}),
-		res("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:worker", "function_name": "worker", "role": "worker-role-arn", "kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer"}}}, "tags": map[string]any{"env": "prod", "service": "public-api"}}),
+		res("aws_lambda_function.worker", "aws_lambda_function", "worker", map[string]any{"arn": "arn:aws:lambda:us-east-1:123456789012:function:worker", "function_name": "worker", "role": "arn:aws:iam::123456789012:role/worker", "kms_key_arn": "arn:aws:kms:us-east-1:123456789012:key/customer", "environment": []any{map[string]any{"variables": map[string]any{"CUSTOMER_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer"}}}, "tags": map[string]any{"env": "prod", "service": "public-api"}}),
 		res("aws_lambda_function_url.worker", "aws_lambda_function_url", "worker", map[string]any{"function_name": "worker", "authorization_type": "NONE"}),
 		res("aws_apigatewayv2_api.public", "aws_apigatewayv2_api", "public", map[string]any{"id": "api-public", "name": "public-api", "tags": map[string]any{"env": "prod"}}),
 		res("aws_apigatewayv2_integration.worker", "aws_apigatewayv2_integration", "worker", map[string]any{"api_id": "api-public", "integration_uri": "arn:aws:lambda:us-east-1:123456789012:function:worker", "integration_type": "AWS_PROXY"}),
 		res("aws_apigatewayv2_route.admin", "aws_apigatewayv2_route", "admin", map[string]any{"api_id": "api-public", "route_key": "ANY /admin", "authorization_type": "NONE"}),
-		res("aws_iam_role.worker", "aws_iam_role", "worker", map[string]any{"arn": "worker-role-arn", "name": "worker", "assume_role_policy": `{"Statement":[{"Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::999999999999:root"}}]}`}),
-		res("aws_iam_role.admin", "aws_iam_role", "admin", map[string]any{"arn": "admin-role-arn", "name": "admin"}),
-		res("aws_iam_policy.admin", "aws_iam_policy", "admin", map[string]any{"arn": "admin-policy-arn", "policy": `{"Statement":[{"Action":"*","Resource":"*"},{"Action":["iam:PassRole","sts:AssumeRole","kms:Decrypt","secretsmanager:GetSecretValue","lambda:CreateFunction"],"Resource":"*"}]}`}),
-		res("aws_iam_policy.notaction", "aws_iam_policy", "notaction", map[string]any{"arn": "notaction-policy-arn", "policy": `{"Statement":[{"Effect":"Allow","NotAction":"iam:DeleteUser","Resource":"*"}]}`}),
+		res("aws_iam_role.worker", "aws_iam_role", "worker", map[string]any{"arn": "arn:aws:iam::123456789012:role/worker", "name": "worker", "assume_role_policy": `{"Statement":[{"Effect":"Allow","Action":"sts:AssumeRole","Principal":{"AWS":"arn:aws:iam::999999999999:root"}}]}`}),
+		res("aws_iam_role.admin", "aws_iam_role", "admin", map[string]any{"arn": "arn:aws:iam::123456789012:role/admin", "name": "admin"}),
+		res("aws_iam_policy.admin", "aws_iam_policy", "admin", map[string]any{"arn": "arn:aws:iam::123456789012:policy/admin", "policy": `{"Statement":[{"Effect":"Allow","Action":"*","Resource":"*"},{"Effect":"Allow","Action":["iam:PassRole","sts:AssumeRole","kms:Decrypt","secretsmanager:GetSecretValue","lambda:CreateFunction","s3:GetObject","s3:PutObject"],"Resource":"*"}]}`}),
+		res("aws_iam_policy.notaction", "aws_iam_policy", "notaction", map[string]any{"arn": "arn:aws:iam::123456789012:policy/notaction", "policy": `{"Statement":[{"Effect":"Allow","NotAction":"iam:DeleteUser","Resource":"*"}]}`}),
 		res("aws_kms_key.external", "aws_kms_key", "external", map[string]any{"policy": `{"Statement":[{"Effect":"Allow","Principal":"*","Action":"kms:Decrypt","Resource":"*"}]}`}),
-		res("aws_iam_role_policy_attachment.worker", "aws_iam_role_policy_attachment", "worker", map[string]any{"role": "worker", "policy_arn": "admin-policy-arn"}),
+		res("aws_iam_role_policy_attachment.worker", "aws_iam_role_policy_attachment", "worker", map[string]any{"role": "worker", "policy_arn": "arn:aws:iam::123456789012:policy/admin"}),
 		res("aws_iam_role_policy_attachment.admin", "aws_iam_role_policy_attachment", "admin", map[string]any{"role": "admin", "policy_arn": "arn:aws:iam::aws:policy/AdministratorAccess"}),
 		res("aws_iam_role.github", "aws_iam_role", "github", map[string]any{"assume_role_policy": `{"Statement":[{"Principal":{"Federated":"token.actions.githubusercontent.com"},"Condition":{"StringLike":{"token.actions.githubusercontent.com:sub":"repo:*"}}}]}`}),
 		res("aws_cloudtrail.security", "aws_cloudtrail", "security", map[string]any{"name": "prod-security-trail", "enable_logging": false, "enable_log_file_validation": false, "tags": map[string]any{"env": "prod", "service": "security"}}),

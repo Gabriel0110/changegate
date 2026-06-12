@@ -40,7 +40,7 @@ func newInitCommand() *cobra.Command {
 		Short: "Create a safe starter ChangeGate configuration",
 		Long: `Create starter ChangeGate files for a repository.
 
-The default setup uses audit mode so teams can review signal before enforcing
+The default setup uses audit mode so you can review signal before enforcing
 blocking decisions. Add CI and governance files with flags, then edit the
 generated files to match your Terraform/OpenTofu layout.`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
@@ -216,7 +216,7 @@ jobs:
 
       - name: Install ChangeGate
         env:
-          CHANGEGATE_VERSION: v0.2.0
+          CHANGEGATE_VERSION: v0.5.0
           CHANGEGATE_INSTALL_DIR: ${{ runner.temp }}/changegate-bin
         run: |
           curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
@@ -254,7 +254,7 @@ func gitlabCI() string {
     entrypoint: [""]
   stage: test
   variables:
-    CHANGEGATE_VERSION: v0.2.0
+    CHANGEGATE_VERSION: v0.5.0
   before_script:
     - apk add --no-cache bash curl tar perl-utils
     - curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh

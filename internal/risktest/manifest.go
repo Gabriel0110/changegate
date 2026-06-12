@@ -46,8 +46,10 @@ type Expectations struct {
 
 // FindingExpectations asserts rule IDs that must or must not be present.
 type FindingExpectations struct {
-	Include []string `json:"include,omitempty" yaml:"include,omitempty"`
-	Exclude []string `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	Include   []string            `json:"include,omitempty" yaml:"include,omitempty"`
+	Exclude   []string            `json:"exclude,omitempty" yaml:"exclude,omitempty"`
+	Counts    map[string]int      `json:"counts,omitempty" yaml:"counts,omitempty"`
+	Resources map[string][]string `json:"resources,omitempty" yaml:"resources,omitempty"`
 }
 
 // PathExpectations asserts attack path types or graph path fragments.

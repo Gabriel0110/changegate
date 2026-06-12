@@ -1,11 +1,11 @@
 flowchart LR
   %% ChangeGate Graph Path
-  n1["aws_db_instance.customer<br/>data_store"]
+  n1["aws_db_instance.customer<br/>data store"]
   n2["aws_ecs_service.admin<br/>workload"]
-  n3["aws_lb.admin<br/>public_entrypoint"]
-  n4["aws_lb_listener.admin<br/>unknown"]
-  n5["aws_lb_target_group.admin<br/>unknown"]
-  n6["aws_security_group.public<br/>network_boundary"]
+  n3["aws_lb.admin<br/>public entrypoint"]
+  n4["aws_lb_listener.admin<br/>resource"]
+  n5["aws_lb_target_group.admin<br/>resource"]
+  n6["aws_security_group.public<br/>network boundary"]
   n2 -->|"allows egress"| n6
   n3 -->|"routes to"| n4
   n4 -->|"routes to"| n5

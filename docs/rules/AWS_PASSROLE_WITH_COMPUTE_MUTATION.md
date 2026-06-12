@@ -1,18 +1,18 @@
-# iam:PassRole with compute mutation
+# iam:PassRole grant in a compute-mutating plan
 
 | Field | Value |
 | --- | --- |
 | Rule ID | `AWS_PASSROLE_WITH_COMPUTE_MUTATION` |
 | Category | `privilege_escalation` |
 | Severity | `high` |
-| Confidence | `high` |
+| Confidence | `medium` |
 | Status | `stable` |
 | Version | `0.1.0` |
 | Policy pack | `aws-iam-escalation` |
 
 ## What It Detects
 
-Detects IAM principals that can pass roles and mutate compute resources.
+Detects iam:PassRole grants in plans that also mutate compute resources. The attack-path engine emits the high-confidence block when the same principal can both pass the role and mutate compute.
 
 ## Resources
 
@@ -23,12 +23,13 @@ Detects IAM principals that can pass roles and mutate compute resources.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Privilege-escalation findings identify IAM changes that can expand who can assume roles, pass roles, mutate compute, or access sensitive resources.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Replace wildcard actions and resources with least-privilege statements.
+- Constrain trust policies to expected principals and conditions.
+- Separate deploy-time permissions from runtime permissions.
 
 ## References
 

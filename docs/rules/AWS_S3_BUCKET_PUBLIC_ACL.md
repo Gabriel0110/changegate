@@ -20,12 +20,13 @@ Detects S3 bucket ACLs that grant public read or write permissions.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public exposure changes can create reachable entrypoints. ChangeGate reports this when the plan or graph evidence is strong enough to show the exposure path.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set the bucket ACL to `private`.
+- Remove grants to AllUsers or AuthenticatedUsers.
+- Prefer bucket policies scoped to exact service principals over ACL-based public access.
 
 ## References
 

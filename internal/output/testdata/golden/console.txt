@@ -11,7 +11,7 @@ Risk clusters: 1
 Blocking: 1
 Warnings: 0
 Suppressed or downgraded: 0
-Reason: MEETS_BLOCK_THRESHOLD Security group opens SSH to the world - high severity and high confidence meets block threshold
+Reason: Security group opens SSH to the world - Meets the configured block threshold.
 
 Risk clusters:
 - [high/high] Security group opens SSH to the world (1 resources, 1 findings)

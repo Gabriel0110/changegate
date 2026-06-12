@@ -509,6 +509,7 @@ func ReadOnlyPolicyTemplate() string {
         "ec2:DescribeRegions",
         "ec2:DescribeVpcs",
         "ec2:DescribeSubnets",
+        "ec2:DescribeInternetGateways",
         "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups",
         "ec2:DescribeNetworkInterfaces",

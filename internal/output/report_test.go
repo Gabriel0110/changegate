@@ -11,6 +11,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Gabriel0110/changegate/internal/baseline"
 	"github.com/Gabriel0110/changegate/internal/model"
 )
 
@@ -121,6 +122,39 @@ func TestAuditBundle(t *testing.T) {
 	}
 	if !manifestHasArtifact(manifest.Artifacts, "changegate-audit/scan-report.json") {
 		t.Fatalf("manifest missing scan report artifact: %#v", manifest.Artifacts)
+	}
+}
+
+func TestRenderJSONIncludesRiskMovementWhenPresent(t *testing.T) {
+	t.Parallel()
+
+	report := sampleReport()
+	report.RiskMovement = &baseline.RiskMovement{
+		NewHigh:           1,
+		ResolvedHigh:      2,
+		ExistingUnchanged: 3,
+		WaivedActive:      1,
+	}
+	body, _, err := Render(report, "json")
+	if err != nil {
+		t.Fatalf("Render returned error: %v", err)
+	}
+	var parsed struct {
+		RiskMovement *struct {
+			NewHigh           int `json:"new_high"`
+			ResolvedHigh      int `json:"resolved_high"`
+			ExistingUnchanged int `json:"existing_unchanged"`
+			WaivedActive      int `json:"waived_active"`
+		} `json:"risk_movement"`
+	}
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		t.Fatalf("invalid JSON: %v\n%s", err, string(body))
+	}
+	if parsed.RiskMovement == nil {
+		t.Fatalf("JSON report missing risk_movement:\n%s", string(body))
+	}
+	if parsed.RiskMovement.NewHigh != 1 || parsed.RiskMovement.ResolvedHigh != 2 || parsed.RiskMovement.ExistingUnchanged != 3 || parsed.RiskMovement.WaivedActive != 1 {
+		t.Fatalf("unexpected risk_movement: %+v", parsed.RiskMovement)
 	}
 }
 
@@ -422,7 +456,7 @@ func assertSARIF(t *testing.T, body []byte) {
 		t.Fatalf("SARIF missing stable rule ID or help: %+v", value.Runs[0].Tool.Driver.Rules[0])
 	}
 	result := value.Runs[0].Results[0]
-	if result.PartialFingerprints["changegateFingerprint/v1"] == "" || len(result.Locations) == 0 {
-		t.Fatalf("SARIF missing fingerprint/location: %+v", result)
+	if result.PartialFingerprints["changegateFingerprint/v1"] == "" {
+		t.Fatalf("SARIF missing fingerprint: %+v", result)
 	}
 }

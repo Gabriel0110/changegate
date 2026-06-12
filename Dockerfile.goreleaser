@@ -1,5 +1,6 @@
-FROM scratch
+FROM alpine:3.22
 ARG TARGETPLATFORM
+RUN apk add --no-cache ca-certificates
 COPY $TARGETPLATFORM/changegate /changegate
 USER 65532:65532
 ENTRYPOINT ["/changegate"]

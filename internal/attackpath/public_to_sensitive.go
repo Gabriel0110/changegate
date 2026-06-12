@@ -9,6 +9,8 @@ import (
 	"github.com/Gabriel0110/changegate/internal/model"
 )
 
+const attackPathsDocsURL = "https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md"
+
 // DetectionOptions controls attack path detection.
 type DetectionOptions struct {
 	MaxDepth                int
@@ -24,6 +26,9 @@ func DetectPublicToSensitive(g *graph.Graph, opts DetectionOptions) []AttackPath
 	opts = normalizeDetectionOptions(opts)
 	paths := make([]AttackPath, 0)
 	for _, entrypoint := range g.PublicEntrypoints() {
+		if authenticatedAPIGatewayEntrypoint(g, entrypoint) {
+			continue
+		}
 		paths = append(paths, detectPublicEKSClusterAdminRisk(g, entrypoint, opts)...)
 		radius := g.BlastRadius(entrypoint, graph.BlastRadiusOptions{MaxDepth: opts.MaxDepth, MaxPaths: opts.MaxPaths})
 		sensitivePaths := detectSensitivePaths(g, entrypoint, radius)
@@ -68,7 +73,7 @@ func detectSensitivePaths(g *graph.Graph, entrypoint graph.ResourceID, radius gr
 				pathEvidence(target, fullPath, "public entrypoint reaches sensitive asset"),
 			},
 			Mitigations: publicSensitiveMitigations(targetNode),
-			References:  []string{"docs/attack-paths.md"},
+			References:  []string{attackPathsDocsURL},
 			Metadata: map[string]string{
 				"graph_path_id":   graphPathID(fullPath),
 				"entrypoint_type": nodeType(entrypointNode),
@@ -133,7 +138,7 @@ func detectPublicEKSClusterAdminRisk(g *graph.Graph, entrypoint graph.ResourceID
 				"Disable public EKS endpoint access or restrict it to approved CIDRs.",
 				"Remove cluster-admin role bindings from publicly reachable automation paths.",
 			},
-			References: []string{"docs/attack-paths.md"},
+			References: []string{attackPathsDocsURL},
 			Metadata: map[string]string{
 				"graph_path_id":   graphPathID(fullPath),
 				"entrypoint_type": nodeType(node),
@@ -171,7 +176,7 @@ func detectPublicWorkloadWarnings(g *graph.Graph, entrypoint graph.ResourceID, r
 				"Confirm this workload is intended to be public.",
 				"Attach cloud context or tags for downstream sensitive data when available.",
 			},
-			References: []string{"docs/attack-paths.md"},
+			References: []string{attackPathsDocsURL},
 			Metadata:   map[string]string{"graph_path_id": graphPathID(fullPath)},
 		})
 	}
@@ -473,6 +478,61 @@ func expectedPublicNode(node *graph.Node) bool {
 		}
 	}
 	return false
+}
+
+func authenticatedAPIGatewayEntrypoint(g *graph.Graph, entrypoint graph.ResourceID) bool {
+	node := g.Nodes[entrypoint]
+	if node == nil || (node.Type != "aws_apigatewayv2_api" && node.Type != "aws_api_gateway_rest_api") {
+		return false
+	}
+	routeEvidence := 0
+	for _, candidate := range g.Nodes {
+		if candidate == nil {
+			continue
+		}
+		switch candidate.Type {
+		case "aws_apigatewayv2_route":
+			if !referencesAPI(candidate, node, "api_id") {
+				continue
+			}
+			routeEvidence++
+			if apiGatewayV2RouteAnonymous(candidate) {
+				return false
+			}
+		case "aws_api_gateway_method":
+			if !referencesAPI(candidate, node, "rest_api_id") {
+				continue
+			}
+			routeEvidence++
+			if apiGatewayMethodAnonymous(candidate) {
+				return false
+			}
+		}
+	}
+	return routeEvidence > 0
+}
+
+func referencesAPI(candidate *graph.Node, api *graph.Node, key string) bool {
+	value := asString(candidate.Values[key])
+	if value == "" {
+		return false
+	}
+	return value == string(api.ID) ||
+		value == api.Address ||
+		value == api.Name ||
+		value == asString(api.Values["id"]) ||
+		value == asString(api.Values["api_id"]) ||
+		value == asString(api.Values["rest_api_id"])
+}
+
+func apiGatewayV2RouteAnonymous(node *graph.Node) bool {
+	auth := strings.ToLower(strings.TrimSpace(asString(node.Values["authorization_type"])))
+	return auth == "" || auth == "none"
+}
+
+func apiGatewayMethodAnonymous(node *graph.Node) bool {
+	auth := strings.ToLower(strings.TrimSpace(asString(node.Values["authorization"])))
+	return auth == "" || auth == "none"
 }
 
 func tagValue(tags map[string]string, key string) string {

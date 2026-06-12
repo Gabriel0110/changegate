@@ -112,7 +112,10 @@ func parseTrivy(body []byte) ([]model.Finding, error) {
 					Value:    item.InstalledVersion,
 					Message:  "Trivy vulnerability",
 				}},
-				Remediation: model.Remediation{References: stringSlice(item.PrimaryURL)},
+				Remediation: model.Remediation{
+					Summary:    "Upgrade or replace the affected package version, or document an accepted vulnerability exception with an owner and expiration.",
+					References: stringSlice(item.PrimaryURL),
+				},
 			})
 		}
 		for _, item := range result.Secrets {

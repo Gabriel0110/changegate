@@ -93,12 +93,35 @@ func MergeContext(planGraph *Graph, snapshot cloudcontext.Snapshot) (*Graph, []m
 		if relationship.Source != "" {
 			metadata["cloud_context_source"] = relationship.Source
 		}
-		merged.addEdgeWithProvenance(from, to, edgeType, source, confidence, contextEvidence(from, relationship.Type, to, "cloud context relationship"), metadata)
+		merged.addEdgeWithProvenance(from, to, edgeType, source, confidence, contextEvidence(from, relationship.Type, to, relationshipExplanation(relationship.Type)), metadata)
 	}
 
 	merged.sort()
 	sortDiagnostics(diagnostics)
 	return merged, diagnostics
+}
+
+func relationshipExplanation(relationshipType string) string {
+	switch relationshipType {
+	case "routes_to":
+		return "live cloud context shows routing between these resources"
+	case "invokes":
+		return "live cloud context shows invocation between these resources"
+	case "allows_ingress":
+		return "live cloud context shows inbound network access"
+	case "allows_egress":
+		return "live cloud context shows outbound network access"
+	case "attached_to":
+		return "live cloud context shows resource attachment"
+	case "uses_role":
+		return "live cloud context shows workload role usage"
+	case "reads_secret":
+		return "live cloud context shows secret access relationship"
+	case "uses_kms_key":
+		return "live cloud context shows KMS key relationship"
+	default:
+		return "live cloud context shows this relationship"
+	}
 }
 
 type contextIndex struct {

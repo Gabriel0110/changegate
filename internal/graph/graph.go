@@ -1180,6 +1180,7 @@ func allowedEdgeSet(edges []EdgeType) map[EdgeType]bool {
 
 func reachabilityEdges() []EdgeType {
 	return []EdgeType{
+		EdgeHasPublicAccess,
 		EdgeRoutesTo,
 		EdgeInvokes,
 		EdgeAllowsIngress,

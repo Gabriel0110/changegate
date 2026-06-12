@@ -50,7 +50,7 @@ func TestDocumentationMarkdown(t *testing.T) {
 		"# Security group opens admin port to the world",
 		"* ID: AWS_SG_WORLD_OPEN_ADMIN_PORT",
 		"* Status: stable",
-		"Review the planned change before apply.",
+		"Remove `0.0.0.0/0` and `::/0` from admin-port ingress rules.",
 	} {
 		if !strings.Contains(doc, want) {
 			t.Fatalf("doc missing %q:\n%s", want, doc)

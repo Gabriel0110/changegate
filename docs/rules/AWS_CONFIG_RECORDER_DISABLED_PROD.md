@@ -21,12 +21,13 @@ Detects production or security AWS Config recorders disabled by planned changes.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Compliance findings identify changes that weaken security logging, auditability, or required guardrails.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Confirm whether the control applies to this environment.
+- Update the resource configuration or add a time-bounded waiver with owner approval.
+- Attach evidence to the pull request.
 
 ## References
 

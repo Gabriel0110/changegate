@@ -64,7 +64,10 @@ func parseGrype(body []byte) ([]model.Finding, error) {
 				},
 				Message: "Grype vulnerability match",
 			}},
-			Remediation: model.Remediation{References: stringSlice(match.Vulnerability.DataSource)},
+			Remediation: model.Remediation{
+				Summary:    "Upgrade or replace the affected package version, or document an accepted vulnerability exception with an owner and expiration.",
+				References: stringSlice(match.Vulnerability.DataSource),
+			},
 		})
 	}
 	return findings, nil

@@ -20,7 +20,7 @@ Use an AWS profile that assumes the read-only role. Replace the profile, regions
 
 ```bash
 changegate context aws snapshot \
-  --collect identity,network,edge,iam,compute,data \
+  --collect=identity,network,edge,iam,compute,data \
   --profile readonly-inventory \
   --regions us-east-1,us-west-2 \
   --timeout 90s \
@@ -36,7 +36,7 @@ Expected shape:
   "result": {
     "provider": "aws",
     "collected": true,
-    "regions": 1,
+    "regions": 2,
     "diagnostics": 0
   }
 }

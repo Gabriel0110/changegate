@@ -21,12 +21,13 @@ Detects production databases with backup retention disabled or reduced to zero.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Availability findings identify changes that can weaken recovery, deletion protection, or replacement safety for production or stateful resources.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set `backup_retention_period` to the required production value.
+- Confirm backup windows and retention meet the service recovery objective.
+- Apply through the normal database change process.
 
 ## References
 

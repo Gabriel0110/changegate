@@ -27,13 +27,14 @@ Detects unauthenticated public API Gateway paths that invoke a workload with gra
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+This is a concrete public-to-sensitive path, not just a public endpoint setting.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set API Gateway route authorization to IAM, JWT, Cognito, or a reviewed custom authorizer.
+- Confirm only authenticated routes can invoke workloads that read secrets, KMS keys, buckets, or datastores.
+- Split public request handling from sensitive operations when the route must remain internet-facing.
 
 ## References
 
-- No external references.
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

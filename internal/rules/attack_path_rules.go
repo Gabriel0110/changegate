@@ -39,22 +39,42 @@ func staticAttackPathRule(id string, title string, desc string, category model.R
 		"Break the attack path by removing public exposure, sensitive reachability, or privilege escalation permissions.",
 		"Scope IAM and network access to the minimum required resources.",
 	}
-	references := []string{"docs/attack-paths.md"}
+	rationale := "Attack-path findings show how separate infrastructure relationships combine into a deploy risk, so the finding should be reviewed as a path rather than an isolated setting."
+	references := []string{"https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md"}
 	switch id {
 	case attackpath.RuleIAMPathfindingCatalogEscalation:
+		rationale = "The embedded pathfinding.cloud catalog captures known AWS IAM privilege-escalation chains; matching one means the plan grants a recognizable path to stronger access."
 		resources = []string{"aws_iam_role", "aws_iam_user", "aws_iam_policy", "aws_codebuild_project", "aws_ecs_service", "aws_lambda_function"}
 		remediation = []string{
 			"Remove or narrow the IAM actions required by the matched escalation path.",
 			"Scope resources to exact non-privileged targets and add restrictive IAM conditions where supported.",
 			"Restrict iam:PassRole to approved service roles and use iam:PassedToService conditions when pass-role is involved.",
 		}
-		references = []string{"docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"}
+		references = []string{"https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md", "https://pathfinding.cloud/paths/", "https://github.com/DataDog/pathfinding.cloud"}
 	case attackpath.RuleIAMPolicyMutationEscalation, attackpath.RuleIAMBroadNotActionEscalation, attackpath.RuleIAMRoleAssumptionChain, attackpath.RuleIAMAssumeAdminPath, attackpath.RuleIAMPassRoleFunctionEscalation:
+		rationale = "Privilege-escalation paths are higher risk than standalone IAM grants because they show how a principal can move from its current access to administrator or sensitive access."
 		resources = []string{"aws_iam_role", "aws_iam_user", "aws_iam_policy", "aws_lambda_function", "aws_ecs_service"}
+		remediation = []string{
+			"Remove or narrow the IAM actions that create the escalation path.",
+			"Scope role assumption, pass-role, and policy mutation permissions to exact non-privileged resources.",
+			"Add restrictive IAM conditions such as iam:PassedToService, repository/branch OIDC constraints, or explicit permission boundaries where applicable.",
+		}
 	case attackpath.RulePublicEKSClusterAdminPath:
+		rationale = "A public EKS endpoint combined with privileged cluster access can expose cluster administration to internet-originated attack paths."
 		resources = []string{"aws_eks_cluster", "aws_iam_role", "aws_iam_policy"}
+		remediation = []string{
+			"Restrict public EKS endpoint access to approved CIDRs or disable public endpoint access.",
+			"Remove cluster-admin or privileged Kubernetes access from internet-reachable principals.",
+			"Require private network access and short-lived, reviewed administrative access paths.",
+		}
 	case attackpath.RulePublicAdminServicePath, attackpath.RulePublicToSensitiveDataPath:
+		rationale = "Public reachability becomes materially more important when the graph shows a route to admin functionality or sensitive data."
 		resources = []string{"aws_lb", "aws_api_gatewayv2_route", "aws_lambda_function_url", "aws_ecs_service", "aws_lambda_function", "aws_db_instance", "aws_secretsmanager_secret"}
+		remediation = []string{
+			"Remove public reachability or require authenticated ingress for the entrypoint.",
+			"Segment sensitive data stores, secrets, and keys from public workloads.",
+			"Allow downstream sensitive access only from reviewed private workload identities or security groups.",
+		}
 	}
 	return generatedAttackPathRule{meta: Metadata{
 		ID:           id,
@@ -71,6 +91,7 @@ func staticAttackPathRule(id string, title string, desc string, category model.R
 		PolicyPack:   pack,
 		Documentation: Documentation{
 			Summary:     desc,
+			Rationale:   rationale,
 			Remediation: remediation,
 			References:  references,
 		},

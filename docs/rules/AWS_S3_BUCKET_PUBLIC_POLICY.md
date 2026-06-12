@@ -20,12 +20,13 @@ Detects S3 bucket policies that grant public read or write access.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public S3 policies can expose data directly, bypassing intended application, CloudFront, or identity controls.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Remove `Principal: "*"` statements that grant S3 read or write access.
+- Use CloudFront origin access control, a specific AWS principal, or an application role instead of public bucket policy access.
+- Keep public access block enabled unless the bucket is intentionally public and reviewed.
 
 ## References
 

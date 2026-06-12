@@ -85,7 +85,7 @@ changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 AWS cloud context collection and risk tests are available:
 
 ```bash
-changegate context aws snapshot --out .changegate/aws-context.json --collect
+changegate context aws snapshot --out .changegate/aws-context.json --collect=all
 changegate test
 changegate test ./changegate-tests
 ```

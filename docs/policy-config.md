@@ -55,8 +55,8 @@ waivers:
 ```yaml
 docs:
   links:
-    AWS_PUBLIC_RDS_INSTANCE: https://example.com/security/rds-public-access
-    default: https://example.com/security/changegate
+    AWS_PUBLIC_RDS_INSTANCE: <your-rds-public-access-doc-url>
+    default: <your-changegate-security-doc-url>
 ```
 
 ## Compliance Metadata
@@ -76,7 +76,7 @@ Organization mappings can reference built-in or custom rule IDs. They are non-en
 
 ## Sensitive Assets
 
-ChangeGate automatically treats common AWS data stores, secrets, and KMS keys as sensitive graph assets. You can add organization-specific resources without changing code:
+ChangeGate automatically treats common AWS data stores, secrets, and KMS keys as sensitive graph assets. Add custom sensitive resources without changing code:
 
 ```yaml
 sensitive_assets:

@@ -3,11 +3,15 @@ package rules
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/Gabriel0110/changegate/internal/graph"
 	"github.com/Gabriel0110/changegate/internal/model"
+	"github.com/Gabriel0110/changegate/internal/remediation"
 )
+
+var awsAccountIDPattern = regexp.MustCompile(`arn:aws[a-z-]*:[^:]*:[^:]*:([0-9]{12}):`)
 
 type awsRule struct {
 	meta Metadata
@@ -32,7 +36,7 @@ func awsRules() []Rule {
 		newAWSRule("AWS_SG_WORLD_OPEN_ADMIN_PORT", "Security group opens admin port to the world", "Detects public ingress to administrative ports.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_ingress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalWorldOpenAdminPort),
 		newAWSRule("AWS_SG_WORLD_OPEN_DB_PORT", "Security group opens database port to the world", "Detects public ingress to database ports.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_ingress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalWorldOpenDBPort),
 		newAWSRule("AWS_SECURITY_GROUP_WORLD_OPEN_ALL_PORTS", "Security group opens all ports to the world", "Detects public ingress that allows every port or protocol.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_ingress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalWorldOpenAllPorts),
-		newAWSRule("AWS_EC2_PUBLIC_IP_ADMIN_INGRESS", "EC2 instance has public IP and admin ingress", "Detects EC2 instances with public IPs reachable through public admin ingress.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_instance", "aws_security_group"}, []Capability{CapabilityGraph}, evalEC2PublicAdmin),
+		newAWSRule("AWS_EC2_PUBLIC_IP_ADMIN_INGRESS", "EC2 instance has public IP and internet reachability", "Detects EC2 instances with public IPs that are reachable through the internet-facing graph.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_instance", "aws_security_group"}, []Capability{CapabilityGraph}, evalEC2PublicAdmin),
 		newAWSRule("AWS_PUBLIC_RDS_INSTANCE", "Public RDS instance", "Detects publicly accessible RDS instances.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_db_instance", "aws_rds_cluster"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalPublicRDS),
 		newAWSRule("AWS_RDS_PUBLIC_SUBNET_GROUP", "RDS uses a public subnet group", "Detects production or sensitive RDS resources placed in subnet groups that appear public.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_db_instance", "aws_rds_cluster", "aws_db_subnet_group", "aws_subnet"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalRDSPublicSubnetGroup),
 		newAWSRule("AWS_EFS_OPEN_SECURITY_GROUP", "EFS allows broad network ingress", "Detects EFS mount targets attached to security groups with public ingress.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_efs_mount_target", "aws_efs_file_system", "aws_security_group"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalEFSOpenSecurityGroup),
@@ -42,7 +46,7 @@ func awsRules() []Rule {
 		newAWSRule("AWS_S3_PUBLIC_ACCESS_BLOCK_DISABLED_PROD", "Production S3 public access block disabled", "Detects production S3 public access block resources that disable one or more protections.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_s3_bucket_public_access_block"}, []Capability{CapabilityResourceChanges}, evalS3PublicAccessBlockDisabledProd),
 		newAWSRule("AWS_S3_BUCKET_PUBLIC_POLICY", "S3 bucket policy grants public access", "Detects S3 bucket policies that grant public read or write access.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_s3_bucket_policy"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalS3PublicBucketPolicy),
 		newAWSRule("AWS_S3_BUCKET_PUBLIC_ACL", "S3 bucket ACL grants public access", "Detects S3 bucket ACLs that grant public read or write permissions.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_s3_bucket_acl"}, []Capability{CapabilityResourceChanges}, evalS3PublicBucketACL),
-		newAWSRule("AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH", "CloudFront and S3 public exposure mismatch", "Detects S3 buckets exposed publicly while also fronted by CloudFront.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_cloudfront_distribution", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalCloudFrontS3PublicMismatch),
+		newAWSRule("AWS_CLOUDFRONT_S3_PUBLIC_MISMATCH", "CloudFront origin bucket is also public", "Detects CloudFront distributions that route to an S3 bucket that is also publicly exposed.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_cloudfront_distribution", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalCloudFrontS3PublicMismatch),
 		newAWSRule("AWS_LAMBDA_PUBLIC_FUNCTION_URL", "Lambda function URL is public", "Detects Lambda function URLs that allow unauthenticated public access.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function_url"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalLambdaPublicFunctionURL),
 		newAWSRule("AWS_API_GATEWAY_PUBLIC_ADMIN_ROUTE", "Public API Gateway exposes admin route", "Detects public API Gateway routes or resources that appear to expose admin surfaces without authorization.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_apigatewayv2_route", "aws_api_gateway_method"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalAPIGatewayPublicAdminRoute),
 		newAWSRule("AWS_PUBLIC_API_GATEWAY_TO_SENSITIVE_DATA", "Public API Gateway reaches sensitive data", "Detects unauthenticated public API Gateway paths that invoke a workload with graph-backed access to sensitive data.", model.RiskCategorySensitiveData, model.SeverityCritical, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_apigatewayv2_api", "aws_api_gateway_rest_api", "aws_apigatewayv2_integration", "aws_api_gateway_integration", "aws_lambda_function", "aws_secretsmanager_secret", "aws_kms_key", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalPublicAPIGatewayToSensitiveData),
@@ -51,7 +55,7 @@ func awsRules() []Rule {
 		newAWSRule("AWS_PUBLIC_WORKLOAD_KMS_KEY_ACCESS", "Public workload can use sensitive KMS key", "Detects internet-exposed workloads with graph-backed access to sensitive KMS keys.", model.RiskCategorySensitiveData, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function", "aws_ecs_service", "aws_instance", "aws_kms_key"}, []Capability{CapabilityGraph}, evalPublicWorkloadKMSKeyAccess),
 		newAWSRule("AWS_PUBLIC_WORKLOAD_S3_DATA_ACCESS", "Public workload can access sensitive S3 data", "Detects internet-exposed workloads with graph-backed read or write access to sensitive S3 buckets.", model.RiskCategorySensitiveData, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lambda_function", "aws_ecs_service", "aws_instance", "aws_s3_bucket"}, []Capability{CapabilityGraph}, evalPublicWorkloadS3DataAccess),
 		newAWSRule("AWS_LOAD_BALANCER_WEAK_TLS_OR_HTTP", "Public load balancer uses weak TLS or plaintext HTTP", "Detects internet-facing load balancer listeners that use plaintext HTTP or legacy TLS policies.", model.RiskCategoryPublicExposure, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_lb", "aws_lb_listener"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalLoadBalancerWeakTLSOrHTTP),
-		newAWSRule("AWS_PASSROLE_WITH_COMPUTE_MUTATION", "iam:PassRole with compute mutation", "Detects IAM principals that can pass roles and mutate compute resources.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_lambda_function", "aws_ecs_service", "aws_instance"}, []Capability{CapabilityGraph}, evalPassRoleWithComputeMutation),
+		newAWSRule("AWS_PASSROLE_WITH_COMPUTE_MUTATION", "iam:PassRole grant in a compute-mutating plan", "Detects iam:PassRole grants in plans that also mutate compute resources. The attack-path engine emits the high-confidence block when the same principal can both pass the role and mutate compute.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceMedium, "aws-iam-escalation", []string{"aws_iam_policy", "aws_lambda_function", "aws_ecs_service", "aws_instance"}, []Capability{CapabilityGraph}, evalPassRoleWithComputeMutation),
 		newAWSRule("AWS_IAM_WILDCARD_ADMIN", "Wildcard IAM administration", "Detects IAM policies with broad iam:* or Action:* grants.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_iam_role_policy"}, []Capability{CapabilityResourceChanges}, evalIAMWildcardAdmin),
 		newAWSRule("AWS_IAM_NOTACTION_ALLOW_BROAD", "IAM Allow uses broad NotAction", "Detects Allow statements using NotAction with broad resource scope.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_iam_role_policy", "aws_iam_user_policy", "aws_iam_group_policy"}, []Capability{CapabilityResourceChanges}, evalIAMAllowNotActionBroad),
 		newAWSRule("AWS_IAM_SENSITIVE_ACTIONS_RESOURCE_WILDCARD", "Sensitive IAM actions granted on wildcard resources", "Detects secrets, KMS, SSM, or S3 data access granted on all resources.", model.RiskCategoryPrivilegeEscalation, model.SeverityHigh, model.ConfidenceHigh, "aws-iam-escalation", []string{"aws_iam_policy", "aws_iam_role_policy", "aws_iam_user_policy", "aws_iam_group_policy"}, []Capability{CapabilityResourceChanges}, evalIAMSensitiveActionsResourceWildcard),
@@ -78,37 +82,76 @@ func awsRules() []Rule {
 		newAWSRule("AWS_CONFIG_RECORDER_DISABLED_PROD", "Production AWS Config recorder disabled", "Detects production or security AWS Config recorders disabled by planned changes.", model.RiskCategoryCompliance, model.SeverityHigh, model.ConfidenceHigh, "aws-core", []string{"aws_config_configuration_recorder", "aws_config_configuration_recorder_status"}, []Capability{CapabilityResourceChanges}, evalConfigRecorderDisabledProd),
 		newAWSRule("AWS_ECR_REPOSITORY_MUTABLE_OR_SCAN_DISABLED_PROD", "Production ECR mutable tags or scan disabled", "Detects production ECR repositories with mutable image tags or image scanning disabled.", model.RiskCategorySensitiveData, model.SeverityHigh, model.ConfidenceHigh, "aws-core", []string{"aws_ecr_repository"}, []Capability{CapabilityResourceChanges}, evalECRMutableOrScanDisabledProd),
 		newAWSRule("AWS_PRIVATE_SUBNET_ROUTE_TO_IGW", "Private subnet route to internet gateway", "Detects route table changes that route private subnets to an internet gateway.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_route", "aws_route_table", "aws_subnet"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalPrivateSubnetRouteToIGW),
-		newAWSRule("AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG", "Private workload exposed by NAT or security group change", "Detects changes that expose internal or private workloads through public ingress or NAT routing.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_ingress_rule", "aws_route"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalPrivateWorkloadExposedByNATOrSG),
+		newAWSRule("AWS_PRIVATE_WORKLOAD_EXPOSED_BY_NAT_OR_SG", "Private workload allows public ingress", "Detects changes that expose internal or private workload security boundaries through public ingress.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_ingress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalPrivateWorkloadExposedByNATOrSG),
 		newAWSRule("AWS_TGW_ROUTE_TO_SENSITIVE_SUBNET", "Transit or peering route expands access to sensitive subnet", "Detects transit gateway or VPC peering routes that target sensitive or private route tables.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_route", "aws_route_table"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalTGWRouteToSensitiveSubnet),
-		newAWSRule("AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD", "Sensitive workload egress opened to internet", "Detects broad egress from sensitive workloads.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_egress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalSensitiveWorkloadOpenEgress),
+		newAWSRule("AWS_EGRESS_OPEN_FROM_SENSITIVE_WORKLOAD", "Production security group opens broad egress", "Detects production security groups that open broad egress to the internet.", model.RiskCategoryNetworkBlastRadius, model.SeverityHigh, model.ConfidenceHigh, "aws-public-exposure", []string{"aws_security_group", "aws_vpc_security_group_egress_rule"}, []Capability{CapabilityResourceChanges, CapabilityGraph}, evalSensitiveWorkloadOpenEgress),
 	}
 }
 
 func newAWSRule(id string, title string, desc string, category model.RiskCategory, severity model.Severity, confidence model.Confidence, pack string, resources []string, capabilities []Capability, eval func(context.Context, RuleInput, Metadata) ([]model.Finding, error)) Rule {
 	return awsRule{
 		meta: Metadata{
-			ID:           id,
-			Title:        title,
-			Description:  desc,
-			Category:     category,
-			Severity:     severity,
-			Confidence:   confidence,
-			Providers:    []string{"aws"},
-			Resources:    resources,
-			Capabilities: capabilities,
-			Status:       StatusStable,
-			Version:      "0.1.0",
-			PolicyPack:   pack,
-			Documentation: Documentation{
-				Summary: desc,
-				Remediation: []string{
-					"Review the planned change before apply.",
-					"Constrain the risky permission, exposure, or destructive action to the minimum required scope.",
-				},
-			},
+			ID:            id,
+			Title:         title,
+			Description:   desc,
+			Category:      category,
+			Severity:      severity,
+			Confidence:    confidence,
+			Providers:     []string{"aws"},
+			Resources:     resources,
+			Capabilities:  capabilities,
+			Status:        StatusStable,
+			Version:       "0.1.0",
+			PolicyPack:    pack,
+			Documentation: awsRuleDocumentation(id, desc, category),
 		},
 		eval: eval,
 	}
+}
+
+func awsRuleDocumentation(id string, desc string, category model.RiskCategory) Documentation {
+	template := remediation.TemplateFor(id, category)
+	steps := append([]string(nil), template.Steps...)
+	if len(steps) == 0 && template.Summary != "" {
+		steps = []string{template.Summary}
+	}
+	if len(steps) == 0 {
+		steps = []string{"Review the planned change before apply.", "Constrain the risky permission, exposure, or destructive action to the minimum required scope."}
+	}
+	return Documentation{
+		Summary:     desc,
+		Rationale:   firstNonEmptyString(template.WhyItMatters, categoryRationale(category)),
+		Remediation: steps,
+		References:  append([]string(nil), template.References...),
+	}
+}
+
+func categoryRationale(category model.RiskCategory) string {
+	switch category {
+	case model.RiskCategoryPublicExposure:
+		return "Public exposure changes can create reachable entrypoints. ChangeGate reports this when the plan or graph evidence is strong enough to show the exposure path."
+	case model.RiskCategorySensitiveData:
+		return "Sensitive-data findings indicate that a change can expose, weaken, or create access to data stores, secrets, or keys."
+	case model.RiskCategoryPrivilegeEscalation:
+		return "Privilege-escalation findings identify IAM changes that can expand who can assume roles, pass roles, mutate compute, or access sensitive resources."
+	case model.RiskCategoryAvailability:
+		return "Availability findings identify changes that can weaken recovery, deletion protection, or replacement safety for production or stateful resources."
+	case model.RiskCategoryNetworkBlastRadius:
+		return "Network blast-radius findings identify routing or security-group changes that can expand reachable infrastructure paths."
+	case model.RiskCategoryCompliance:
+		return "Compliance findings identify changes that weaken security logging, auditability, or required guardrails."
+	default:
+		return "ChangeGate reports this rule when the plan contains enough evidence to explain the deployment risk before apply."
+	}
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return value
+		}
+	}
+	return ""
 }
 
 func finding(meta Metadata, resource string, provider string, env string, evidence []model.Evidence, remediation string) model.Finding {
@@ -333,14 +376,19 @@ func evalCloudFrontS3PublicMismatch(_ context.Context, input RuleInput, meta Met
 	if input.Graph == nil {
 		return nil, nil
 	}
-	hasCloudFront := hasResourceType(input.Graph, "aws_cloudfront_distribution")
-	if !hasCloudFront {
-		return nil, nil
-	}
 	out := make([]model.Finding, 0)
-	for id, node := range sortedNodes(input.Graph) {
-		if node.Type == "aws_s3_bucket" && input.Graph.IsInternetExposed(id) {
-			out = append(out, finding(meta, node.Address, node.Provider, node.Environment, []model.Evidence{ev(node.Address, "graph", "cloudfront+s3", "bucket is public while CloudFront exists in the same change graph")}, "Use CloudFront origin access control and make the bucket private."))
+	for cfID, cfNode := range sortedNodes(input.Graph) {
+		if cfNode.Type != "aws_cloudfront_distribution" {
+			continue
+		}
+		for bucketID, bucketNode := range sortedNodes(input.Graph) {
+			if bucketNode.Type != "aws_s3_bucket" || !input.Graph.IsInternetExposed(bucketID) || !input.Graph.CanReach(cfID, bucketID) {
+				continue
+			}
+			out = append(out, finding(meta, bucketNode.Address, bucketNode.Provider, bucketNode.Environment, []model.Evidence{
+				ev(bucketNode.Address, "graph.path", []string{string(cfID), string(bucketID)}, "CloudFront routes to a public S3 origin bucket"),
+				ev(bucketNode.Address, "graph", "public_origin", "S3 origin remains public outside CloudFront"),
+			}, "Use CloudFront origin access control and make the bucket private."))
 		}
 	}
 	return out, nil
@@ -547,12 +595,13 @@ func evalAdminPolicyAttachment(_ context.Context, input RuleInput, meta Metadata
 
 func evalExternalAccountTrust(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
 	out := make([]model.Finding, 0)
+	accountIDs := planAccountIDs(input.Plan)
 	for _, change := range sortedChanges(input.Plan) {
 		if change.Type != "aws_iam_role" {
 			continue
 		}
 		policy := asString(change.After["assume_role_policy"])
-		if strings.Contains(policy, "arn:aws:iam::") && !strings.Contains(policy, ":123456789012:") && strings.Contains(strings.ToLower(policy), "sts:assumerole") {
+		if policyHasExternalAWSPrincipal(policy, accountIDs) && strings.Contains(strings.ToLower(policy), "sts:assumerole") {
 			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "assume_role_policy", "external account", "trust policy allows external account assumption")}, "Constrain external trust with external IDs, exact principals, and conditions."))
 		}
 	}
@@ -579,6 +628,7 @@ func evalKMSDecryptBroad(_ context.Context, input RuleInput, meta Metadata) ([]m
 
 func evalKMSKeyPolicyPublicOrExternalAdmin(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
 	out := make([]model.Finding, 0)
+	accountIDs := planAccountIDs(input.Plan)
 	for _, change := range sortedChanges(input.Plan) {
 		if change.Type != "aws_kms_key" {
 			continue
@@ -588,13 +638,68 @@ func evalKMSKeyPolicyPublicOrExternalAdmin(_ context.Context, input RuleInput, m
 			continue
 		}
 		public := policyAllowsPublicPrincipal(policy)
-		external := strings.Contains(policy, "arn:aws:iam::") && !strings.Contains(policy, ":123456789012:")
+		external := policyHasExternalAWSPrincipal(policy, accountIDs)
 		adminOrDecrypt := policyAllowsActions(policy, "kms:*", "kms:decrypt", "kms:putkeypolicy", "kms:schedulekeydeletion", "*")
 		if (public || external) && adminOrDecrypt {
 			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "policy", "(policy)", "KMS key policy grants public or external principal administrative/decrypt access")}, "Restrict KMS key policies to exact in-account principals and remove public or unintended external access."))
 		}
 	}
 	return out, nil
+}
+
+func planAccountIDs(plan *model.Plan) map[string]bool {
+	out := make(map[string]bool)
+	if plan == nil {
+		return out
+	}
+	collect := func(value any) { collectAccountIDs(out, value) }
+	for _, resource := range append(append([]model.Resource{}, plan.PriorResources...), plan.Resources...) {
+		collect(resource.Values["arn"])
+		collect(resource.Values["id"])
+		collect(resource.Values["kms_key_arn"])
+		collect(resource.Values["role"])
+	}
+	for _, change := range plan.Changes {
+		collect(change.Before["arn"])
+		collect(change.Before["id"])
+		collect(change.Before["kms_key_arn"])
+		collect(change.Before["role"])
+		collect(change.After["arn"])
+		collect(change.After["id"])
+		collect(change.After["kms_key_arn"])
+		collect(change.After["role"])
+	}
+	return out
+}
+
+func collectAccountIDs(out map[string]bool, value any) {
+	for _, match := range awsAccountIDPattern.FindAllStringSubmatch(fmt.Sprint(value), -1) {
+		if len(match) > 1 {
+			out[match[1]] = true
+		}
+	}
+}
+
+func policyHasExternalAWSPrincipal(policy string, localAccountIDs map[string]bool) bool {
+	if !strings.Contains(policy, "arn:aws:iam::") {
+		return false
+	}
+	matches := awsAccountIDPattern.FindAllStringSubmatch(policy, -1)
+	if len(matches) == 0 {
+		return false
+	}
+	if len(localAccountIDs) == 0 {
+		return false
+	}
+	for _, match := range matches {
+		if len(match) <= 1 {
+			continue
+		}
+		if !localAccountIDs[match[1]] {
+			return true
+		}
+	}
+	return false
 }
 
 func evalSecretsReadBroad(_ context.Context, input RuleInput, meta Metadata) ([]model.Finding, error) {
@@ -632,7 +737,7 @@ func evalPublicToSensitiveDatastore(_ context.Context, input RuleInput, meta Met
 			continue
 		}
 		for targetID, target := range sortedNodes(input.Graph) {
-			if !isSensitiveNode(target) {
+			if target == nil || target.Kind != graph.NodeDataStore {
 				continue
 			}
 			if id == targetID {
@@ -850,9 +955,6 @@ func evalPrivateWorkloadExposedByNATOrSG(_ context.Context, input RuleInput, met
 		}
 		if (change.Type == "aws_security_group" || change.Type == "aws_vpc_security_group_ingress_rule") && publicCIDRInChange(change) {
 			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "ingress", "0.0.0.0/0", "private workload security boundary now allows public ingress")}, "Keep private workloads behind internal load balancers and trusted security group sources."))
-		}
-		if change.Type == "aws_route" && strings.Contains(asString(change.After["nat_gateway_id"]), "nat-") && strings.Contains(asString(change.After["destination_cidr_block"]), "0.0.0.0/0") {
-			out = append(out, finding(meta, change.Address, change.Provider, envFromChange(change), []model.Evidence{ev(change.Address, "nat_gateway_id", change.After["nat_gateway_id"], "private workload route opens broad internet egress through NAT")}, "Restrict private workload egress through explicit destinations or controlled proxy paths."))
 		}
 	}
 	return out, nil

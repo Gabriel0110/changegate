@@ -138,13 +138,17 @@ func renderExplanation(r renderer, result explainResult) {
 	if explanation.Recommended.FixConfidence != "" {
 		r.printf("\nFix confidence: %s\n", explanation.Recommended.FixConfidence)
 	}
-	r.printf("Automatic patch: not generated\n")
-	for _, patch := range explanation.Recommended.Patches {
-		if patch.Format == "advisory" {
-			r.printf("Patch note: %s - %s\n", patch.Title, patch.Rationale)
-			continue
+	if len(explanation.Recommended.Patches) == 0 {
+		r.printf("Automatic patch: not generated\n")
+	} else {
+		r.printf("\nPatch guidance:\n")
+		for _, patch := range explanation.Recommended.Patches {
+			if patch.Format == "advisory" {
+				r.printf("  - %s: %s\n", patch.Title, patch.Rationale)
+				continue
+			}
+			r.printf("\nPatch suggestion (%s, review required):\n%s\n", patch.Format, strings.TrimSpace(patch.Snippet))
 		}
-		r.printf("\nPatch suggestion (%s, review required):\n%s\n", patch.Format, strings.TrimSpace(patch.Snippet))
 	}
 	if len(explanation.Recommended.OwnerHints) > 0 {
 		r.printf("\nOwner hints: %s\n", strings.Join(explanation.Recommended.OwnerHints, ", "))

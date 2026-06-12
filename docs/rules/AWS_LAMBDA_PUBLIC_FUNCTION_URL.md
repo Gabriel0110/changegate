@@ -20,12 +20,13 @@ Detects Lambda function URLs that allow unauthenticated public access.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Unauthenticated function URLs are direct public entry points; risk increases when the function can reach secrets, data stores, or privileged APIs.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Set the Lambda function URL `authorization_type` to `AWS_IAM` when callers can sign requests.
+- If anonymous access is required, put the function behind API Gateway, CloudFront, WAF, or another reviewed edge control.
+- Document any intentionally public function URL with owner approval and monitoring coverage.
 
 ## References
 

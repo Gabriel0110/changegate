@@ -23,13 +23,15 @@ Detects public resources that can reach sensitive data stores through the graph.
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+This is topology risk, not a missing storage control: a public-facing resource can reach a data asset that should be isolated.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Restrict the public entrypoint to approved CIDRs or authenticated edge controls.
+- Remove direct routing from public workloads to sensitive datastores.
+- Allow datastore access only from reviewed private workload security groups.
 
 ## References
 
-- No external references.
+- https://github.com/Gabriel0110/changegate/blob/main/docs/graph.md
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

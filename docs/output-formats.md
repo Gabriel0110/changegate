@@ -101,7 +101,7 @@ The HTML visualizations do not fetch network assets or external JavaScript. They
 
 ## GitLab Code Quality
 
-`--format gitlab-code-quality` renders a GitLab Code Quality compatible JSON issue array with description, check name, fingerprint, severity, and plan-file location.
+`--format gitlab-code-quality` renders a GitLab Code Quality compatible JSON issue array with description, check name, fingerprint, and severity. Code Quality annotations require a reliable repository-relative source path. When a plan-only finding cannot be mapped to source, ChangeGate emits an empty Code Quality array instead of inventing a file location; use Markdown, JSON, SARIF, or PR/MR comments for the complete decision.
 
 ## Audit Bundle
 
@@ -129,5 +129,13 @@ The archive is deterministic for the same scan inputs and contains:
 - `changegate-audit/run-metadata.json`
 - `changegate-audit/redaction-report.json`
 - `changegate-audit/summary.md`
+- `changegate-audit/impact.json`
+- `changegate-audit/impact.md`
+- `changegate-audit/review-comment.md`
+- `changegate-audit/graph.json`
+- `changegate-audit/attack-paths.json`
+- `changegate-audit/cloud-context-summary.json`
+- `changegate-audit/risk-tests.json`
+- `changegate-audit/hcp-run-task.json`
 
 The bundle never stores the Terraform/OpenTofu plan body. It stores only the plan digest plus the already-redacted findings and evidence. Compliance mappings are metadata attached to real findings; they do not create additional risks or change the allow/warn/block decision.

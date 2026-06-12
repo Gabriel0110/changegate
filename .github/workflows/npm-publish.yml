@@ -15,9 +15,13 @@ permissions:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: npm-publish
     steps:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: refs/tags/v${{ inputs.version }}
+          fetch-depth: 0
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -31,12 +35,41 @@ jobs:
       - name: Publish npm package
         env:
           VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ ! "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid version: ${VERSION}"
             exit 1
           fi
+          gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" >/dev/null
+          release_commit="$(gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" --json targetCommitish --jq '.targetCommitish')"
+          resolved_release_commit="$(git rev-parse "${release_commit}^{commit}")"
+          head_commit="$(git rev-parse HEAD)"
+          if [[ "${head_commit}" != "${resolved_release_commit}" ]]; then
+            echo "Checked out ${head_commit}, but release v${VERSION} points to ${resolved_release_commit}"
+            exit 1
+          fi
+          asset_names="$(gh release view "v${VERSION}" --repo "${GITHUB_REPOSITORY}" --json assets --jq '.assets[].name')"
+          for required in \
+            checksums.txt \
+            changegate_"${VERSION}"_darwin_amd64.tar.gz \
+            changegate_"${VERSION}"_darwin_arm64.tar.gz \
+            changegate_"${VERSION}"_linux_amd64.tar.gz \
+            changegate_"${VERSION}"_linux_arm64.tar.gz \
+            changegate_"${VERSION}"_windows_amd64.zip \
+            changegate_"${VERSION}"_windows_arm64.zip
+          do
+            if ! grep -Fxq "${required}" <<<"${asset_names}"; then
+              echo "Release v${VERSION} is missing required npm install asset: ${required}"
+              exit 1
+            fi
+          done
           cd npm/changegate
           npm version "${VERSION}" --no-git-tag-version
           npm test
+          tarball="$(npm pack --silent)"
+          smoke_dir="$(mktemp -d)"
+          npm install --prefix "${smoke_dir}" "./${tarball}"
+          "${smoke_dir}/node_modules/.bin/changegate" version
+          rm -rf "${smoke_dir}" "${tarball}"
           CHANGEGATE_NPM_SKIP_INSTALL=true npm publish --access public

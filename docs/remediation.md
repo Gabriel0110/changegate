@@ -83,14 +83,14 @@ Attack-path remediation is always advisory. Public-to-sensitive, public-admin, P
 
 ## Organization Documentation Links
 
-Attach organization-specific documentation to remediation output through `.changegate.yaml`:
+Attach custom documentation to remediation output through `.changegate.yaml`:
 
 ```yaml
 docs:
   links:
-    default: https://docs.example.com/security/changegate
-    public_exposure: https://docs.example.com/security/public-exposure
-    AWS_PUBLIC_ADMIN_SERVICE: https://docs.example.com/security/admin-services
+    default: <your-changegate-security-doc-url>
+    public_exposure: <your-public-exposure-doc-url>
+    AWS_PUBLIC_ADMIN_SERVICE: <your-admin-service-doc-url>
 ```
 
 Keys can be a rule ID, risk category, provider label such as `aws`, or `default`.

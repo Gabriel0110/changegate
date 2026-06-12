@@ -23,13 +23,14 @@ Detects internet-exposed workloads with graph-backed access to Secrets Manager s
 
 ## Why It Matters
 
-Review the planned infrastructure change before apply.
+Public workloads with secret access can turn a request-handling flaw into credential or data exposure.
 
 ## Remediation
 
-- Review the planned change before apply.
-- Constrain the risky permission, exposure, or destructive action to the minimum required scope.
+- Remove unauthenticated public entry points that invoke the workload.
+- Scope `secretsmanager:GetSecretValue` to only the secret and role that require it.
+- Split public request handling from private secret access when the endpoint must remain internet-facing.
 
 ## References
 
-- No external references.
+- https://github.com/Gabriel0110/changegate/blob/main/docs/attack-paths.md

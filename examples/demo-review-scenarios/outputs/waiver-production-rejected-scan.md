@@ -13,7 +13,7 @@
 
 ## Decision reasons
 
-- `MEETS_BLOCK_THRESHOLD` `Public RDS instance`: finding meets block threshold
+- **Public RDS instance:** Meets the configured block threshold.
 
 ## Risk clusters
 
