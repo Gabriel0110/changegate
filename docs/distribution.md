@@ -21,6 +21,18 @@ Published tags:
 
 Images are multi-architecture for `linux/amd64` and `linux/arm64`, run as a numeric non-root user, include OCI version/revision labels, and are signed.
 
+When the image is used as the job image in GitLab CI with `entrypoint: [""]`, call the binary at `/changegate`:
+
+```yaml
+changegate:
+  image:
+    name: ghcr.io/gabriel0110/changegate:vX.Y.Z
+    entrypoint: [""]
+  script:
+    - /changegate version
+    - /changegate --no-color scan --plan tfplan.json
+```
+
 ## npm
 
 Use the npm package when Node.js/npm is already available on developer workstations or CI runners:

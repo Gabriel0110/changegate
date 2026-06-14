@@ -43,6 +43,26 @@ For an audit-only rollout, add `--mode audit` to the first scan command.
 
 The example installs a pinned ChangeGate release into the Terraform job image and verifies release checksums through the installer before scanning the generated plan JSON.
 
+## Official Docker Image
+
+Use the official image directly when the job already has a plan JSON file available from an earlier stage:
+
+```yaml
+changegate:
+  stage: validate
+  image:
+    name: ghcr.io/gabriel0110/changegate:vX.Y.Z
+    entrypoint: [""]
+  script:
+    - /changegate --no-color scan --plan tfplan.json --format json --out changegate.json
+  artifacts:
+    when: always
+    paths:
+      - changegate.json
+```
+
+The official image uses `/changegate` as its entrypoint binary. When GitLab overrides the image entrypoint to run shell scripts, use `/changegate` instead of `changegate`.
+
 ## Merge Request Review Bot
 
 `changegate review gitlab` updates one sticky merge request note marked with `<!-- changegate-review -->`, so rerunning a pipeline updates the existing review instead of posting duplicates. It detects `GITLAB_TOKEN`, `CI_API_V4_URL`, `CI_PROJECT_ID`, `CI_MERGE_REQUEST_IID`, and `CI_COMMIT_SHA` in GitLab CI. Outside CI, pass `--api-url`, `--project`, `--merge-request`, and `--token env:MY_TOKEN`.
