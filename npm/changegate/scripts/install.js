@@ -46,6 +46,7 @@ async function main() {
     const checksumsPath = path.join(work, "checksums.txt");
     const archivePath = path.join(work, archive);
     await downloadFile(`${baseURL}/checksums.txt`, checksumsPath);
+    await verifyChecksumSignature(baseURL, checksumsPath, tag);
     await downloadFile(`${baseURL}/${archive}`, archivePath);
     verifyChecksum(archivePath, archive, fs.readFileSync(checksumsPath, "utf8"));
     extractArchive(archivePath, work);
@@ -113,6 +114,49 @@ function verifyChecksum(file, name, checksumsBody) {
   if (hash !== expected) {
     throw new Error(`checksum mismatch for ${name}: expected ${expected}, got ${hash}`);
   }
+}
+
+async function verifyChecksumSignature(baseURL, checksumsPath, tag) {
+  if (falsey(process.env.CHANGEGATE_NPM_VERIFY_SIG)) {
+    return;
+  }
+  const bundlePath = path.join(path.dirname(checksumsPath), "checksums.txt.sigstore.json");
+  const sigPath = path.join(path.dirname(checksumsPath), "checksums.txt.sig");
+  const certPath = path.join(path.dirname(checksumsPath), "checksums.txt.pem");
+  const identity = process.env.CHANGEGATE_COSIGN_CERT_IDENTITY || `https://github.com/Gabriel0110/changegate/.github/workflows/release.yml@refs/tags/${tag}`;
+  const issuer = process.env.CHANGEGATE_COSIGN_CERT_OIDC_ISSUER || "https://token.actions.githubusercontent.com";
+  const cosign = process.env.CHANGEGATE_COSIGN || "cosign";
+
+  try {
+    await downloadFile(`${baseURL}/checksums.txt.sigstore.json`, bundlePath);
+    execFileSync(cosign, [
+      "verify-blob",
+      "--bundle", bundlePath,
+      "--certificate-identity", identity,
+      "--certificate-oidc-issuer", issuer,
+      checksumsPath
+    ], { stdio: "pipe" });
+    return;
+  } catch (error) {
+    if (!fs.existsSync(bundlePath)) {
+      await downloadFile(`${baseURL}/checksums.txt.sig`, sigPath);
+      await downloadFile(`${baseURL}/checksums.txt.pem`, certPath);
+      execFileSync(cosign, [
+        "verify-blob",
+        "--certificate", certPath,
+        "--signature", sigPath,
+        "--certificate-identity", identity,
+        "--certificate-oidc-issuer", issuer,
+        checksumsPath
+      ], { stdio: "pipe" });
+      return;
+    }
+    throw new Error(`signature verification failed for checksums.txt: ${error.message}`);
+  }
+}
+
+function falsey(value) {
+  return /^(0|false|no)$/i.test(String(value || ""));
 }
 
 function extractArchive(archivePath, workDir) {

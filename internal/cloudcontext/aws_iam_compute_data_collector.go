@@ -3,6 +3,7 @@ package cloudcontext
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"sort"
@@ -29,6 +30,7 @@ import (
 	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	secretstypes "github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
+	"github.com/aws/smithy-go"
 )
 
 const (
@@ -547,7 +549,7 @@ func (c *sdkAWSClientSet) collectS3(ctx context.Context, client *s3.Client, regi
 		arn := "arn:aws:s3:::" + name
 		tags := c.s3Tags(ctx, client, name)
 		publicAccessBlocked := c.s3PublicAccessBlocked(ctx, client, name)
-		protection := c.s3Protection(ctx, client, name)
+		protection := c.s3Protection(ctx, client, name, inventory)
 		attrs := map[string]string{"name": name}
 		for key, value := range protection.Attributes {
 			attrs[key] = value
@@ -593,7 +595,7 @@ type s3Protection struct {
 	PolicyShape       policyShape
 }
 
-func (c *sdkAWSClientSet) s3Protection(ctx context.Context, client *s3.Client, bucket string) s3Protection {
+func (c *sdkAWSClientSet) s3Protection(ctx context.Context, client *s3.Client, bucket string, inventory *AWSInventory) s3Protection {
 	out := s3Protection{Attributes: map[string]string{}}
 	if encryption, err := client.GetBucketEncryption(ctx, &s3.GetBucketEncryptionInput{Bucket: aws.String(bucket)}); err == nil {
 		enabled, algorithm, kmsKey := s3EncryptionSummary(encryption.ServerSideEncryptionConfiguration)
@@ -612,6 +614,8 @@ func (c *sdkAWSClientSet) s3Protection(ctx context.Context, client *s3.Client, b
 	if policy, err := client.GetBucketPolicy(ctx, &s3.GetBucketPolicyInput{Bucket: aws.String(bucket)}); err == nil {
 		out.PolicyShape = parsePolicyDocument(aws.ToString(policy.Policy))
 		out.Attributes["policy_broad_allow"] = strconv.FormatBool(out.PolicyShape.BroadAllow || out.PolicyShape.PrincipalBroad)
+	} else if inventory != nil && !isMissingPolicyError(err) {
+		inventory.Diagnostics = append(inventory.Diagnostics, warningDiagnostic("AWS_COLLECT_S3_POLICY_FAILED", "collect S3 bucket policy for "+bucket+": "+err.Error()))
 	}
 	out.Attributes = compactMap(out.Attributes)
 	return out
@@ -633,7 +637,7 @@ func (c *sdkAWSClientSet) collectSecrets(ctx context.Context, client *secretsman
 			resource := awsResource(arn, arn, aws.ToString(secret.Name), accountID, "aws_secretsmanager_secret", region, tags, map[string]string{"name": aws.ToString(secret.Name)})
 			resource.Sensitivity = Sensitivity{Data: true, Reason: "secretsmanager metadata"}
 			resource.SensitiveData = true
-			shape := c.secretResourcePolicyShape(ctx, client, arn)
+			shape := c.secretResourcePolicyShape(ctx, client, arn, inventory)
 			resource.ObservedPolicyActions = shape.Actions
 			if shape.BroadAllow || shape.PrincipalBroad {
 				resource.Public = boolPtr(true)
@@ -646,9 +650,14 @@ func (c *sdkAWSClientSet) collectSecrets(ctx context.Context, client *secretsman
 	return nil
 }
 
-func (c *sdkAWSClientSet) secretResourcePolicyShape(ctx context.Context, client *secretsmanager.Client, secretARN string) policyShape {
+func (c *sdkAWSClientSet) secretResourcePolicyShape(ctx context.Context, client *secretsmanager.Client, secretARN string, inventory *AWSInventory) policyShape {
 	out, err := client.GetResourcePolicy(ctx, &secretsmanager.GetResourcePolicyInput{SecretId: aws.String(secretARN)})
 	if err != nil {
+		if inventory != nil {
+			if !isMissingPolicyError(err) {
+				inventory.Diagnostics = append(inventory.Diagnostics, warningDiagnostic("AWS_COLLECT_SECRET_POLICY_FAILED", "collect Secrets Manager resource policy for "+secretARN+": "+err.Error()))
+			}
+		}
 		return policyShape{}
 	}
 	return parsePolicyDocument(aws.ToString(out.ResourcePolicy))
@@ -679,7 +688,7 @@ func (c *sdkAWSClientSet) collectKMS(ctx context.Context, client *kms.Client, re
 				"key_manager": string(meta.KeyMetadata.KeyManager),
 				"key_state":   string(meta.KeyMetadata.KeyState),
 			})
-			shape := c.kmsPolicyShape(ctx, client, keyID)
+			shape := c.kmsPolicyShape(ctx, client, keyID, inventory)
 			resource.ObservedPolicyActions = shape.Actions
 			if shape.AdminAccess || shape.BroadAllow || shape.PrincipalBroad {
 				resource.Public = boolPtr(true)
@@ -691,12 +700,28 @@ func (c *sdkAWSClientSet) collectKMS(ctx context.Context, client *kms.Client, re
 	return nil
 }
 
-func (c *sdkAWSClientSet) kmsPolicyShape(ctx context.Context, client *kms.Client, keyID string) policyShape {
+func (c *sdkAWSClientSet) kmsPolicyShape(ctx context.Context, client *kms.Client, keyID string, inventory *AWSInventory) policyShape {
 	out, err := client.GetKeyPolicy(ctx, &kms.GetKeyPolicyInput{KeyId: aws.String(keyID), PolicyName: aws.String("default")})
 	if err != nil {
+		if inventory != nil {
+			inventory.Diagnostics = append(inventory.Diagnostics, warningDiagnostic("AWS_COLLECT_KMS_POLICY_FAILED", "collect KMS key policy for "+keyID+": "+err.Error()))
+		}
 		return policyShape{}
 	}
 	return parsePolicyDocument(aws.ToString(out.Policy))
+}
+
+func isMissingPolicyError(err error) bool {
+	var apiErr smithy.APIError
+	if !errors.As(err, &apiErr) {
+		return false
+	}
+	switch apiErr.ErrorCode() {
+	case "NoSuchBucketPolicy", "NoSuchBucket", "NoSuchResourcePolicy", "ResourceNotFoundException", "NotFoundException":
+		return true
+	default:
+		return false
+	}
 }
 
 func (c *sdkAWSClientSet) collectOpenSearch(ctx context.Context, client *opensearch.Client, region string, accountID string, inventory *AWSInventory) error {

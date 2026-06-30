@@ -238,6 +238,42 @@ func TestAWSCollectorMergesIAMComputeAndDataInventory(t *testing.T) {
 	}
 }
 
+func TestAWSCollectorDataPolicyDiagnosticsReduceCoverage(t *testing.T) {
+	t.Parallel()
+
+	collector := NewAWSCollectorWithClients(fakeAWSClientSet{
+		identity: AWSCallerIdentity{AccountID: "123456789012"},
+		data: AWSInventory{
+			Data: ResourceSet{Resources: map[string]Resource{
+				"arn:aws:s3:::logs": {ARN: "arn:aws:s3:::logs", Type: "aws_s3_bucket"},
+			}},
+			Diagnostics: []model.Diagnostic{
+				warningDiagnostic("AWS_COLLECT_S3_POLICY_FAILED", "collect S3 bucket policy for logs: access denied"),
+				warningDiagnostic("AWS_COLLECT_SECRET_POLICY_FAILED", "collect Secrets Manager resource policy for arn:aws:secretsmanager:us-east-1:123456789012:secret/customer: access denied"),
+				warningDiagnostic("AWS_COLLECT_KMS_POLICY_FAILED", "collect KMS key policy for key: access denied"),
+			},
+		},
+	})
+	snapshot, diagnostics, err := collector.Collect(context.Background(), AWSCollectRequest{
+		Groups:  []string{CollectIdentity, CollectData},
+		Regions: []string{"us-east-1"},
+	})
+	if err != nil {
+		t.Fatalf("Collect returned error: %v", err)
+	}
+	for _, code := range []string{"AWS_COLLECT_S3_POLICY_FAILED", "AWS_COLLECT_SECRET_POLICY_FAILED", "AWS_COLLECT_KMS_POLICY_FAILED"} {
+		if !hasDiagnosticCode(diagnostics, code) {
+			t.Fatalf("diagnostics missing %s: %+v", code, diagnostics)
+		}
+	}
+	if !snapshot.Capabilities.S3 || !snapshot.Capabilities.KMS || !snapshot.Capabilities.SecretsManager {
+		t.Fatalf("data service capabilities should remain true: %+v", snapshot.Capabilities)
+	}
+	if snapshot.Capabilities.S3Protection || snapshot.Capabilities.SecretsPolicies || snapshot.Capabilities.KMSPolicies {
+		t.Fatalf("policy coverage should be incomplete after policy read diagnostics: %+v", snapshot.Capabilities)
+	}
+}
+
 func TestAWSCollectorIAMComputeDataFailuresBecomeDiagnostics(t *testing.T) {
 	t.Parallel()
 

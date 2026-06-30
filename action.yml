@@ -5,9 +5,9 @@ inputs:
     description: ChangeGate release version to install, for example vX.Y.Z. Required to avoid floating installs.
     required: true
   verify_sig:
-    description: Set to true to verify the signed checksum manifest with cosign during install.
+    description: Verify the signed checksum manifest with cosign during install. Set to false only in trusted test environments.
     required: false
-    default: "false"
+    default: "true"
   plan:
     description: Optional Terraform/OpenTofu plan JSON path to scan.
     required: false

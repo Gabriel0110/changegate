@@ -42,7 +42,7 @@ npx changegate version
 npx changegate scan --plan tfplan.json
 ```
 
-The installer supports macOS, Linux, and Windows on `amd64`/`arm64`. It downloads the release archive and `checksums.txt`, verifies the archive SHA-256 checksum, and installs a local CLI shim named `changegate`.
+The installer supports macOS, Linux, and Windows on `amd64`/`arm64`. It downloads the release archive and `checksums.txt`, verifies the signed checksum manifest with `cosign`, verifies the archive SHA-256 checksum, and installs a local CLI shim named `changegate`.
 
 Set `CHANGEGATE_VERSION` when you need a specific ChangeGate release:
 
@@ -50,4 +50,4 @@ Set `CHANGEGATE_VERSION` when you need a specific ChangeGate release:
 CHANGEGATE_VERSION=vX.Y.Z npx changegate version
 ```
 
-Advanced install environments can use `CHANGEGATE_RELEASE_BASE_URL` to point the installer at an internal artifact mirror that serves the same release archive names and `checksums.txt` format.
+Advanced install environments can use `CHANGEGATE_RELEASE_BASE_URL` to point the installer at an internal artifact mirror that serves the same release archive names, checksum manifest, and Sigstore signature artifacts.

@@ -225,9 +225,9 @@ func Render(report Report, format string) ([]byte, string, error) {
 func RenderConsole(report Report) string {
 	var b strings.Builder
 	fmt.Fprintf(&b, "Decision: %s\n\n", strings.ToUpper(string(report.Decision)))
-	fmt.Fprintf(&b, "Plan: %s\n", report.Plan.Path)
-	fmt.Fprintf(&b, "Tool: %s\n", report.Plan.Tool)
-	fmt.Fprintf(&b, "Format: %s\n", report.Plan.FormatVersion)
+	fmt.Fprintf(&b, "Plan: %s\n", terminalText(report.Plan.Path))
+	fmt.Fprintf(&b, "Tool: %s\n", terminalText(string(report.Plan.Tool)))
+	fmt.Fprintf(&b, "Format: %s\n", terminalText(report.Plan.FormatVersion))
 	fmt.Fprintf(&b, "Resources: %d\n", report.Plan.Resources)
 	fmt.Fprintf(&b, "Changes: %d\n", report.Plan.Changes)
 	fmt.Fprintf(&b, "Graph: %d nodes, %d edges\n", report.Graph.Nodes, report.Graph.Edges)
@@ -255,13 +255,13 @@ func RenderConsole(report Report) string {
 	fmt.Fprintf(&b, "Suppressed or downgraded: %d\n", report.RiskSummary.Suppressed+report.RiskSummary.Downgraded)
 	for _, reason := range collapsedDecisionReasons(report) {
 		if reason.Resource == "" {
-			fmt.Fprintf(&b, "Reason: %s\n", humanDecisionReason(reason))
+			fmt.Fprintf(&b, "Reason: %s\n", terminalText(humanDecisionReason(reason)))
 			continue
 		}
-		fmt.Fprintf(&b, "Reason: %s - %s\n", cleanLabel(reason.Resource), humanDecisionReason(reason))
+		fmt.Fprintf(&b, "Reason: %s - %s\n", terminalText(cleanLabel(reason.Resource)), terminalText(humanDecisionReason(reason)))
 	}
 	for _, diagnostic := range report.Diagnostics {
-		fmt.Fprintf(&b, "Warning: %s\n", diagnostic.Message)
+		fmt.Fprintf(&b, "Warning: %s\n", terminalText(diagnostic.Message))
 	}
 	if len(clusters) > 0 {
 		b.WriteString("\nRisk clusters:\n")
@@ -270,7 +270,7 @@ func RenderConsole(report Report) string {
 				fmt.Fprintf(&b, "... %d more risk clusters\n", len(clusters)-i)
 				break
 			}
-			fmt.Fprintf(&b, "- [%s/%s] %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, cluster.Title, len(cluster.AffectedResources), len(cluster.SupportingFindings))
+			fmt.Fprintf(&b, "- [%s/%s] %s (%d resources, %d findings)\n", cluster.Severity, cluster.Confidence, terminalText(cluster.Title), len(cluster.AffectedResources), len(cluster.SupportingFindings))
 		}
 	}
 	return normalizeMarkdownFinalNewline(b.String())
@@ -336,30 +336,30 @@ func RenderMarkdown(report Report) string {
 				fmt.Fprintf(&b, "- %s\n", humanDecisionReason(reason))
 				continue
 			}
-			fmt.Fprintf(&b, "- **%s:** %s\n", cleanLabel(reason.Resource), humanDecisionReason(reason))
+			fmt.Fprintf(&b, "- **%s:** %s\n", markdownText(cleanLabel(reason.Resource)), markdownText(humanDecisionReason(reason)))
 		}
 		b.WriteString("\n")
 	}
 	if len(clusters) > 0 {
 		b.WriteString("## Risk clusters\n\n")
 		for _, cluster := range clusters {
-			fmt.Fprintf(&b, "### %s\n\n", cluster.Title)
+			fmt.Fprintf(&b, "### %s\n\n", markdownText(cluster.Title))
 			fmt.Fprintf(&b, "- Decision: `%s`\n", cluster.Decision)
 			fmt.Fprintf(&b, "- Severity: `%s`, confidence: `%s`\n", cluster.Severity, cluster.Confidence)
 			fmt.Fprintf(&b, "- Affected resources: %d\n", len(cluster.AffectedResources))
 			fmt.Fprintf(&b, "- Supporting findings: %d\n", len(cluster.SupportingFindings))
 			if len(cluster.RuleIDs) > 0 {
-				fmt.Fprintf(&b, "- Rules: `%s`\n", strings.Join(cluster.RuleIDs, "`, `"))
+				fmt.Fprintf(&b, "- Rules: `%s`\n", strings.Join(markdownCodeValues(cluster.RuleIDs), "`, `"))
 			}
 			if cluster.RemediationSummary != "" {
-				fmt.Fprintf(&b, "- Primary fix: %s\n", cluster.RemediationSummary)
+				fmt.Fprintf(&b, "- Primary fix: %s\n", markdownText(cluster.RemediationSummary))
 			}
 			if len(cluster.AffectedResources) > 0 {
 				limit := len(cluster.AffectedResources)
 				if limit > 8 {
 					limit = 8
 				}
-				fmt.Fprintf(&b, "- Resources: `%s`\n", strings.Join(cluster.AffectedResources[:limit], "`, `"))
+				fmt.Fprintf(&b, "- Resources: `%s`\n", strings.Join(markdownCodeValues(cluster.AffectedResources[:limit]), "`, `"))
 				if len(cluster.AffectedResources) > limit {
 					fmt.Fprintf(&b, "- ... %d more resources\n", len(cluster.AffectedResources)-limit)
 				}
@@ -374,8 +374,8 @@ func RenderMarkdown(report Report) string {
 	b.WriteString("## Finding details\n\n")
 	for _, finding := range report.Findings {
 		fmt.Fprintf(&b, "### %s\n\n", markdownText(finding.Title))
-		fmt.Fprintf(&b, "- Rule: `%s`\n", finding.RuleID)
-		fmt.Fprintf(&b, "- Resource: `%s`\n", finding.ResourceAddress)
+		fmt.Fprintf(&b, "- Rule: `%s`\n", markdownCode(finding.RuleID))
+		fmt.Fprintf(&b, "- Resource: `%s`\n", markdownCode(finding.ResourceAddress))
 		fmt.Fprintf(&b, "- Severity: `%s`, confidence: `%s`\n", finding.Severity, finding.Confidence)
 		fmt.Fprintf(&b, "- Fingerprint: `%s`\n", finding.Fingerprint)
 		if finding.Description != "" {
@@ -416,7 +416,36 @@ func writeFindingEvidenceMarkdown(b *strings.Builder, evidence []model.Evidence)
 
 func markdownText(value string) string {
 	value = markdownSecretPattern.ReplaceAllString(value, "$1=(sensitive)")
+	value = strings.Join(strings.Fields(value), " ")
 	return html.EscapeString(value)
+}
+
+func markdownCode(value string) string {
+	return strings.ReplaceAll(markdownText(value), "`", "\\`")
+}
+
+func markdownCodeValues(values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, value := range values {
+		out = append(out, markdownCode(value))
+	}
+	return out
+}
+
+func terminalText(value string) string {
+	value = markdownSecretPattern.ReplaceAllString(value, "$1=(sensitive)")
+	var b strings.Builder
+	for _, r := range value {
+		switch {
+		case r == '\n' || r == '\r' || r == '\t':
+			b.WriteRune(r)
+		case r < 0x20 || r == 0x7f:
+			continue
+		default:
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func curatedFindingEvidence(evidence []model.Evidence, limit int) ([]model.Evidence, int) {
@@ -524,7 +553,7 @@ func writeFindingRemediationMarkdown(b *strings.Builder, finding model.Finding) 
 	}
 	b.WriteString("\nRemediation:\n\n")
 	if remediation.Summary != "" {
-		fmt.Fprintf(b, "**Primary fix:** %s\n", strings.TrimSpace(remediation.Summary))
+		fmt.Fprintf(b, "**Primary fix:** %s\n", markdownText(strings.TrimSpace(remediation.Summary)))
 	}
 	steps := uniqueMarkdownStringsExcept(remediation.Steps, remediation.Summary)
 	if len(steps) > 0 {
@@ -533,7 +562,7 @@ func writeFindingRemediationMarkdown(b *strings.Builder, finding model.Finding) 
 		}
 		b.WriteString("Recommended actions:\n")
 		for _, step := range steps {
-			fmt.Fprintf(b, "- %s\n", step)
+			fmt.Fprintf(b, "- %s\n", markdownText(step))
 		}
 	}
 	writeFixOptionsMarkdown(b, remediation.FixOptions)
@@ -628,7 +657,7 @@ func writeFixOptionsMarkdown(b *strings.Builder, options []model.FixOption) {
 			continue
 		}
 		if title == "" {
-			fmt.Fprintf(b, "- %s\n", description)
+			fmt.Fprintf(b, "- %s\n", markdownText(description))
 			continue
 		}
 		marker := ""
@@ -636,10 +665,10 @@ func writeFixOptionsMarkdown(b *strings.Builder, options []model.FixOption) {
 			marker = " (preferred)"
 		}
 		if description == "" {
-			fmt.Fprintf(b, "- **%s**%s\n", title, marker)
+			fmt.Fprintf(b, "- **%s**%s\n", markdownText(title), marker)
 			continue
 		}
-		fmt.Fprintf(b, "- **%s**%s: %s\n", title, marker, description)
+		fmt.Fprintf(b, "- **%s**%s: %s\n", markdownText(title), marker, markdownText(description))
 	}
 }
 
@@ -659,7 +688,7 @@ func writePatchSuggestionsMarkdown(b *strings.Builder, resourceAddress string, r
 		if title == "" {
 			title = "Patch suggestion"
 		}
-		fmt.Fprintf(b, "\nPatch suggestion: %s\n\n```%s\n%s\n```\n", title, language, strings.TrimSpace(patch.Snippet))
+		fmt.Fprintf(b, "\nPatch suggestion: %s\n\n```%s\n%s\n```\n", markdownText(title), markdownCode(language), strings.TrimSpace(patch.Snippet))
 		if patch.ReviewNeeded {
 			b.WriteString("\nReview the patch before applying it.\n")
 		}
@@ -687,10 +716,10 @@ func writeReviewNotesMarkdown(b *strings.Builder, remediation model.Remediation)
 	}
 	b.WriteString("\nReview notes:\n")
 	for _, hint := range uniqueMarkdownStrings(remediation.OwnerHints) {
-		fmt.Fprintf(b, "- Owner hint: `%s`\n", hint)
+		fmt.Fprintf(b, "- Owner hint: `%s`\n", markdownCode(hint))
 	}
 	for _, note := range notes {
-		fmt.Fprintf(b, "- %s\n", note)
+		fmt.Fprintf(b, "- %s\n", markdownText(note))
 	}
 }
 
@@ -701,7 +730,7 @@ func writeDocsMarkdown(b *strings.Builder, docs []string) {
 	}
 	b.WriteString("\nReferences:\n")
 	for _, doc := range docs {
-		fmt.Fprintf(b, "- %s\n", doc)
+		fmt.Fprintf(b, "- %s\n", markdownText(doc))
 	}
 }
 
@@ -827,7 +856,7 @@ func RenderPRComment(report Report) string {
 			if reason.Resource == "" {
 				fmt.Fprintf(&b, "- %s\n", summary)
 			} else {
-				fmt.Fprintf(&b, "- **%s:** %s\n", cleanLabel(reason.Resource), summary)
+				fmt.Fprintf(&b, "- **%s:** %s\n", markdownText(cleanLabel(reason.Resource)), markdownText(summary))
 			}
 		}
 		b.WriteString("\n")
@@ -846,19 +875,19 @@ func RenderPRComment(report Report) string {
 			fmt.Fprintf(&b, "... %d more risk clusters\n", len(clusters)-index)
 			break
 		}
-		fmt.Fprintf(&b, "#### %d. %s\n\n", index+1, cluster.Title)
+		fmt.Fprintf(&b, "#### %d. %s\n\n", index+1, markdownText(cluster.Title))
 		fmt.Fprintf(&b, "- Severity: `%s`\n", cluster.Severity)
 		fmt.Fprintf(&b, "- Confidence: `%s`\n", cluster.Confidence)
 		fmt.Fprintf(&b, "- Decision: `%s`\n", cluster.Decision)
 		fmt.Fprintf(&b, "- Affected resources: %d\n", len(cluster.AffectedResources))
 		fmt.Fprintf(&b, "- Supporting findings: %d\n\n", len(cluster.SupportingFindings))
 		if cluster.RemediationSummary != "" {
-			fmt.Fprintf(&b, "**Fix:** %s\n\n", cluster.RemediationSummary)
+			fmt.Fprintf(&b, "**Fix:** %s\n\n", markdownText(cluster.RemediationSummary))
 		}
 		if len(cluster.RuleIDs) > 0 {
 			b.WriteString("Rules:\n\n")
 			for _, ruleID := range cluster.RuleIDs {
-				fmt.Fprintf(&b, "- `%s`\n", ruleID)
+				fmt.Fprintf(&b, "- `%s`\n", markdownCode(ruleID))
 			}
 		}
 		if index < displayedClusters-1 {

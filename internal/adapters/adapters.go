@@ -23,6 +23,8 @@ const (
 	SourceTrivy   Source = "trivy"
 	SourceKICS    Source = "kics"
 	SourceGrype   Source = "grype"
+
+	maxImportBytes = int64(25 * 1024 * 1024)
 )
 
 // ImportRequest identifies one external scanner output.
@@ -74,9 +76,12 @@ func ImportFile(request ImportRequest) Result {
 
 // Import imports scanner findings from a reader.
 func Import(source Source, r io.Reader) Result {
-	body, err := io.ReadAll(r)
+	body, err := io.ReadAll(io.LimitReader(r, maxImportBytes+1))
 	if err != nil {
 		return Result{Diagnostics: []model.Diagnostic{warning("ADAPTER_IMPORT_FAILED", err.Error())}}
+	}
+	if int64(len(body)) > maxImportBytes {
+		return Result{Diagnostics: []model.Diagnostic{warning("ADAPTER_IMPORT_TOO_LARGE", fmt.Sprintf("external scanner import exceeds %d bytes", maxImportBytes))}}
 	}
 	var findings []model.Finding
 	switch source {
@@ -484,6 +489,17 @@ func confidence(value string) model.Confidence {
 	default:
 		return model.ConfidenceMedium
 	}
+}
+
+func boundedImportedConfidence(source Source, value string) model.Confidence {
+	confidence := confidence(value)
+	switch source {
+	case SourceSARIF, SourceGeneric:
+		if confidence == model.ConfidenceHigh {
+			return model.ConfidenceMedium
+		}
+	}
+	return confidence
 }
 
 func category(value string) model.RiskCategory {

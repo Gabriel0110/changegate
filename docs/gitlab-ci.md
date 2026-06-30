@@ -15,7 +15,7 @@ changegate:
     CHANGEGATE_VERSION: vX.Y.Z
     TF_IN_AUTOMATION: "true"
   before_script:
-    - apk add --no-cache bash curl tar perl-utils
+    - apk add --no-cache bash cosign curl tar perl-utils
     - curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" -o /tmp/install-changegate.sh
     - CHANGEGATE_INSTALL_DIR=/usr/local/bin bash /tmp/install-changegate.sh
   script:
@@ -41,7 +41,7 @@ changegate:
 
 For an audit-only rollout, add `--mode audit` to the first scan command.
 
-The example installs a pinned ChangeGate release into the Terraform job image and verifies release checksums through the installer before scanning the generated plan JSON.
+The example installs a pinned ChangeGate release into the Terraform job image and verifies signed release checksums through the installer before scanning the generated plan JSON.
 
 ## Official Docker Image
 

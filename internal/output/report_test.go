@@ -261,6 +261,37 @@ func TestRenderMarkdownCuratesEvidenceAndRemediation(t *testing.T) {
 	}
 }
 
+func TestHumanRenderersSanitizeUntrustedText(t *testing.T) {
+	t.Parallel()
+
+	report := sampleReport()
+	report.Plan.Path = "tfplan.json\x1b]8;;https://attacker.example\a"
+	report.Diagnostics = []model.Diagnostic{{
+		Severity: model.DiagnosticWarning,
+		Code:     "TEST",
+		Message:  "\x1b[2Jwarning from scanner",
+	}}
+	report.Findings[0].Title = "Finding\n## forged heading"
+	report.Findings[0].ResourceAddress = "aws_s3_bucket.`logs`"
+	report.Findings[0].Remediation.Summary = "Fix **now**\n# forged"
+	report.Reasons[0].Resource = "aws_lb.admin\n- forged"
+
+	console := RenderConsole(report)
+	if strings.Contains(console, "\x1b") || strings.Contains(console, "\a") {
+		t.Fatalf("console output contains control characters:\n%q", console)
+	}
+
+	markdown := RenderMarkdown(report)
+	if strings.Contains(markdown, "\n## forged heading") || strings.Contains(markdown, "\n# forged") || strings.Contains(markdown, "**aws_lb.admin\n- forged:**") {
+		t.Fatalf("markdown output did not neutralize injected structure:\n%s", markdown)
+	}
+
+	prComment := RenderPRComment(report)
+	if strings.Contains(prComment, "**aws_lb.admin\n- forged:**") {
+		t.Fatalf("PR comment output did not neutralize injected resource label:\n%s", prComment)
+	}
+}
+
 func sampleReport() Report {
 	finding := model.NormalizeFinding(model.Finding{
 		RuleID:          "AWS_SG_WORLD_OPEN_ADMIN_PORT",

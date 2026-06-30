@@ -216,6 +216,24 @@ func TestLoadErrors(t *testing.T) {
 	}
 }
 
+func TestLoadRejectsOversizedPlan(t *testing.T) {
+	previous := maxPlanJSONBytes
+	maxPlanJSONBytes = 32
+	t.Cleanup(func() { maxPlanJSONBytes = previous })
+
+	_, err := Load(strings.NewReader(`{"format_version":"1.0","resource_changes":[]}`))
+	if err == nil {
+		t.Fatalf("Load returned nil error")
+	}
+	var parseErr *ParseError
+	if !errors.As(err, &parseErr) {
+		t.Fatalf("error type = %T, want *ParseError", err)
+	}
+	if parseErr.Kind != "plan_too_large" {
+		t.Fatalf("Kind = %q, want plan_too_large", parseErr.Kind)
+	}
+}
+
 func TestMinorFormatVersionWarning(t *testing.T) {
 	t.Parallel()
 

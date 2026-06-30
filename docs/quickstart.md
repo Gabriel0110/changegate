@@ -14,10 +14,11 @@ Release install:
 
 ```bash
 export CHANGEGATE_VERSION=vX.Y.Z
+# Requires cosign on PATH for signed checksum verification.
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
-The install script verifies the downloaded archive against `checksums.txt`. To also verify the signed checksum manifest, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true` before running the same command.
+The install script verifies the signed checksum manifest with `cosign`, then verifies the downloaded archive against `checksums.txt`. Set `CHANGEGATE_VERIFY_SIG=false` only in trusted test environments.
 
 Linux release packages are also published as `.deb`, `.rpm`, and `.apk` artifacts for package mirrors or runner images.
 

@@ -15,12 +15,29 @@ import (
 
 const supportedFormatMajor = "1"
 const allSensitiveMarker = "__changegate_all_sensitive__"
+const MaxPlanJSONBytes = int64(100 * 1024 * 1024)
+
+var maxPlanJSONBytes = MaxPlanJSONBytes
 
 // Load reads Terraform/OpenTofu plan JSON from r and returns a normalized plan model.
 func Load(r io.Reader) (*model.Plan, error) {
 	var raw rawPlan
 
-	dec := json.NewDecoder(r)
+	body, err := io.ReadAll(io.LimitReader(r, maxPlanJSONBytes+1))
+	if err != nil {
+		return nil, &ParseError{
+			Kind: "read_failed",
+			Err:  fmt.Errorf("read plan JSON: %w", err),
+		}
+	}
+	if int64(len(body)) > maxPlanJSONBytes {
+		return nil, &ParseError{
+			Kind: "plan_too_large",
+			Err:  fmt.Errorf("plan JSON exceeds %d bytes", maxPlanJSONBytes),
+		}
+	}
+
+	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.UseNumber()
 	if err := dec.Decode(&raw); err != nil {
 		return nil, &ParseError{

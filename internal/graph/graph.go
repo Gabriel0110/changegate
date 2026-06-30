@@ -407,12 +407,23 @@ func (g *Graph) BlastRadius(resource ResourceID, opts BlastRadiusOptions) BlastR
 	seen := map[ResourceID]bool{resource: true}
 	nodes := []ResourceID{resource}
 	edges := make([]Edge, 0, opts.MaxDepth)
+	visits := 0
+	maxVisits := opts.MaxDepth * opts.MaxPaths * 100
+	if maxVisits < 1000 {
+		maxVisits = 1000
+	}
 	var visit func(ResourceID, int)
 	visit = func(current ResourceID, depth int) {
 		if depth >= opts.MaxDepth {
 			return
 		}
+		if visits >= maxVisits {
+			return
+		}
 		for _, edge := range adj[current] {
+			if visits >= maxVisits {
+				return
+			}
 			if len(allowed) > 0 && !allowed[edge.Type] {
 				continue
 			}
@@ -438,6 +449,7 @@ func (g *Graph) BlastRadius(resource ResourceID, opts BlastRadiusOptions) BlastR
 					workloadPaths = append(workloadPaths, copyPath(nodes, edges))
 				}
 			}
+			visits++
 			visit(edge.To, depth+1)
 			edges = edges[:len(edges)-1]
 			nodes = nodes[:len(nodes)-1]

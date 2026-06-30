@@ -17,12 +17,15 @@ workflows:
             extra_args: ["-out", "tfplan"]
         - run: terraform show -json tfplan > tfplan.json
         - run: |
+            cosign version
             curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/vX.Y.Z/scripts/install.sh" -o /tmp/install-changegate.sh
             CHANGEGATE_VERSION=vX.Y.Z CHANGEGATE_INSTALL_DIR="$PWD/.changegate-bin" bash /tmp/install-changegate.sh
         - run: .changegate-bin/changegate scan --plan tfplan.json --format markdown --out changegate.md --audit-bundle changegate-audit.zip
 ```
 
 Atlantis comments are best kept concise. Use Markdown output for humans and keep the audit bundle as an archived CI artifact in the surrounding automation.
+
+The install step verifies signed release checksums by default, so the Atlantis runtime image must include `cosign` on PATH. Set `CHANGEGATE_VERIFY_SIG=false` only in trusted test environments where signature verification is intentionally unavailable.
 
 If your Atlantis image already includes ChangeGate, omit the install step and call `changegate` directly.
 

@@ -86,7 +86,7 @@ The repository also includes a composite action. The `version` input is required
     audit_bundle: infra/changegate-audit.zip
 ```
 
-The composite action accepts structured inputs for supported scan flags instead of a freeform argument string. Use `mode`, `policy`, `baseline`, `new_only`, `changed_only`, `context_file`, `cloud_context`, `timeout`, `max_findings`, `out`, and `audit_bundle` when you need to tune the scan. Set `verify_sig: "true"` if your runner has `cosign` installed and should verify the signed checksum manifest during install.
+The composite action accepts structured inputs for supported scan flags instead of a freeform argument string. Use `mode`, `policy`, `baseline`, `new_only`, `changed_only`, `context_file`, `cloud_context`, `timeout`, `max_findings`, `out`, and `audit_bundle` when you need to tune the scan. Signature verification is enabled by default and requires `cosign` on PATH. Set `verify_sig: "false"` only in trusted test workflows where signature verification is intentionally unavailable.
 
 ## Audit-First Mode
 

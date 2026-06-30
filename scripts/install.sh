@@ -10,7 +10,7 @@ elif [[ "$(id -u)" == "0" ]]; then
 else
   install_dir="${HOME}/.local/bin"
 fi
-verify_sig="${CHANGEGATE_VERIFY_SIG:-false}"
+verify_sig="${CHANGEGATE_VERIFY_SIG:-true}"
 
 if [[ -z "${version}" ]]; then
   echo "usage: CHANGEGATE_VERSION=vX.Y.Z scripts/install.sh" >&2

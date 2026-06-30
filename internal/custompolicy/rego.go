@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -20,6 +21,7 @@ const (
 	defaultRegoQuery         = "data.changegate.findings"
 	defaultRegoTimeout       = 250 * time.Millisecond
 	defaultRegoMaxInputBytes = int64(5 * 1024 * 1024)
+	defaultRegoMaxModuleSize = int64(1024 * 1024)
 )
 
 // RegoOptions controls optional OPA/Rego rule loading.
@@ -58,7 +60,7 @@ func LoadRegoRule(options RegoOptions) (rules.Rule, []Diagnostic) {
 			continue
 		}
 		for _, path := range matches {
-			body, err := os.ReadFile(path)
+			body, err := readBoundedRegoModule(path, defaultRegoMaxModuleSize)
 			if err != nil {
 				diagnostics = append(diagnostics, Diagnostic{Code: "REGO_FILE_READ_FAILED", Message: fmt.Sprintf("%s: %v", path, err)})
 				continue
@@ -78,6 +80,29 @@ func LoadRegoRule(options RegoOptions) (rules.Rule, []Diagnostic) {
 		return nil, diagnostics
 	}
 	return regoRule{modules: modules, query: options.Query, timeout: options.Timeout, maxInputBytes: options.MaxInputBytes}, diagnostics
+}
+
+func readBoundedRegoModule(path string, maxBytes int64) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer closeFile(file)
+	stat, err := file.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if stat.Size() > maxBytes {
+		return nil, fmt.Errorf("Rego module exceeds %d bytes", maxBytes)
+	}
+	body, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > maxBytes {
+		return nil, fmt.Errorf("Rego module exceeds %d bytes", maxBytes)
+	}
+	return body, nil
 }
 
 type regoRule struct {
@@ -105,6 +130,37 @@ func (r regoRule) Metadata() rules.Metadata {
 			Remediation: []string{"Review the custom Rego policy and the returned finding remediation."},
 		},
 	}
+}
+
+// FailureFinding makes custom Rego evaluation fail closed. If a configured
+// custom policy cannot evaluate, ChangeGate cannot prove the policy passed.
+func (r regoRule) FailureFinding(err error) (model.Finding, bool) {
+	resource := "custom-rego"
+	return model.Finding{
+		RuleID:          "CUSTOM_OPA_REGO",
+		RuleName:        "Custom OPA/Rego policy",
+		Title:           "Custom Rego policy did not evaluate",
+		Description:     "A configured custom Rego policy failed during evaluation, so ChangeGate treats the custom policy result as a blocking enforcement failure.",
+		ResourceAddress: resource,
+		Provider:        "custom-rego",
+		Category:        model.RiskCategoryCompliance,
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceHigh,
+		Evidence: []model.Evidence{{
+			Type:     "custom_rego",
+			Resource: resource,
+			Path:     "rego.evaluate",
+			Value:    err.Error(),
+			Message:  "Custom Rego policy evaluation failed",
+		}},
+		Remediation: model.Remediation{
+			Summary: "Fix the custom Rego policy or increase its configured bounds before applying.",
+			Steps: []string{
+				"Run changegate scan locally with the same policy file to inspect the Rego error.",
+				"Reduce policy input size, increase rego.max_input_bytes intentionally, or correct the policy runtime error.",
+			},
+		},
+	}, true
 }
 
 // Evaluate executes configured Rego modules with a timeout and bounded redacted input.

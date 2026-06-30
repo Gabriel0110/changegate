@@ -1417,7 +1417,7 @@ func planEvidence(planPaths []string, report output.Report) (string, error) {
 			}
 			return sha256Hex(body), nil
 		}
-		body, err := os.ReadFile(planPaths[0])
+		body, err := readBoundedFile(planPaths[0], tfjson.MaxPlanJSONBytes)
 		if err != nil {
 			return "", fmt.Errorf("read plan %q: %w", planPaths[0], err)
 		}
@@ -1425,7 +1425,7 @@ func planEvidence(planPaths []string, report output.Report) (string, error) {
 	}
 	entries := make([]string, 0, len(planPaths))
 	for _, planPath := range planPaths {
-		body, err := os.ReadFile(planPath)
+		body, err := readBoundedFile(planPath, tfjson.MaxPlanJSONBytes)
 		if err != nil {
 			return "", fmt.Errorf("read plan %q: %w", planPath, err)
 		}
@@ -1433,6 +1433,22 @@ func planEvidence(planPaths []string, report output.Report) (string, error) {
 	}
 	sort.Strings(entries)
 	return sha256Hex([]byte(strings.Join(entries, "\n"))), nil
+}
+
+func readBoundedFile(path string, maxBytes int64) ([]byte, error) {
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer closeReader(file)
+	body, err := io.ReadAll(io.LimitReader(file, maxBytes+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(body)) > maxBytes {
+		return nil, fmt.Errorf("file exceeds %d bytes", maxBytes)
+	}
+	return body, nil
 }
 
 func waiverReport(path string, findings []model.Finding, failExpired bool) (waiver.ReviewReport, error) {

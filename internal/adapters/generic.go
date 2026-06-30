@@ -63,7 +63,7 @@ func parseGeneric(body []byte) ([]model.Finding, error) {
 			Provider:        firstNonEmpty(item.Provider, "external"),
 			Category:        category(item.Category),
 			Severity:        severity(item.Severity),
-			Confidence:      confidence(item.Confidence),
+			Confidence:      boundedImportedConfidence(SourceGeneric, item.Confidence),
 			Evidence:        item.Evidence,
 			Remediation: model.Remediation{
 				Summary: item.Remediation,

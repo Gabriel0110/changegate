@@ -82,6 +82,7 @@ type AWSInventory struct {
 	Compute       ResourceSet
 	Data          ResourceSet
 	Relationships []Relationship
+	Diagnostics   []model.Diagnostic
 }
 
 // AWSCollector is the production AWS cloud-context collector.
@@ -198,6 +199,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 		if err != nil {
 			diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_IAM_FAILED", "collect AWS IAM inventory: "+err.Error()))
 		} else {
+			diagnostics = append(diagnostics, inventory.Diagnostics...)
 			mergeResourceSet(&snapshot.IAM, inventory.IAM)
 			snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 			snapshot.Capabilities.IAM = true
@@ -210,6 +212,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			if err != nil {
 				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_NETWORK_FAILED", "collect AWS network inventory for "+region+": "+err.Error()))
 			} else {
+				diagnostics = append(diagnostics, inventory.Diagnostics...)
 				mergeResourceSet(&snapshot.Network, inventory.Network)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.Network = true
@@ -224,6 +227,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			if err != nil {
 				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_EDGE_FAILED", "collect AWS edge inventory for "+region+": "+err.Error()))
 			} else {
+				diagnostics = append(diagnostics, inventory.Diagnostics...)
 				mergeResourceSet(&snapshot.Edge, inventory.Edge)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.Network = true
@@ -239,6 +243,7 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			if err != nil {
 				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_COMPUTE_FAILED", "collect AWS compute inventory for "+region+": "+err.Error()))
 			} else {
+				diagnostics = append(diagnostics, inventory.Diagnostics...)
 				mergeResourceSet(&snapshot.Compute, inventory.Compute)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.Compute = true
@@ -253,15 +258,16 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 			if err != nil {
 				diagnostics = append(diagnostics, warningDiagnostic("AWS_COLLECT_DATA_FAILED", "collect AWS data inventory for "+region+": "+err.Error()))
 			} else {
+				diagnostics = append(diagnostics, inventory.Diagnostics...)
 				mergeResourceSet(&snapshot.Data, inventory.Data)
 				snapshot.Relationships = append(snapshot.Relationships, inventory.Relationships...)
 				snapshot.Capabilities.S3 = true
 				snapshot.Capabilities.RDS = true
 				snapshot.Capabilities.KMS = true
-				snapshot.Capabilities.KMSPolicies = true
+				snapshot.Capabilities.KMSPolicies = !diagnosticCodePresent(inventory.Diagnostics, "AWS_COLLECT_KMS_POLICY_FAILED")
 				snapshot.Capabilities.SecretsManager = true
-				snapshot.Capabilities.SecretsPolicies = true
-				snapshot.Capabilities.S3Protection = true
+				snapshot.Capabilities.SecretsPolicies = !diagnosticCodePresent(inventory.Diagnostics, "AWS_COLLECT_SECRET_POLICY_FAILED")
+				snapshot.Capabilities.S3Protection = !diagnosticCodePresent(inventory.Diagnostics, "AWS_COLLECT_S3_POLICY_FAILED")
 				snapshot.Capabilities.RDSSubnetGroups = true
 				snapshot.Capabilities.OpenSearch = true
 				snapshot.Capabilities.ElastiCache = true
@@ -466,6 +472,15 @@ func mergeResourceSet(target *ResourceSet, source ResourceSet) {
 
 func warningDiagnostic(code string, message string) model.Diagnostic {
 	return model.Diagnostic{Severity: model.DiagnosticWarning, Code: code, Message: message}
+}
+
+func diagnosticCodePresent(diagnostics []model.Diagnostic, code string) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code == code {
+			return true
+		}
+	}
+	return false
 }
 
 func first(values []string) string {

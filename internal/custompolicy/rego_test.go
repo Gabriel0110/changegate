@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -101,5 +102,59 @@ findings contains f if {
 	}
 	if len(diagnostics) != 1 || diagnostics[0].Code != "REGO_COMPILE_FAILED" {
 		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+}
+
+func TestRegoRuleRejectsOversizedModuleBeforeRead(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	regoPath := filepath.Join(tempDir, "policy.rego")
+	if err := os.WriteFile(regoPath, []byte("package changegate\n"+strings.Repeat("#", int(defaultRegoMaxModuleSize)+1)), 0o644); err != nil {
+		t.Fatalf("write rego: %v", err)
+	}
+	rule, diagnostics := LoadRegoRule(RegoOptions{PolicyPath: filepath.Join(tempDir, ".changegate.yaml"), Files: []string{"policy.rego"}})
+	if rule != nil {
+		t.Fatalf("rule = %#v, want nil", rule)
+	}
+	if len(diagnostics) != 1 || diagnostics[0].Code != "REGO_FILE_READ_FAILED" || !strings.Contains(diagnostics[0].Message, "exceeds") {
+		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+}
+
+func TestRegoRuleFailureFindingEnforcesPolicyFailure(t *testing.T) {
+	t.Parallel()
+
+	tempDir := t.TempDir()
+	regoPath := filepath.Join(tempDir, "policy.rego")
+	body := `package changegate
+
+findings contains f if {
+	f := {"rule_id": "ORG_REVIEW", "resource": "aws_s3_bucket.logs"}
+}`
+	if err := os.WriteFile(regoPath, []byte(body), 0o644); err != nil {
+		t.Fatalf("write rego: %v", err)
+	}
+	rule, diagnostics := LoadRegoRule(RegoOptions{
+		PolicyPath:    filepath.Join(tempDir, ".changegate.yaml"),
+		Files:         []string{"policy.rego"},
+		Query:         "data.changegate.findings",
+		Timeout:       time.Second,
+		MaxInputBytes: 1,
+	})
+	if len(diagnostics) > 0 {
+		t.Fatalf("diagnostics = %#v", diagnostics)
+	}
+	findings, err := rule.Evaluate(context.Background(), rules.RuleInput{Plan: &model.Plan{Changes: []model.Change{{Address: "aws_s3_bucket.logs"}}}})
+	if err == nil {
+		t.Fatalf("Evaluate returned nil error and findings %#v, want max input error", findings)
+	}
+	failureRule, ok := rule.(rules.FailureFindingRule)
+	if !ok {
+		t.Fatalf("rego rule does not implement fail-closed contract")
+	}
+	finding, enforce := failureRule.FailureFinding(err)
+	if !enforce || finding.Severity != model.SeverityHigh || finding.Confidence != model.ConfidenceHigh {
+		t.Fatalf("failure finding = %#v enforce=%v, want high/high enforcing", finding, enforce)
 	}
 }

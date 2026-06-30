@@ -4,6 +4,26 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v0.6.1 - 2026-06-30
+
+### Changed
+
+- Hardened custom Rego policy evaluation so runtime failures fail closed with a blocking `CUSTOM_OPA_REGO` finding instead of silently allowing the scan.
+- Made release installers verify signed checksum manifests by default before trusting archive checksums.
+- Capped untrusted Terraform/OpenTofu plan input, external scanner imports, custom Rego module files, audit plan hashing, and dense blast-radius graph traversal.
+- Capped untrusted SARIF and generic imported findings at medium confidence unless native graph evidence or policy configuration raises their enforcement impact.
+- Updated the minimum Go toolchain floor to `1.25.11` and adjusted CI to test the patched 1.25 line.
+
+### Fixed
+
+- Fixed terminal and Markdown/PR-rendered output paths so untrusted plan, finding, scanner, diagnostic, and remediation text is sanitized before human-facing rendering.
+- Fixed AWS cloud-context coverage reporting so partial S3, Secrets Manager, and KMS policy-read failures are surfaced as diagnostics and no longer appear as complete policy coverage.
+- Fixed npm publish workflow preparation so release package smoke tests have `cosign` available for signed checksum verification.
+
+### Breaking changes
+
+- Installers now require `cosign` by default for signed checksum verification. Set `CHANGEGATE_VERIFY_SIG=false` or `CHANGEGATE_NPM_VERIFY_SIG=false` only in trusted test environments where signature verification is intentionally unavailable.
+
 ## v0.6.0 - 2026-06-12
 
 ### Added

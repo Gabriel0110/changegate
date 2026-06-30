@@ -93,6 +93,26 @@ func TestRunnerDeterministicAndFaultTolerant(t *testing.T) {
 	}
 }
 
+func TestRunnerFailClosedRuleProducesFinding(t *testing.T) {
+	t.Parallel()
+
+	registry := NewRegistry()
+	if err := registry.Register(failClosedRule{id: "CUSTOM_FAIL_CLOSED"}); err != nil {
+		t.Fatalf("register: %v", err)
+	}
+
+	result := NewRunner(registry).Evaluate(context.Background(), RuleInput{}, Selection{})
+	if len(result.Findings) != 1 {
+		t.Fatalf("findings = %d, want fail-closed finding", len(result.Findings))
+	}
+	if result.Findings[0].Severity != model.SeverityHigh || result.Findings[0].Confidence != model.ConfidenceHigh {
+		t.Fatalf("finding did not enforce high/high: %#v", result.Findings[0])
+	}
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Severity != model.DiagnosticError {
+		t.Fatalf("diagnostics = %#v, want one error diagnostic", result.Diagnostics)
+	}
+}
+
 func TestRunnerSelectionOverridesAndExperimentalSuppression(t *testing.T) {
 	t.Parallel()
 
@@ -232,4 +252,31 @@ func (r errorRule) Metadata() Metadata {
 
 func (errorRule) Evaluate(context.Context, RuleInput) ([]model.Finding, error) {
 	return nil, errors.New("failed")
+}
+
+type failClosedRule struct {
+	id string
+}
+
+func (r failClosedRule) Metadata() Metadata {
+	return testRule{id: r.id, resource: "custom-rego"}.Metadata()
+}
+
+func (failClosedRule) Evaluate(context.Context, RuleInput) ([]model.Finding, error) {
+	return nil, errors.New("policy failed")
+}
+
+func (failClosedRule) FailureFinding(err error) (model.Finding, bool) {
+	return model.Finding{
+		ResourceAddress: "custom-rego",
+		Severity:        model.SeverityHigh,
+		Confidence:      model.ConfidenceHigh,
+		Evidence: []model.Evidence{{
+			Type:     "test",
+			Resource: "custom-rego",
+			Path:     "evaluate",
+			Value:    err.Error(),
+			Message:  "test policy failed",
+		}},
+	}, true
 }

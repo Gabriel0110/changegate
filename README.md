@@ -85,10 +85,11 @@ Release install:
 
 ```bash
 export CHANGEGATE_VERSION=vX.Y.Z
+# Requires cosign on PATH for signed checksum verification.
 curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
 ```
 
-The installer verifies `checksums.txt` and refuses checksum mismatches. Set `CHANGEGATE_VERSION` to another release tag when upgrading. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
+The installer verifies the signed checksum manifest with `cosign`, verifies the archive checksum, and refuses mismatches. Set `CHANGEGATE_VERIFY_SIG=false` only in trusted test environments where signature verification is intentionally unavailable. Set `CHANGEGATE_VERSION` to another release tag when upgrading. Release artifacts include checksums, signed checksums, SBOMs, attestations, signed Docker images, and Linux `.deb`, `.rpm`, and `.apk` packages.
 
 Docker:
 
@@ -106,17 +107,9 @@ npx changegate version
 npx changegate scan --plan tfplan.json
 ```
 
-The npm package installs the matching platform binary from GitHub Releases and verifies the archive checksum before extraction.
+The npm package installs the matching platform binary from GitHub Releases, verifies the signed checksum manifest with `cosign`, and verifies the archive checksum before extraction. Set `CHANGEGATE_NPM_VERIFY_SIG=false` only in trusted test environments.
 
 See [Install Options](docs/distribution.md) for Docker tags and npm installer behavior.
-
-To verify the signed checksum manifest as part of install, install `cosign` and set `CHANGEGATE_VERIFY_SIG=true`:
-
-```bash
-export CHANGEGATE_VERSION=vX.Y.Z
-export CHANGEGATE_VERIFY_SIG=true
-curl -fsSL "https://raw.githubusercontent.com/Gabriel0110/changegate/${CHANGEGATE_VERSION}/scripts/install.sh" | bash
-```
 
 Development build:
 
@@ -260,6 +253,7 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: hashicorp/setup-terraform@v3
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
       - name: Terraform plan
         working-directory: infra

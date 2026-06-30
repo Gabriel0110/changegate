@@ -333,6 +333,39 @@ func TestGraphV2PathsBlastRadiusAndBoundaryCrossings(t *testing.T) {
 	}
 }
 
+func TestBlastRadiusLimitsDenseTraversal(t *testing.T) {
+	t.Parallel()
+
+	g := &Graph{Nodes: map[ResourceID]*Node{}, Edges: []Edge{}}
+	g.Nodes["entry"] = &Node{ID: "entry", Address: "entry", Kind: NodePublicEntrypoint}
+	previousLayer := []ResourceID{"entry"}
+	for depth := 0; depth < 8; depth++ {
+		nextLayer := make([]ResourceID, 0, len(previousLayer)*4)
+		for _, parent := range previousLayer {
+			for branch := 0; branch < 4; branch++ {
+				id := ResourceID(fmt.Sprintf("n_%d_%s_%d", depth, parent, branch))
+				g.Nodes[id] = &Node{ID: id, Address: string(id), Kind: NodeNetworkBoundary}
+				g.Edges = append(g.Edges, Edge{From: parent, To: id, Type: EdgeRoutesTo, Source: SourcePlan, Confidence: ConfidenceHigh})
+				nextLayer = append(nextLayer, id)
+			}
+		}
+		previousLayer = nextLayer
+	}
+	for index, parent := range previousLayer {
+		id := ResourceID(fmt.Sprintf("db_%d", index))
+		g.Nodes[id] = &Node{ID: id, Address: string(id), Kind: NodeDataStore}
+		g.Edges = append(g.Edges, Edge{From: parent, To: id, Type: EdgeRoutesTo, Source: SourcePlan, Confidence: ConfidenceHigh})
+	}
+
+	radius := g.BlastRadius("entry", BlastRadiusOptions{MaxDepth: 12, MaxPaths: 3})
+	if len(radius.Paths) > 3 {
+		t.Fatalf("paths = %d, want capped to 3", len(radius.Paths))
+	}
+	if len(radius.SensitiveAssets) == 0 {
+		t.Fatalf("expected at least one sensitive asset despite traversal budget")
+	}
+}
+
 func TestGraphDeterministicAndUnknownTolerant(t *testing.T) {
 	t.Parallel()
 

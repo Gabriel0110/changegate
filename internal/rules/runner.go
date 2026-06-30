@@ -29,6 +29,16 @@ type Runner struct {
 	parallelism int
 }
 
+// FailureFindingRule can turn an evaluation failure into an enforcing finding.
+//
+// Most built-in rules remain fault tolerant: an unexpected rule panic or error
+// emits a diagnostic and the rest of the scan continues. Custom policy engines
+// may implement this interface when a failure means an enforcement policy did
+// not run and should fail closed.
+type FailureFindingRule interface {
+	FailureFinding(error) (model.Finding, bool)
+}
+
 // RunnerOption configures a rule runner.
 type RunnerOption func(*Runner)
 
@@ -137,8 +147,20 @@ func (r *Runner) evaluateOne(ctx context.Context, index int, rule Rule, input Ru
 	}
 	ruleFindings, err := evaluateSafely(ctx, rule, input)
 	if err != nil {
+		if failureRule, ok := rule.(FailureFindingRule); ok {
+			finding, enforce := failureRule.FailureFinding(err)
+			if enforce {
+				finding = applyMetadataDefaults(finding, meta)
+				if override, ok := selection.Overrides[meta.ID]; ok {
+					finding = model.ApplyOverride(finding, override)
+				} else {
+					finding = model.NormalizeFinding(finding)
+				}
+				result.findings = append(result.findings, finding)
+			}
+		}
 		result.diagnostics = append(result.diagnostics, model.Diagnostic{
-			Severity: model.DiagnosticWarning,
+			Severity: diagnosticSeverityForRuleError(rule),
 			Code:     "RULE_EVALUATION_FAILED",
 			Message:  fmt.Sprintf("%s: %v", meta.ID, err),
 		})
@@ -202,6 +224,15 @@ func evaluateSafely(ctx context.Context, rule Rule, input RuleInput) (findings [
 		}
 	}()
 	return rule.Evaluate(ctx, input)
+}
+
+func diagnosticSeverityForRuleError(rule Rule) model.DiagnosticSeverity {
+	if failureRule, ok := rule.(FailureFindingRule); ok {
+		if _, enforce := failureRule.FailureFinding(fmt.Errorf("probe")); enforce {
+			return model.DiagnosticError
+		}
+	}
+	return model.DiagnosticWarning
 }
 
 func applyMetadataDefaults(finding model.Finding, meta Metadata) model.Finding {

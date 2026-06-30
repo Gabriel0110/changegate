@@ -94,6 +94,59 @@ func TestCheckovImportRejectsUnrelatedJSON(t *testing.T) {
 	}
 }
 
+func TestImportRejectsOversizedArtifacts(t *testing.T) {
+	t.Parallel()
+
+	result := Import(SourceGeneric, strings.NewReader(strings.Repeat(" ", int(maxImportBytes)+1)))
+	if len(result.Diagnostics) != 1 || result.Diagnostics[0].Code != "ADAPTER_IMPORT_TOO_LARGE" {
+		t.Fatalf("diagnostics = %#v, want size diagnostic", result.Diagnostics)
+	}
+	if len(result.Findings) != 0 {
+		t.Fatalf("findings = %d, want none", len(result.Findings))
+	}
+}
+
+func TestSARIFAndGenericCannotSelfAssertHighConfidence(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		source Source
+		body   string
+	}{
+		{
+			name:   "sarif",
+			source: SourceSARIF,
+			body:   `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"scanner","rules":[{"id":"RULE_1","name":"rule","properties":{"severity":"HIGH","confidence":"HIGH"}}]}},"results":[{"ruleId":"RULE_1","message":{"text":"finding"},"properties":{"resource":"aws_s3_bucket.logs","severity":"HIGH","confidence":"HIGH"}}]}]}`,
+		},
+		{
+			name:   "generic",
+			source: SourceGeneric,
+			body:   `{"findings":[{"rule_id":"CUSTOM_PUBLIC","title":"public thing","resource_address":"aws_lb.admin","category":"public","severity":"high","confidence":"high"}]}`,
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := Import(tt.source, strings.NewReader(tt.body))
+			if len(result.Diagnostics) > 0 {
+				t.Fatalf("diagnostics = %#v", result.Diagnostics)
+			}
+			if len(result.Findings) != 1 {
+				t.Fatalf("findings = %d, want one", len(result.Findings))
+			}
+			if result.Findings[0].Severity != model.SeverityHigh {
+				t.Fatalf("severity = %q, want high", result.Findings[0].Severity)
+			}
+			if result.Findings[0].Confidence != model.ConfidenceMedium {
+				t.Fatalf("confidence = %q, want capped medium", result.Findings[0].Confidence)
+			}
+		})
+	}
+}
+
 func TestImportAdaptersRejectUnrelatedJSON(t *testing.T) {
 	t.Parallel()
 

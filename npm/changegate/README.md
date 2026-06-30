@@ -7,7 +7,7 @@ npx changegate version
 npx changegate scan --plan tfplan.json
 ```
 
-During installation, the package downloads the matching ChangeGate release archive from GitHub Releases, verifies it against the published `checksums.txt`, and installs a local CLI shim named `changegate`.
+During installation, the package downloads the matching ChangeGate release archive from GitHub Releases, verifies the signed checksum manifest with `cosign`, verifies the archive checksum, and installs a local CLI shim named `changegate`.
 
 When installing from a source checkout instead of the published npm package, set `CHANGEGATE_VERSION` to the release you want to download or set `CHANGEGATE_INSTALL_BINARY` to an already-built local binary.
 
@@ -30,7 +30,8 @@ Most installs work without configuration. These variables are available for pinn
 | `CHANGEGATE_RELEASE_BASE_URL` | Download artifacts from a mirror instead of GitHub Releases. |
 | `CHANGEGATE_INSTALL_BINARY` | Copy an already-built local binary instead of downloading artifacts. |
 | `CHANGEGATE_NPM_SKIP_INSTALL` | Skip binary installation when a packaging environment needs to avoid network access. |
+| `CHANGEGATE_NPM_VERIFY_SIG` | Set to `false` only in trusted test environments where signature verification is intentionally unavailable. |
 
 ## Security
 
-The installer does not use runtime npm dependencies. It fetches only ChangeGate release artifacts and verifies the selected archive checksum before extracting it.
+The installer does not use runtime npm dependencies. It fetches only ChangeGate release artifacts, verifies the signed checksum manifest before trusting `checksums.txt`, and verifies the selected archive checksum before extracting it.

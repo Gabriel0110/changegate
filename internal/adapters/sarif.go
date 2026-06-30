@@ -91,7 +91,7 @@ func parseSARIF(body []byte) ([]model.Finding, error) {
 				Provider:        "external",
 				Category:        category(firstNonEmpty(asString(result.Properties["category"]), asString(rule.Properties["category"]), result.RuleID, title)),
 				Severity:        severity(firstNonEmpty(asString(result.Properties["severity"]), asString(rule.Properties["severity"]), result.Level)),
-				Confidence:      confidence(firstNonEmpty(asString(result.Properties["confidence"]), asString(rule.Properties["confidence"]))),
+				Confidence:      boundedImportedConfidence(SourceSARIF, firstNonEmpty(asString(result.Properties["confidence"]), asString(rule.Properties["confidence"]))),
 				Evidence: []model.Evidence{{
 					Type:     "external_location",
 					Resource: resource,

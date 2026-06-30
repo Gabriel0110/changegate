@@ -1225,8 +1225,13 @@ func TestImportedFindingCanBeWaived(t *testing.T) {
 	if err := os.WriteFile(importPath, []byte(body), 0o644); err != nil {
 		t.Fatalf("write import fixture: %v", err)
 	}
+	policyPath := filepath.Join(tempDir, "policy.yaml")
+	policyBody := "version: 1\ndecision:\n  block_on:\n    severity: high\n    confidence: medium\n"
+	if err := os.WriteFile(policyPath, []byte(policyBody), 0o644); err != nil {
+		t.Fatalf("write policy: %v", err)
+	}
 
-	stdout, stderr, code := runCLI("--format", "json", "scan", "--plan", "../input/testdata/opentofu-plan.json", "--import-json", importPath)
+	stdout, stderr, code := runCLI("--format", "json", "--policy", policyPath, "scan", "--plan", "../input/testdata/opentofu-plan.json", "--import-json", importPath)
 	if code != exitBlocked {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitBlocked, stdout, stderr)
 	}
@@ -1260,8 +1265,7 @@ func TestImportedFindingCanBeWaived(t *testing.T) {
 		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
 	}
 
-	policyPath := filepath.Join(tempDir, "policy.yaml")
-	policyBody := "version: 1\nwaivers:\n  file: " + waiverPath + "\n"
+	policyBody = "version: 1\ndecision:\n  block_on:\n    severity: high\n    confidence: medium\nwaivers:\n  file: " + waiverPath + "\n"
 	if err := os.WriteFile(policyPath, []byte(policyBody), 0o644); err != nil {
 		t.Fatalf("write policy: %v", err)
 	}
