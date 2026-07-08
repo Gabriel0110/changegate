@@ -13,12 +13,16 @@ import (
 )
 
 const (
-	mapResourceWidth  = 168.0
-	mapResourceHeight = 64.0
-	mapCardGapX       = 18.0
-	mapCardGapY       = 18.0
-	mapSectionPadding = 28.0
-	mapHeaderHeight   = 34.0
+	mapResourceMinWidth = 192.0
+	mapResourceMaxWidth = 260.0
+	mapResourceHeight   = 72.0
+	mapCardGapX         = 18.0
+	mapCardGapY         = 18.0
+	mapSectionPadding   = 28.0
+	mapHeaderHeight     = 34.0
+	mapSectionMinWidth  = 260.0
+	mapVPCMinWidth      = 360.0
+	mapVPCMinHeight     = 150.0
 )
 
 type mapNode struct {
@@ -211,24 +215,33 @@ func (b *mapBuilder) layout() {
 		regionWidth := 0.0
 
 		if len(vpcGroups) == 0 {
-			w, h, childID := b.layoutResourceSection("regional-"+regionName, "Regional services", "services", regionID, regionX+mapSectionPadding, sectionY, b.nodesForRegionWithoutVPC(regionName), 4)
-			regionChildren = append(regionChildren, childID)
-			sectionY += h + sectionGap
-			regionWidth = math.Max(regionWidth, w+mapSectionPadding*2)
+			if regional := b.nodesForRegionWithoutVPC(regionName); len(regional) > 0 {
+				w, h, childID := b.layoutResourceSection("regional-"+regionName, "Regional services", "services", regionID, regionX+mapSectionPadding, sectionY, regional, 4)
+				regionChildren = append(regionChildren, childID)
+				sectionY += h + sectionGap
+				regionWidth = math.Max(regionWidth, w+mapSectionPadding*2)
+			}
 		} else {
 			vpcX := regionX + mapSectionPadding
 			vpcY := sectionY
+			rowHeight := 0.0
+			rowWidth := 0.0
+			const maxRowWidth = 1040.0
 			for _, vpcID := range vpcGroups {
 				vpcW, vpcH, childID := b.layoutVPC(vpcID, regionName, vpcX, vpcY)
 				regionChildren = append(regionChildren, childID)
-				regionWidth = math.Max(regionWidth, vpcX-regionX+vpcW+mapSectionPadding)
-				vpcX += vpcW + columnGap
-				if vpcX-regionX > 980 {
+				rowHeight = math.Max(rowHeight, vpcH)
+				rowWidth = vpcX - regionX + vpcW + mapSectionPadding
+				regionWidth = math.Max(regionWidth, rowWidth)
+				if rowWidth+columnGap+vpcW > maxRowWidth && rowHeight > 0 {
 					vpcX = regionX + mapSectionPadding
-					vpcY += vpcH + sectionGap
-					sectionY = vpcY
+					vpcY += rowHeight + sectionGap
+					rowHeight = 0
+					rowWidth = 0
+				} else {
+					vpcX += vpcW + columnGap
 				}
-				sectionY = math.Max(sectionY, vpcY+vpcH+sectionGap)
+				sectionY = math.Max(sectionY, vpcY+rowHeight+sectionGap)
 			}
 			if regional := b.nodesForRegionWithoutVPC(regionName); len(regional) > 0 {
 				w, h, childID := b.layoutResourceSection("regional-"+regionName, "Regional services", "services", regionID, regionX+mapSectionPadding, sectionY, regional, 4)
@@ -257,37 +270,15 @@ func (b *mapBuilder) layout() {
 	}
 
 	if globalNodes := b.globalNodes(); len(globalNodes) > 0 {
-		w, h, childID := b.layoutResourceSection("global-services", "Global services", "services", "global", startX+mapSectionPadding, currentY, globalNodes, 4)
-		b.groups = append(b.groups, mapGroup{
-			ID:       "global",
-			Label:    "Global services",
-			Kind:     "global",
-			Parent:   accountGroup.ID,
-			X:        startX + mapSectionPadding,
-			Y:        currentY,
-			Width:    w,
-			Height:   h,
-			Children: []string{childID},
-		})
-		accountChildren = append(accountChildren, "global")
+		w, h, childID := b.layoutResourceSection("global-services", "Global services", "global", accountGroup.ID, startX+mapSectionPadding, currentY, globalNodes, 4)
+		accountChildren = append(accountChildren, childID)
 		currentY += h + regionGap
 		maxWidth = math.Max(maxWidth, startX+w+mapSectionPadding)
 	}
 
 	if unplaced := b.unplacedNodes(); len(unplaced) > 0 {
-		w, h, childID := b.layoutResourceSection("unplaced", "Unplaced resources", "services", "unplaced-root", startX+mapSectionPadding, currentY, unplaced, 4)
-		b.groups = append(b.groups, mapGroup{
-			ID:       "unplaced-root",
-			Label:    "Unplaced resources",
-			Kind:     "global",
-			Parent:   accountGroup.ID,
-			X:        startX + mapSectionPadding,
-			Y:        currentY,
-			Width:    w,
-			Height:   h,
-			Children: []string{childID},
-		})
-		accountChildren = append(accountChildren, "unplaced-root")
+		w, h, childID := b.layoutResourceSection("unplaced", "Unplaced resources", "global", accountGroup.ID, startX+mapSectionPadding, currentY, unplaced, 4)
+		accountChildren = append(accountChildren, childID)
 		currentY += h + regionGap
 		maxWidth = math.Max(maxWidth, startX+w+mapSectionPadding)
 	}
@@ -320,45 +311,48 @@ func (b *mapBuilder) layoutVPC(vpcID graph.ResourceID, region string, x float64,
 			vpcLabel += " (" + cidr + ")"
 		}
 	}
-	subnetIDs := b.subnetIDs(vpcID, region)
+	subnetIDs := b.populatedSubnetIDs(vpcID, region)
+	vpcOnly := b.nodesForVPCWithoutSubnet(vpcID, region)
 	children := make([]string, 0, len(subnetIDs)+1)
 	contentY := y + mapHeaderHeight + mapSectionPadding
 	contentX := x + mapSectionPadding
-	maxWidth := 0.0
-	totalHeight := mapHeaderHeight + mapSectionPadding
+	maxRight := x + mapVPCMinWidth
+	maxBottom := contentY
 	if len(subnetIDs) == 0 {
-		w, h, childID := b.layoutResourceSection("vpc-services-"+string(vpcID), "VPC resources", "network-resources", string(vpcID), contentX, contentY, b.nodesForVPCWithoutSubnet(vpcID, region), 2)
-		children = append(children, childID)
-		maxWidth = math.Max(maxWidth, w+mapSectionPadding*2)
-		totalHeight += h + mapSectionPadding
+		if len(vpcOnly) > 0 {
+			w, h, childID := b.layoutResourceSection("vpc-services-"+string(vpcID), "VPC resources", "network-resources", string(vpcID), contentX, contentY, vpcOnly, 3)
+			children = append(children, childID)
+			maxRight = math.Max(maxRight, contentX+w+mapSectionPadding)
+			maxBottom = math.Max(maxBottom, contentY+h)
+		}
 	} else {
 		subnetX := contentX
 		rowHeight := 0.0
-		for index, subnetID := range subnetIDs {
+		for _, subnetID := range subnetIDs {
 			w, h, childID := b.layoutSubnet(subnetID, string(vpcID), subnetX, contentY)
 			children = append(children, childID)
 			rowHeight = math.Max(rowHeight, h)
-			maxWidth = math.Max(maxWidth, subnetX-x+w+mapSectionPadding)
-			if index%2 == 1 {
+			maxRight = math.Max(maxRight, subnetX+w+mapSectionPadding)
+			if subnetX+w+22+w > x+980 {
 				subnetX = contentX
 				contentY += rowHeight + 22
-				totalHeight += rowHeight + 22
+				maxBottom = math.Max(maxBottom, contentY)
 				rowHeight = 0
 			} else {
 				subnetX += w + 22
 			}
+			maxBottom = math.Max(maxBottom, contentY+rowHeight)
 		}
-		totalHeight += rowHeight + mapSectionPadding
-		if vpcOnly := b.nodesForVPCWithoutSubnet(vpcID, region); len(vpcOnly) > 0 {
-			contentY += rowHeight + 22
+		if len(vpcOnly) > 0 {
+			contentY = maxBottom + 22
 			w, h, childID := b.layoutResourceSection("vpc-services-"+string(vpcID), "VPC resources", "network-resources", string(vpcID), contentX, contentY, vpcOnly, 3)
 			children = append(children, childID)
-			maxWidth = math.Max(maxWidth, w+mapSectionPadding*2)
-			totalHeight += h + 22
+			maxRight = math.Max(maxRight, contentX+w+mapSectionPadding)
+			maxBottom = math.Max(maxBottom, contentY+h)
 		}
 	}
-	width := math.Max(maxWidth, 420)
-	height := math.Max(totalHeight, 240)
+	width := math.Max(maxRight-x, labelMinWidth(vpcLabel)+mapSectionPadding*2+42)
+	height := math.Max(maxBottom-y+mapSectionPadding, mapVPCMinHeight)
 	b.groups = append(b.groups, mapGroup{
 		ID:       string(vpcID),
 		Label:    vpcLabel,
@@ -371,6 +365,17 @@ func (b *mapBuilder) layoutVPC(vpcID graph.ResourceID, region string, x float64,
 		Children: children,
 	})
 	return width, height, string(vpcID)
+}
+
+func (b *mapBuilder) populatedSubnetIDs(vpcID graph.ResourceID, region string) []graph.ResourceID {
+	subnetIDs := b.subnetIDs(vpcID, region)
+	out := make([]graph.ResourceID, 0, len(subnetIDs))
+	for _, subnetID := range subnetIDs {
+		if len(b.nodesForSubnet(subnetID)) > 0 {
+			out = append(out, subnetID)
+		}
+	}
+	return out
 }
 
 func (b *mapBuilder) layoutSubnet(subnetID graph.ResourceID, parent string, x float64, y float64) (float64, float64, string) {
@@ -390,13 +395,15 @@ func (b *mapBuilder) layoutSubnet(subnetID graph.ResourceID, parent string, x fl
 	return w, h, sectionID
 }
 
-func (b *mapBuilder) layoutResourceSection(id string, label string, kind string, parent string, x float64, y float64, ids []graph.ResourceID, columns int) (float64, float64, string) {
-	if columns <= 0 {
-		columns = 2
-	}
+func (b *mapBuilder) layoutResourceSection(id string, label string, kind string, parent string, x float64, y float64, ids []graph.ResourceID, maxColumns int) (float64, float64, string) {
+	columns := sectionColumns(len(ids), maxColumns)
+	resourceWidth := b.resourceWidthForIDs(ids)
 	rows := int(math.Ceil(float64(maxInt(1, len(ids))) / float64(columns)))
-	width := mapSectionPadding*2 + float64(columns)*mapResourceWidth + float64(columns-1)*mapCardGapX
-	height := mapHeaderHeight + mapSectionPadding*2 + float64(rows)*mapResourceHeight + float64(rows-1)*mapCardGapY
+	width := math.Max(mapSectionMinWidth, mapSectionPadding*2+float64(columns)*resourceWidth+float64(columns-1)*mapCardGapX)
+	height := mapHeaderHeight + mapSectionPadding*2
+	if len(ids) > 0 {
+		height += float64(rows)*mapResourceHeight + float64(rows-1)*mapCardGapY
+	}
 	children := make([]string, 0, len(ids))
 	for index, idValue := range ids {
 		node := b.graph.Nodes[idValue]
@@ -415,9 +422,9 @@ func (b *mapBuilder) layoutResourceSection(id string, label string, kind string,
 			Properties: propertiesForNode(node),
 			Tags:       tagsForNode(node),
 			Metadata:   metadataForNode(node),
-			X:          x + mapSectionPadding + float64(col)*(mapResourceWidth+mapCardGapX),
+			X:          x + mapSectionPadding + float64(col)*(resourceWidth+mapCardGapX),
 			Y:          y + mapHeaderHeight + mapSectionPadding + float64(row)*(mapResourceHeight+mapCardGapY),
-			Width:      mapResourceWidth,
+			Width:      resourceWidth,
 			Height:     mapResourceHeight,
 		})
 		children = append(children, string(idValue))
@@ -435,6 +442,35 @@ func (b *mapBuilder) layoutResourceSection(id string, label string, kind string,
 		Children: children,
 	})
 	return width, height, id
+}
+
+func (b *mapBuilder) resourceWidthForIDs(ids []graph.ResourceID) float64 {
+	width := mapResourceMinWidth
+	for _, id := range ids {
+		node := b.graph.Nodes[id]
+		labelWidth := labelMinWidth(labelForNode(node)) + 64
+		serviceWidth := labelMinWidth(serviceLabelForNode(node)) + 64
+		width = math.Max(width, math.Max(labelWidth, serviceWidth))
+	}
+	return math.Min(mapResourceMaxWidth, math.Max(mapResourceMinWidth, width))
+}
+
+func sectionColumns(itemCount int, maxColumns int) int {
+	if maxColumns <= 0 {
+		maxColumns = 2
+	}
+	if itemCount <= 0 {
+		return 1
+	}
+	return minInt(maxColumns, itemCount)
+}
+
+func labelMinWidth(label string) float64 {
+	runes := []rune(strings.TrimSpace(label))
+	if len(runes) == 0 {
+		return 0
+	}
+	return math.Min(220, float64(len(runes))*7.4)
 }
 
 func (b *mapBuilder) edges() []mapEdge {
@@ -1096,6 +1132,7 @@ let selectedGroupId = '';
 const collapsedGroups = new Set();
 const selectedNodeIds = new Set();
 const modifierKeys = { meta: false, ctrl: false, shift: false };
+const layoutMetrics = { padding: 28, header: 34, minSection: 260, minVPCWidth: 360, minVPCHeight: 150 };
 const roleStyles = {
   public: ['#eff6ff', '#2563eb'],
   workload: ['#ecfeff', '#0891b2'],
@@ -1130,6 +1167,14 @@ function truncateText(value, maxChars) {
   const text = String(value || '');
   if (text.length <= maxChars) return text;
   return text.slice(0, Math.max(0, maxChars - 1)).replace(/[ /.-]+$/, '') + '…';
+}
+function truncateMiddle(value, maxChars) {
+  const text = String(value || '');
+  if (text.length <= maxChars) return text;
+  if (maxChars <= 4) return text.slice(0, maxChars);
+  const head = Math.max(2, Math.ceil((maxChars - 1) * 0.58));
+  const tail = Math.max(2, maxChars - 1 - head);
+  return text.slice(0, head) + '…' + text.slice(Math.max(head, text.length - tail));
 }
 function additiveSelectionActive(event) {
   return Boolean(
@@ -1195,13 +1240,17 @@ function drawNode(node) {
   const position = positions.get(node.id) || { x: node.x, y: node.y, width: node.width, height: node.height };
   node.x = position.x;
   node.y = position.y;
+  node.width = position.width || node.width;
+  node.height = position.height || node.height;
+  const titleMaxChars = Math.max(12, Math.floor((node.width - 62) / 7));
+  const serviceMaxChars = Math.max(12, Math.floor((node.width - 62) / 6.2));
   element.setAttribute('transform', 'translate(' + position.x + ' ' + position.y + ')');
   element.innerHTML =
     '<title>' + escapeHTML((node.label || node.id) + ' - ' + serviceLine(node)) + '</title>' +
     '<rect width="' + node.width + '" height="' + node.height + '" rx="7"></rect>' +
     iconMarkup(node) +
-    textLines(node.label || node.id, 'resource-title', 44, 22, 17, 2) +
-    '<text class="resource-service" x="44" y="52">' + escapeHTML(truncateText(cardServiceLabel(node), 20)) + '</text>';
+    textLines(node.label || node.id, 'resource-title', 54, 22, titleMaxChars, 2) +
+    '<text class="resource-service" x="54" y="' + (node.height - 16) + '">' + escapeHTML(truncateMiddle(cardServiceLabel(node), serviceMaxChars)) + '</text>';
   element.addEventListener('pointerdown', (event) => startNodeDrag(event, node.id, element));
   element.addEventListener('click', (event) => {
     event.preventDefault();
@@ -1223,7 +1272,7 @@ function drawNode(node) {
   viewport.appendChild(element);
 }
 function iconMarkup(node) {
-  return '<g transform="translate(12 17)">' +
+  return '<g transform="translate(14 18)">' +
     '<rect class="resource-icon-bg" x="-4" y="-4" width="24" height="24" rx="6"></rect>' +
     iconPath(node.icon || node.role || 'resource') +
     '</g>';
@@ -1247,21 +1296,32 @@ function iconPath(icon) {
   }
 }
 function textLines(value, cls, x, y, maxChars, maxLines) {
-  const words = String(value || '').split(/\s+/).filter(Boolean);
+  return wrapText(value, maxChars, maxLines).map((line, index) => '<text class="' + cls + '" x="' + x + '" y="' + (y + index * 14) + '">' + escapeHTML(line) + '</text>').join('');
+}
+function wrapText(value, maxChars, maxLines) {
+  const text = String(value || '').trim();
+  if (!text) return [];
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length === 1) return [truncateMiddle(words[0], maxChars)];
   const lines = [];
   let current = '';
-  words.forEach((word) => {
-    if (!current) { current = word; return; }
-    if ((current + ' ' + word).length > maxChars && lines.length < maxLines - 1) {
-      lines.push(current); current = word;
-    } else {
-      current += ' ' + word;
+  for (const word of words) {
+    const candidate = current ? current + ' ' + word : word;
+    if (candidate.length <= maxChars) {
+      current = candidate;
+      continue;
     }
-  });
-  if (current) lines.push(current);
-  const trimmed = lines.slice(0, maxLines);
-  if (trimmed.join(' ') !== words.join(' ') && trimmed.length) trimmed[trimmed.length - 1] = trimmed[trimmed.length - 1].replace(/[. ]+$/, '') + '...';
-  return trimmed.map((line, index) => '<text class="' + cls + '" x="' + x + '" y="' + (y + index * 14) + '">' + escapeHTML(line) + '</text>').join('');
+    if (current) lines.push(current);
+    current = word.length > maxChars ? truncateMiddle(word, maxChars) : word;
+    if (lines.length >= maxLines - 1) break;
+  }
+  if (current && lines.length < maxLines) lines.push(current);
+  if (lines.length > maxLines) lines.length = maxLines;
+  const rendered = lines.join(' ');
+  if (rendered !== text && lines.length) {
+    lines[lines.length - 1] = truncateMiddle(lines[lines.length - 1], maxChars);
+  }
+  return lines;
 }
 function drawEdge(edge) {
   const from = nodesById.get(edge.from);
@@ -1594,6 +1654,7 @@ function moveActiveNodeDrag(point) {
     const element = nodeElements.get(nodeId);
     if (element) element.setAttribute('transform', 'translate(' + position.x.toFixed(1) + ' ' + position.y.toFixed(1) + ')');
   });
+  resizeGroupsToContents(ancestorGroupIDsForNodes(activeDrag.nodeIds));
   updateAllEdges();
   drawMiniMap();
   applySelectionHighlight();
@@ -1648,41 +1709,63 @@ function moveActiveGroupDrag(point) {
     const element = nodeElements.get(nodeId);
     if (element) element.setAttribute('transform', 'translate(' + position.x.toFixed(1) + ' ' + position.y.toFixed(1) + ')');
   });
-  expandAncestorsForActiveGroup();
+  resizeGroupsToContents(activeGroupDrag.ancestorIds);
   updateAllEdges();
   drawMiniMap();
   applySelectionHighlight();
 }
-function expandAncestorsForActiveGroup() {
-  if (!activeGroupDrag || !activeGroupDrag.moved) return;
-  activeGroupDrag.ancestorIds.forEach((groupId) => {
-    const origin = activeGroupDrag.ancestorOrigins.get(groupId);
+function ancestorGroupIDsForNode(nodeId) {
+  const node = nodesById.get(nodeId);
+  if (!node || !node.parent) return [];
+  const out = [];
+  let parent = node.parent;
+  while (parent) {
+    if (!groupsById.has(parent)) break;
+    out.push(parent);
+    parent = groupsById.get(parent).parent || '';
+  }
+  return out;
+}
+function ancestorGroupIDsForNodes(nodeIds) {
+  const out = [];
+  const seen = new Set();
+  nodeIds.forEach((nodeId) => {
+    ancestorGroupIDsForNode(nodeId).forEach((groupId) => {
+      if (seen.has(groupId)) return;
+      seen.add(groupId);
+      out.push(groupId);
+    });
+  });
+  return out;
+}
+function resizeGroupsToContents(groupIds) {
+  groupIds.forEach((groupId) => {
+    const group = groupsById.get(groupId);
     const position = groupPositions.get(groupId);
-    if (!origin || !position) return;
-    position.x = origin.x;
-    position.y = origin.y;
-    position.width = origin.width;
-    position.height = origin.height;
+    if (!group || !position) return;
     const children = containedBounds(groupId);
     if (!children) return;
-    const padding = 28;
-    const right = Math.max(origin.x + origin.width, children.right + padding);
-    const bottom = Math.max(origin.y + origin.height, children.bottom + padding);
-    const left = Math.min(origin.x, children.left - padding);
-    const top = Math.min(origin.y, children.top - padding);
+    const metrics = minGroupSize(group);
+    const left = children.left - layoutMetrics.padding;
+    const top = children.top - layoutMetrics.header - layoutMetrics.padding;
+    const right = children.right + layoutMetrics.padding;
+    const bottom = children.bottom + layoutMetrics.padding;
     position.x = left;
     position.y = top;
-    position.width = right - left;
-    position.height = bottom - top;
-    const group = groupsById.get(groupId);
-    if (group) {
-      group.x = position.x;
-      group.y = position.y;
-      group.width = position.width;
-      group.height = position.height;
-    }
+    position.width = Math.max(metrics.width, right - left);
+    position.height = Math.max(metrics.height, bottom - top);
+    group.x = position.x;
+    group.y = position.y;
+    group.width = position.width;
+    group.height = position.height;
     updateGroupElementGeometry(groupId);
   });
+}
+function minGroupSize(group) {
+  const labelWidth = Math.min(260, String(group.label || '').length * 7.5) + layoutMetrics.padding * 2 + 44;
+  if (group.kind === 'vpc') return { width: Math.max(layoutMetrics.minVPCWidth, labelWidth), height: layoutMetrics.minVPCHeight };
+  if (group.kind === 'account' || group.kind === 'region') return { width: Math.max(420, labelWidth), height: 170 };
+  return { width: Math.max(layoutMetrics.minSection, labelWidth), height: layoutMetrics.header + layoutMetrics.padding * 2 };
 }
 function containedBounds(groupId) {
   const group = groupsById.get(groupId);
@@ -1888,27 +1971,74 @@ function applyLayout(layout) {
 }
 function drawMiniMap() {
   if (!minimapContent) return;
-  const width = 220;
-  const height = 150;
-  const scale = Math.min(width / Math.max(data.width, 1), height / Math.max(data.height, 1));
+  const mini = minimapProjection();
   minimapContent.innerHTML = data.groups.map((group) => {
     const position = groupPositions.get(group.id) || group;
-    return '<rect class="mini-group" x="' + (position.x * scale).toFixed(1) + '" y="' + (position.y * scale).toFixed(1) + '" width="' + (position.width * scale).toFixed(1) + '" height="' + (position.height * scale).toFixed(1) + '" rx="2"></rect>';
+    return '<rect class="mini-group" x="' + miniX(position.x, mini).toFixed(1) + '" y="' + miniY(position.y, mini).toFixed(1) + '" width="' + (position.width * mini.scale).toFixed(1) + '" height="' + (position.height * mini.scale).toFixed(1) + '" rx="2"></rect>';
   }).join('') +
-    [...positions.entries()].map(([id, pos]) => isVisibleByCollapse(id) ? '<rect class="mini-node" x="' + (pos.x * scale).toFixed(1) + '" y="' + (pos.y * scale).toFixed(1) + '" width="' + Math.max(2, pos.width * scale).toFixed(1) + '" height="' + Math.max(2, pos.height * scale).toFixed(1) + '" rx="1"></rect>' : '').join('');
+    [...positions.entries()].map(([id, pos]) => isVisibleByCollapse(id) ? '<rect class="mini-node" x="' + miniX(pos.x, mini).toFixed(1) + '" y="' + miniY(pos.y, mini).toFixed(1) + '" width="' + Math.max(2, pos.width * mini.scale).toFixed(1) + '" height="' + Math.max(2, pos.height * mini.scale).toFixed(1) + '" rx="1"></rect>' : '').join('');
   updateMiniMapViewport();
 }
+function graphBounds() {
+  let left = 0;
+  let top = 0;
+  let right = Math.max(data.width, 1);
+  let bottom = Math.max(data.height, 1);
+  const include = (rect) => {
+    if (!rect) return;
+    left = Math.min(left, rect.x);
+    top = Math.min(top, rect.y);
+    right = Math.max(right, rect.x + rect.width);
+    bottom = Math.max(bottom, rect.y + rect.height);
+  };
+  groupPositions.forEach(include);
+  positions.forEach(include);
+  const pad = 24;
+  return { left: left - pad, top: top - pad, right: right + pad, bottom: bottom + pad, width: right - left + pad * 2, height: bottom - top + pad * 2 };
+}
+function minimapProjection() {
+  const bounds = graphBounds();
+  const scale = Math.min(220 / Math.max(bounds.width, 1), 150 / Math.max(bounds.height, 1));
+  return { bounds, scale };
+}
+function miniX(x, mini) { return (x - mini.bounds.left) * mini.scale; }
+function miniY(y, mini) { return (y - mini.bounds.top) * mini.scale; }
+function svgCSSScale() {
+  const viewBox = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : { width: data.width || 1, height: data.height || 1 };
+  const rect = svg.getBoundingClientRect();
+  return {
+    x: rect.width && viewBox.width ? rect.width / viewBox.width : 1,
+    y: rect.height && viewBox.height ? rect.height / viewBox.height : 1
+  };
+}
+function visibleGraphBounds() {
+  const cssScale = svgCSSScale();
+  const leftSVG = canvasWrap.scrollLeft / cssScale.x;
+  const topSVG = canvasWrap.scrollTop / cssScale.y;
+  const widthSVG = canvasWrap.clientWidth / cssScale.x;
+  const heightSVG = canvasWrap.clientHeight / cssScale.y;
+  const left = (leftSVG - transform.x) / transform.scale;
+  const top = (topSVG - transform.y) / transform.scale;
+  return {
+    left,
+    top,
+    right: left + widthSVG / transform.scale,
+    bottom: top + heightSVG / transform.scale
+  };
+}
+function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
 function updateMiniMapViewport() {
   if (!minimapView || !canvasWrap) return;
-  const scale = Math.min(220 / Math.max(data.width, 1), 150 / Math.max(data.height, 1));
-  const x = Math.max(0, (-transform.x / transform.scale) * scale);
-  const y = Math.max(0, (-transform.y / transform.scale) * scale);
-  const width = Math.min(220, (canvasWrap.clientWidth / transform.scale) * scale);
-  const height = Math.min(150, (canvasWrap.clientHeight / transform.scale) * scale);
-  minimapView.setAttribute('x', x.toFixed(1));
-  minimapView.setAttribute('y', y.toFixed(1));
-  minimapView.setAttribute('width', Math.max(8, width).toFixed(1));
-  minimapView.setAttribute('height', Math.max(8, height).toFixed(1));
+  const mini = minimapProjection();
+  const visible = visibleGraphBounds();
+  const left = clamp(miniX(visible.left, mini), 0, 220);
+  const top = clamp(miniY(visible.top, mini), 0, 150);
+  const right = clamp(miniX(visible.right, mini), 0, 220);
+  const bottom = clamp(miniY(visible.bottom, mini), 0, 150);
+  minimapView.setAttribute('x', left.toFixed(1));
+  minimapView.setAttribute('y', top.toFixed(1));
+  minimapView.setAttribute('width', Math.max(8, right - left).toFixed(1));
+  minimapView.setAttribute('height', Math.max(8, bottom - top).toFixed(1));
 }
 document.querySelector('[data-action="zoom-in"]').addEventListener('click', () => zoomBy(1.15));
 document.querySelector('[data-action="zoom-out"]').addEventListener('click', () => zoomBy(0.87));
@@ -2000,11 +2130,14 @@ canvasWrap.addEventListener('scroll', updateMiniMapViewport);
 window.addEventListener('resize', updateMiniMapViewport);
 minimap.addEventListener('click', (event) => {
   const rect = minimap.getBoundingClientRect();
-  const scale = Math.min(220 / Math.max(data.width, 1), 150 / Math.max(data.height, 1));
-  const graphX = (event.clientX - rect.left) / scale;
-  const graphY = (event.clientY - rect.top) / scale;
-  transform.x = (canvasWrap.clientWidth / 2) - graphX * transform.scale;
-  transform.y = (canvasWrap.clientHeight / 2) - graphY * transform.scale;
+  const mini = minimapProjection();
+  const cssScale = svgCSSScale();
+  const graphX = mini.bounds.left + (event.clientX - rect.left) / mini.scale;
+  const graphY = mini.bounds.top + (event.clientY - rect.top) / mini.scale;
+  const visibleWidthSVG = canvasWrap.clientWidth / cssScale.x;
+  const visibleHeightSVG = canvasWrap.clientHeight / cssScale.y;
+  transform.x = canvasWrap.scrollLeft / cssScale.x + visibleWidthSVG / 2 - graphX * transform.scale;
+  transform.y = canvasWrap.scrollTop / cssScale.y + visibleHeightSVG / 2 - graphY * transform.scale;
   updateViewport();
 });
 draw();

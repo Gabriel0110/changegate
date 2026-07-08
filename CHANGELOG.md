@@ -4,6 +4,16 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.1.1 - 2026-07-08
+
+### Fixed
+
+- Fixed AWS architecture map resource cards so long AWS IDs are sized and truncated cleanly instead of running outside node bounds.
+- Fixed sparse AWS architecture containers so empty subnet sections do not create oversized VPC, regional, or global service areas.
+- Fixed draggable architecture containers so parent groups resize around their current contents after child resources are moved back inward.
+- Fixed a redundant Global Services wrapper that could appear after dragging the visible Global Services container.
+- Fixed the architecture minimap viewport so it tracks canvas scroll position, pan, zoom, and moved node/group positions accurately.
+
 ## v1.1.0 - 2026-07-07
 
 ### Added

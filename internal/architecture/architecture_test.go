@@ -1,6 +1,7 @@
 package architecture
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/Gabriel0110/changegate/internal/cloudcontext"
@@ -183,6 +184,94 @@ func TestMapDataAddsReadableServiceIdentity(t *testing.T) {
 	}
 }
 
+func TestMapDataKeepsSparseVPCCompact(t *testing.T) {
+	t.Parallel()
+
+	snapshot := sparseVPCSnapshot()
+	g, diagnostics := BuildGraph(snapshot)
+	if len(diagnostics) != 0 {
+		t.Fatalf("diagnostics = %+v, want none", diagnostics)
+	}
+	view, truncated, err := BuildView(g, Options{View: ViewAccount, MaxNodes: 100})
+	if err != nil {
+		t.Fatalf("BuildView returned error: %v", err)
+	}
+	summary := Summarize(snapshot, view, ViewAccount, nil, truncated)
+	data := buildMapData(snapshot, view, summary)
+
+	groupByID := make(map[string]mapGroup, len(data.Groups))
+	for _, group := range data.Groups {
+		groupByID[group.ID] = group
+		if strings.HasPrefix(group.ID, "subnet-") {
+			t.Fatalf("sparse VPC rendered empty subnet container %s", group.ID)
+		}
+	}
+	vpc := groupByID["vpc-0b744527525aa41a9"]
+	if vpc.Width > 760 {
+		t.Fatalf("sparse VPC width = %.1f, want compact width", vpc.Width)
+	}
+	if vpc.Height > 320 {
+		t.Fatalf("sparse VPC height = %.1f, want compact height", vpc.Height)
+	}
+	vpcResources := groupByID["vpc-services-vpc-0b744527525aa41a9"]
+	if vpcResources.Width > 640 {
+		t.Fatalf("VPC resources width = %.1f, want sparse section width", vpcResources.Width)
+	}
+	if got := len(vpcResources.Children); got != 2 {
+		t.Fatalf("VPC resources children = %d, want 2", got)
+	}
+}
+
+func TestMapDataSizesLongIdentifierCards(t *testing.T) {
+	t.Parallel()
+
+	snapshot := sparseVPCSnapshot()
+	g, diagnostics := BuildGraph(snapshot)
+	if len(diagnostics) != 0 {
+		t.Fatalf("diagnostics = %+v, want none", diagnostics)
+	}
+	view, truncated, err := BuildView(g, Options{View: ViewAccount, MaxNodes: 100})
+	if err != nil {
+		t.Fatalf("BuildView returned error: %v", err)
+	}
+	summary := Summarize(snapshot, view, ViewAccount, nil, truncated)
+	data := buildMapData(snapshot, view, summary)
+
+	nodes := make(map[string]mapNode, len(data.Nodes))
+	for _, node := range data.Nodes {
+		nodes[node.ID] = node
+	}
+	routeTable := nodes["rtb-0c673ec5e49e9a7aa"]
+	if routeTable.Width <= mapResourceMinWidth {
+		t.Fatalf("long route table card width = %.1f, want larger than minimum %.1f", routeTable.Width, mapResourceMinWidth)
+	}
+	if routeTable.Width > mapResourceMaxWidth {
+		t.Fatalf("long route table card width = %.1f, want at most %.1f", routeTable.Width, mapResourceMaxWidth)
+	}
+	global := groupByID(data.Groups, "global-services")
+	if global.ID == "" {
+		t.Fatalf("global services group not found")
+	}
+	if global.Parent != "aws-account:927120871591" {
+		t.Fatalf("global services parent = %q, want account group", global.Parent)
+	}
+	if global.Width > 360 {
+		t.Fatalf("single global service width = %.1f, want compact one-column section", global.Width)
+	}
+	if wrapper := groupByID(data.Groups, "global"); wrapper.ID != "" {
+		t.Fatalf("redundant global wrapper rendered: %#v", wrapper)
+	}
+}
+
+func groupByID(groups []mapGroup, id string) mapGroup {
+	for _, group := range groups {
+		if group.ID == id {
+			return group
+		}
+	}
+	return mapGroup{}
+}
+
 func testSnapshot() cloudcontext.Snapshot {
 	public := true
 	return cloudcontext.Snapshot{
@@ -254,6 +343,64 @@ func testSnapshot() cloudcontext.Snapshot {
 			{From: "arn:aws:iam::123456789012:role/app", To: "arn:aws:iam::123456789012:policy/app", Type: "attached_policy", Source: "aws_iam", Confidence: "high"},
 			{From: "arn:aws:iam::123456789012:policy/app", To: "action:s3:GetObject", Type: "grants_action", Source: "aws_iam", Confidence: "high"},
 			{From: "arn:aws:iam::123456789012:policy/app", To: "*", Type: "grants_resource", Source: "aws_iam", Confidence: "high"},
+		},
+	}
+}
+
+func sparseVPCSnapshot() cloudcontext.Snapshot {
+	public := true
+	return cloudcontext.Snapshot{
+		Version:     cloudcontext.Version,
+		Provider:    cloudcontext.ProviderAWS,
+		GeneratedAt: "2026-07-08T00:00:00Z",
+		Account:     cloudcontext.Account{ID: "927120871591"},
+		Regions:     []cloudcontext.Region{{Name: "us-east-1", Enabled: true}},
+		Network: cloudcontext.ResourceSet{Resources: map[string]cloudcontext.Resource{
+			"vpc-0b744527525aa41a9": {
+				ID:         "vpc-0b744527525aa41a9",
+				Type:       "aws_vpc",
+				Region:     "us-east-1",
+				AccountID:  "927120871591",
+				Attributes: map[string]string{"cidr_block": "172.31.0.0/16"},
+			},
+			"subnet-empty-a": {
+				ID:         "subnet-empty-a",
+				Type:       "aws_subnet",
+				Region:     "us-east-1",
+				AccountID:  "927120871591",
+				Attributes: map[string]string{"vpc_id": "vpc-0b744527525aa41a9", "cidr_block": "172.31.0.0/20"},
+			},
+			"subnet-empty-b": {
+				ID:         "subnet-empty-b",
+				Type:       "aws_subnet",
+				Region:     "us-east-1",
+				AccountID:  "927120871591",
+				Attributes: map[string]string{"vpc_id": "vpc-0b744527525aa41a9", "cidr_block": "172.31.16.0/20"},
+			},
+			"rtb-0c673ec5e49e9a7aa": {
+				ID:         "rtb-0c673ec5e49e9a7aa",
+				Type:       "aws_route_table",
+				Region:     "us-east-1",
+				AccountID:  "927120871591",
+				Attributes: map[string]string{"vpc_id": "vpc-0b744527525aa41a9"},
+			},
+			"default": {
+				ID:         "default",
+				Type:       "aws_security_group",
+				Region:     "us-east-1",
+				AccountID:  "927120871591",
+				Attributes: map[string]string{"vpc_id": "vpc-0b744527525aa41a9"},
+			},
+			"igw-028372dce8609f352": {
+				ID:        "igw-028372dce8609f352",
+				Type:      "aws_internet_gateway",
+				Region:    "us-east-1",
+				AccountID: "927120871591",
+				Public:    &public,
+			},
+		}},
+		Relationships: []cloudcontext.Relationship{
+			{From: "rtb-0c673ec5e49e9a7aa", To: "igw-028372dce8609f352", Type: "routes_to", Source: "aws_ec2", Confidence: "high"},
 		},
 	}
 }
