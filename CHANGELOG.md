@@ -4,6 +4,13 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.0.1 - 2026-07-07
+
+### Fixed
+
+- Hardened release smoke validation so the npm package test invokes the installed local ChangeGate binary directly instead of relying on `npx`.
+- Added a release-workflow timeout around npm package smoke validation so publish jobs fail clearly instead of hanging.
+
 ## v1.0.0 - 2026-07-07
 
 ### Added

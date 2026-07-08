@@ -53,7 +53,7 @@ jobs:
           set -e
           test "$code" -eq 1
           jq -e '.decision == "block"' /tmp/changegate-release-block.json
-          scripts/test-npm-package.sh
+          timeout 5m scripts/test-npm-package.sh
 
       - name: Resolve image name
         run: echo "REGISTRY_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "${GITHUB_ENV}"

@@ -22,5 +22,5 @@ package_file="$(npm pack --pack-destination "${tmpdir}" | tail -n 1)"
 cd "${tmpdir}"
 npm init -y >/dev/null
 CHANGEGATE_INSTALL_BINARY="${tmpdir}/changegate" npm install "${tmpdir}/${package_file}" >/dev/null
-npx changegate version
-npx changegate --help >/dev/null
+"${tmpdir}/node_modules/.bin/changegate" version
+"${tmpdir}/node_modules/.bin/changegate" --help >/dev/null
