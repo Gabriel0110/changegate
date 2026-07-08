@@ -4,6 +4,12 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.0.3 - 2026-07-07
+
+### Security
+
+- Updated `golang.org/x/crypto` to `v0.52.0` to address Dependabot-reported vulnerabilities in the transitive Go dependency graph.
+
 ## v1.0.2 - 2026-07-07
 
 ### Fixed
