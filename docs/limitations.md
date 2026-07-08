@@ -47,4 +47,4 @@ Waivers should be scoped, owned, justified, and time-bound. Broad permanent waiv
 
 ## Stability
 
-ChangeGate is pre-`v1.0`. Exit codes, core report schema names, and release verification behavior are intended to be stable, but some command flags, rule metadata, and visualization details may change before `v1.0`.
+ChangeGate is on the stable `v1.x` release line. Exit codes, core report schema names, release verification behavior, and stable rule IDs are intended to remain compatible within `v1.x`. New rules, output fields, and visualization capabilities may be added in minor releases.

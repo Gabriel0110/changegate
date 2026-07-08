@@ -14,6 +14,22 @@ changegate context aws snapshot --out .changegate/aws-context.json --collect=all
 changegate context aws snapshot --out .changegate/aws-context.json --collect=network,edge,iam,compute,data --regions us-east-1,us-west-2 --profile prod-readonly
 ```
 
+## Live AWS Collection
+
+Live collection is the shared mechanism behind `context aws snapshot --collect=...`, live architecture visualization, and any command that explicitly asks ChangeGate to collect AWS context. It reads AWS account metadata through read-only AWS APIs; it does not parse Terraform source, run Terraform, or require Terraform state.
+
+ChangeGate uses the standard AWS SDK credential chain. Credentials can come from `--profile`, `AWS_PROFILE`, shared AWS config and credentials files, environment credentials, SSO-backed profiles, or IAM role credentials in CI, EC2, ECS, or EKS. Use a dedicated read-only role or profile for context collection.
+
+```bash
+changegate context aws snapshot \
+  --collect=all \
+  --profile readonly \
+  --regions us-east-1 \
+  --out .changegate/aws-context.json
+```
+
+Use `--collect=all` or the shorthand `--collect` to collect every supported group. Use a comma-separated list such as `--collect=network,edge,data` when you want narrower coverage.
+
 Or through an explicit provider flag with a cached snapshot:
 
 ```bash
@@ -26,6 +42,20 @@ changegate scan \
 When `--cloud-context aws` is used without a context file or cached snapshot, ChangeGate emits a warning and falls back to plan-only analysis without making network calls.
 
 When a snapshot is provided, ChangeGate merges it into the review graph before rule evaluation. Plan evidence remains authoritative for planned changes, while cloud context adds live-only nodes, relationships, public exposure edges, and sensitive-asset context with explicit edge provenance. This lets findings and impact statements explain paths such as `public entrypoint -> workload -> datastore` using plan edges, live AWS edges, or both.
+
+The same snapshot can also be rendered as an AWS architecture diagram without running a scan:
+
+```bash
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view account --out aws-architecture.html
+```
+
+Architecture commands can also collect live read-only AWS inventory directly. When no `--context-file` is supplied, they default to `--collect=all`:
+
+```bash
+changegate architecture aws visualize --regions us-east-1 --view account --out aws-architecture.html
+```
+
+See [AWS architecture visualization](aws-architecture.md) for available views and collection groups.
 
 If cloud context confirms an existing plan edge, ChangeGate records the edge as `source=mixed`, keeps the exact merged source list in edge metadata, and uses the strongest confidence from the available evidence. This can raise an otherwise medium-confidence inferred path when live AWS context directly confirms the relationship. If context adds lower-confidence or partial evidence, attack paths remain warning-oriented rather than becoming high-confidence blocking decisions.
 

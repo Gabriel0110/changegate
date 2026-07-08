@@ -4,6 +4,27 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.0.0 - 2026-07-07
+
+### Added
+
+- Added AWS architecture visualization commands that render redacted AWS context snapshots into self-contained interactive account, network, public-exposure, data, IAM, compute, and resource diagrams.
+- Added grouped AWS account map layout with account, region, VPC, subnet, regional service, global service, and resource containers.
+- Added architecture map interactions for search, role filters, inventory selection, collapsible containers, draggable resources and containers, connected-edge highlighting, minimap navigation, saved browser layouts, and right-side resource inspection.
+- Added architecture export, render, summary, and snapshot diff commands for JSON, DOT, Mermaid, Graphviz-rendered artifacts, and snapshot comparison workflows.
+- Added live read-only AWS collection defaults for architecture commands. When no `--context-file` is supplied, architecture commands collect all supported AWS context groups through the standard AWS SDK credential chain.
+- Added README and documentation coverage for AWS architecture visualization, live AWS collection, supported collection groups, credential behavior, and the architecture screenshot.
+
+### Changed
+
+- Promoted ChangeGate to the initial stable `v1.0.0` release line.
+- Clarified that live AWS collection is a shared cloud-context mechanism used by snapshots, scan enrichment, and architecture visualization.
+- Improved graph visualization centering and HTML interaction behavior for selected resources and inspector drawers.
+
+### Breaking changes
+
+- Architecture commands now default to live read-only AWS collection when neither `--context-file` nor `--collect` is supplied. Pass `--context-file` for offline rendering from a saved snapshot.
+
 ## v0.6.1 - 2026-06-30
 
 ### Changed

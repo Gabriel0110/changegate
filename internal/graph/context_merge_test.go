@@ -3,6 +3,7 @@ package graph
 import (
 	"encoding/json"
 	"slices"
+	"sort"
 	"testing"
 
 	"github.com/Gabriel0110/changegate/internal/cloudcontext"
@@ -111,6 +112,45 @@ func TestMergeContextMatchesARNAndID(t *testing.T) {
 	}
 	if _, ok := merged.Nodes["live-service"]; ok {
 		t.Fatal("context created duplicate service node instead of matching ARN")
+	}
+}
+
+func TestMergeContextPrefersARNOverConflictingFriendlyAlias(t *testing.T) {
+	t.Parallel()
+
+	merged, diagnostics := MergeContext(&Graph{Nodes: map[ResourceID]*Node{}}, cloudcontext.Snapshot{
+		Version:  cloudcontext.Version,
+		Provider: cloudcontext.ProviderAWS,
+		Data: cloudcontext.ResourceSet{Resources: map[string]cloudcontext.Resource{
+			"arn:aws:rds:us-east-1:123456789012:db:customer": {
+				ARN:           "arn:aws:rds:us-east-1:123456789012:db:customer",
+				ID:            "customer",
+				Type:          "aws_db_instance",
+				Tags:          map[string]string{"Name": "customer-db"},
+				SensitiveData: true,
+			},
+			"arn:aws:secretsmanager:us-east-1:123456789012:secret:customer-db": {
+				ARN:           "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer-db",
+				ID:            "customer-db",
+				Type:          "aws_secretsmanager_secret",
+				SensitiveData: true,
+			},
+		}},
+		Relationships: []cloudcontext.Relationship{{
+			From: "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer-db",
+			To:   "arn:aws:rds:us-east-1:123456789012:db:customer",
+			Type: "protects",
+		}},
+	})
+
+	if len(diagnostics) != 0 {
+		t.Fatalf("expected no diagnostics, got %#v", diagnostics)
+	}
+	if merged.Nodes["arn:aws:secretsmanager:us-east-1:123456789012:secret:customer-db"] == nil {
+		t.Fatalf("secret node was collapsed into conflicting friendly alias; nodes=%v", sortedNodeIDsForTest(merged))
+	}
+	if !hasEdgeWithSource(merged, "arn:aws:secretsmanager:us-east-1:123456789012:secret:customer-db", "arn:aws:rds:us-east-1:123456789012:db:customer", EdgeProtects, SourceCloudContext) {
+		t.Fatalf("expected secret-to-database edge, got %#v", merged.Edges)
 	}
 }
 
@@ -295,4 +335,13 @@ func hasEdgeWithSource(g *Graph, from ResourceID, to ResourceID, edgeType EdgeTy
 	return slices.ContainsFunc(g.Edges, func(edge Edge) bool {
 		return edge.From == from && edge.To == to && edge.Type == edgeType && edge.Source == source
 	})
+}
+
+func sortedNodeIDsForTest(g *Graph) []ResourceID {
+	ids := make([]ResourceID, 0, len(g.Nodes))
+	for id := range g.Nodes {
+		ids = append(ids, id)
+	}
+	sort.SliceStable(ids, func(i int, j int) bool { return ids[i] < ids[j] })
+	return ids
 }

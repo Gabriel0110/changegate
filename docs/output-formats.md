@@ -26,6 +26,7 @@ changegate graph export --plan tfplan.json --format json --out graph.json
 changegate graph export --plan tfplan.json --format dot --out graph.dot
 changegate graph path --plan tfplan.json --from aws_lb.admin --to aws_db_instance.customer --format mermaid --out graph-path.mmd
 changegate graph visualize --plan tfplan.json --out graph.html
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view account --out aws-architecture.html
 changegate attack-paths --plan tfplan.json --format dot --out attack-paths.dot
 changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 ```
@@ -75,7 +76,7 @@ Graph and attack-path commands support renderable diagram source for review arti
 
 - `--format dot` emits Graphviz DOT.
 - `--format mermaid` emits Mermaid `flowchart LR`.
-- `graph visualize` and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, highlighted paths, and an evidence inspector.
+- `graph visualize`, `architecture aws visualize`, and `attack-paths visualize` emit self-contained interactive HTML with search, role filters, relationship details, and resource metadata. Architecture account views use grouped account/region/VPC/subnet maps by default; path-oriented views use graph layouts.
 - `graph render` optionally shells out to Graphviz `dot` to render SVG, PNG, or PDF when Graphviz is installed.
 
 The HTML visualizations do not fetch network assets or external JavaScript. They are suitable for CI artifacts, audit bundles produced outside ChangeGate, organization documentation, and pull-request links.

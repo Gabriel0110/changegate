@@ -1,0 +1,410 @@
+{
+  "version": 2,
+  "provider": "aws",
+  "generated_at": "2026-07-07T00:00:00Z",
+  "account": {
+    "id": "123456789012",
+    "alias": "demo"
+  },
+  "regions": [
+    {
+      "name": "us-east-1",
+      "enabled": true
+    }
+  ],
+  "network": {
+    "resources": {
+      "vpc-prod": {
+        "id": "vpc-prod",
+        "account_id": "123456789012",
+        "type": "aws_vpc",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "prod-vpc"
+        },
+        "attributes": {
+          "cidr_block": "10.0.0.0/16"
+        }
+      },
+      "subnet-public-a": {
+        "id": "subnet-public-a",
+        "account_id": "123456789012",
+        "type": "aws_subnet",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "public-a"
+        },
+        "attributes": {
+          "availability_zone": "us-east-1a",
+          "cidr_block": "10.0.1.0/24",
+          "vpc_id": "vpc-prod"
+        },
+        "public": true
+      },
+      "subnet-public-b": {
+        "id": "subnet-public-b",
+        "account_id": "123456789012",
+        "type": "aws_subnet",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "public-b"
+        },
+        "attributes": {
+          "availability_zone": "us-east-1b",
+          "cidr_block": "10.0.2.0/24",
+          "vpc_id": "vpc-prod"
+        },
+        "public": true
+      },
+      "subnet-app-a": {
+        "id": "subnet-app-a",
+        "account_id": "123456789012",
+        "type": "aws_subnet",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "app-a"
+        },
+        "attributes": {
+          "availability_zone": "us-east-1a",
+          "cidr_block": "10.0.10.0/24",
+          "vpc_id": "vpc-prod"
+        }
+      },
+      "subnet-data-b": {
+        "id": "subnet-data-b",
+        "account_id": "123456789012",
+        "type": "aws_subnet",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "data-b"
+        },
+        "attributes": {
+          "availability_zone": "us-east-1b",
+          "cidr_block": "10.0.20.0/24",
+          "vpc_id": "vpc-prod"
+        }
+      },
+      "sg-public": {
+        "id": "sg-public",
+        "account_id": "123456789012",
+        "type": "aws_security_group",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "public-lb"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-public-a"
+        },
+        "public": true
+      },
+      "sg-workload": {
+        "id": "sg-workload",
+        "account_id": "123456789012",
+        "type": "aws_security_group",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "admin-service"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-app-a"
+        }
+      },
+      "sg-data": {
+        "id": "sg-data",
+        "account_id": "123456789012",
+        "type": "aws_security_group",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "customer-data"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-data-b"
+        }
+      },
+      "igw-prod": {
+        "id": "igw-prod",
+        "account_id": "123456789012",
+        "type": "aws_internet_gateway",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "prod-igw"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod"
+        },
+        "public": true
+      },
+      "nat-a": {
+        "id": "nat-a",
+        "account_id": "123456789012",
+        "type": "aws_nat_gateway",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "nat-a"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-public-a"
+        }
+      }
+    }
+  },
+  "edge": {
+    "resources": {
+      "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/public/1": {
+        "arn": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/public/1",
+        "id": "app/public/1",
+        "account_id": "123456789012",
+        "type": "aws_lb",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "public-api"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-public-a"
+        },
+        "public": true
+      },
+      "arn:aws:apigateway:us-east-1::/restapis/admin": {
+        "arn": "arn:aws:apigateway:us-east-1::/restapis/admin",
+        "id": "api-admin",
+        "account_id": "123456789012",
+        "type": "aws_api_gateway_rest_api",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "admin-api"
+        },
+        "public": true
+      }
+    }
+  },
+  "compute": {
+    "resources": {
+      "arn:aws:ecs:us-east-1:123456789012:service/prod/admin": {
+        "arn": "arn:aws:ecs:us-east-1:123456789012:service/prod/admin",
+        "id": "admin",
+        "account_id": "123456789012",
+        "type": "aws_ecs_service",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "admin-service",
+          "service": "admin"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-app-a"
+        }
+      },
+      "arn:aws:lambda:us-east-1:123456789012:function:api": {
+        "arn": "arn:aws:lambda:us-east-1:123456789012:function:api",
+        "id": "api",
+        "account_id": "123456789012",
+        "type": "aws_lambda_function",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "api-worker",
+          "service": "api"
+        }
+      },
+      "i-bastion": {
+        "id": "i-bastion",
+        "account_id": "123456789012",
+        "type": "aws_instance",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "bastion"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-public-b"
+        },
+        "public": true
+      }
+    }
+  },
+  "iam": {
+    "resources": {
+      "arn:aws:iam::123456789012:role/app": {
+        "arn": "arn:aws:iam::123456789012:role/app",
+        "id": "app",
+        "account_id": "123456789012",
+        "type": "aws_iam_role",
+        "tags": {
+          "Name": "app-role",
+          "service": "api"
+        }
+      },
+      "arn:aws:iam::123456789012:role/github-deploy": {
+        "arn": "arn:aws:iam::123456789012:role/github-deploy",
+        "id": "github-deploy",
+        "account_id": "123456789012",
+        "type": "aws_iam_role",
+        "tags": {
+          "Name": "github-deploy"
+        }
+      }
+    }
+  },
+  "data": {
+    "resources": {
+      "arn:aws:rds:us-east-1:123456789012:db:customer": {
+        "arn": "arn:aws:rds:us-east-1:123456789012:db:customer",
+        "id": "customer",
+        "account_id": "123456789012",
+        "type": "aws_db_instance",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "customer-db"
+        },
+        "attributes": {
+          "vpc_id": "vpc-prod",
+          "subnet_id": "subnet-data-b"
+        },
+        "sensitivity": {
+          "data": true,
+          "reason": "customer records"
+        },
+        "sensitive_data": true,
+        "deletion_protection": true,
+        "encryption_enabled": true
+      },
+      "arn:aws:s3:::customer-exports": {
+        "arn": "arn:aws:s3:::customer-exports",
+        "id": "customer-exports",
+        "account_id": "123456789012",
+        "type": "aws_s3_bucket",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "customer-exports"
+        },
+        "sensitivity": {
+          "data": true,
+          "reason": "customer exports"
+        },
+        "sensitive_data": true,
+        "public_access_blocked": true,
+        "encryption_enabled": true
+      },
+      "arn:aws:secretsmanager:us-east-1:123456789012:secret:app-db-credential": {
+        "arn": "arn:aws:secretsmanager:us-east-1:123456789012:secret:app-db-credential",
+        "id": "app-db-credential",
+        "account_id": "123456789012",
+        "type": "aws_secretsmanager_secret",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "app-db-credential"
+        },
+        "sensitivity": {
+          "data": true,
+          "reason": "database credential"
+        },
+        "sensitive_data": true
+      },
+      "arn:aws:kms:us-east-1:123456789012:key/customer": {
+        "arn": "arn:aws:kms:us-east-1:123456789012:key/customer",
+        "id": "customer-key",
+        "account_id": "123456789012",
+        "type": "aws_kms_key",
+        "region": "us-east-1",
+        "tags": {
+          "Name": "customer-key"
+        },
+        "sensitivity": {
+          "data": true,
+          "reason": "customer data encryption"
+        },
+        "sensitive_data": true
+      }
+    }
+  },
+  "relationships": [
+    {
+      "from": "internet",
+      "to": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/public/1",
+      "type": "routes_to",
+      "source": "aws_elbv2",
+      "confidence": "high"
+    },
+    {
+      "from": "internet",
+      "to": "arn:aws:apigateway:us-east-1::/restapis/admin",
+      "type": "routes_to",
+      "source": "aws_apigateway",
+      "confidence": "high"
+    },
+    {
+      "from": "internet",
+      "to": "i-bastion",
+      "type": "allows_ingress",
+      "source": "aws_ec2",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/public/1",
+      "to": "arn:aws:ecs:us-east-1:123456789012:service/prod/admin",
+      "type": "routes_to",
+      "source": "aws_elbv2",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:apigateway:us-east-1::/restapis/admin",
+      "to": "arn:aws:lambda:us-east-1:123456789012:function:api",
+      "type": "invokes",
+      "source": "aws_apigateway",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:ecs:us-east-1:123456789012:service/prod/admin",
+      "to": "arn:aws:rds:us-east-1:123456789012:db:customer",
+      "type": "network_reaches",
+      "source": "aws_ec2",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:lambda:us-east-1:123456789012:function:api",
+      "to": "arn:aws:secretsmanager:us-east-1:123456789012:secret:app-db-credential",
+      "type": "reads_secret",
+      "source": "aws_lambda",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:lambda:us-east-1:123456789012:function:api",
+      "to": "arn:aws:kms:us-east-1:123456789012:key/customer",
+      "type": "uses_kms_key",
+      "source": "aws_lambda",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:ecs:us-east-1:123456789012:service/prod/admin",
+      "to": "arn:aws:s3:::customer-exports",
+      "type": "routes_to",
+      "source": "aws_s3",
+      "confidence": "medium"
+    },
+    {
+      "from": "arn:aws:lambda:us-east-1:123456789012:function:api",
+      "to": "arn:aws:iam::123456789012:role/app",
+      "type": "uses_role",
+      "source": "aws_lambda",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:ecs:us-east-1:123456789012:service/prod/admin",
+      "to": "arn:aws:iam::123456789012:role/app",
+      "type": "uses_role",
+      "source": "aws_ecs",
+      "confidence": "high"
+    },
+    {
+      "from": "arn:aws:iam::123456789012:role/github-deploy",
+      "to": "arn:aws:iam::123456789012:role/app",
+      "type": "assumes_role",
+      "source": "aws_iam",
+      "confidence": "high"
+    }
+  ]
+}

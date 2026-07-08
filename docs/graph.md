@@ -2,6 +2,8 @@
 
 ChangeGate builds a deterministic resource graph from Terraform/OpenTofu plan JSON. The graph is used by built-in rules, impact statements, and Review Intelligence commands.
 
+Use `changegate graph ...` when you want the graph for a specific Terraform/OpenTofu deployment plan. Use [`changegate architecture aws ...`](aws-architecture.md) when you want an architecture diagram from a read-only AWS context snapshot without running a scan.
+
 ## Graph v2 Core
 
 Graph v2 adds first-class security classification for nodes:

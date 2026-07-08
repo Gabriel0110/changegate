@@ -212,10 +212,25 @@ func mergeContextResource(g *Graph, index *contextIndex, key string, resource cl
 }
 
 func resolveResourceID(index *contextIndex, key string, resource cloudcontext.Resource) (ResourceID, bool) {
-	for _, candidate := range []string{
+	exact := []string{
 		resource.TerraformAddress,
 		key,
 		resource.ARN,
+	}
+	for _, candidate := range exact {
+		if id, ok := index.aliases[candidate]; ok {
+			return id, true
+		}
+	}
+	if strings.TrimSpace(resource.ARN) != "" {
+		return ResourceID(resource.ARN), false
+	}
+	for _, candidate := range []string{resource.TerraformAddress, key} {
+		if looksTerraformAddress(candidate) {
+			return ResourceID(candidate), false
+		}
+	}
+	for _, candidate := range []string{
 		resource.ID,
 		resource.Attributes["name"],
 		resource.Attributes["resource_id"],
@@ -354,6 +369,8 @@ func contextEdgeType(relationshipType string) EdgeType {
 	switch strings.ToLower(strings.TrimSpace(relationshipType)) {
 	case "routes_to", "has_listener", "target_health":
 		return EdgeRoutesTo
+	case "invokes":
+		return EdgeInvokes
 	case "attached_to", "associated_with", "uses_instance_profile", "inline_policy", "attached_policy", "permission_boundary":
 		return EdgeAttachedTo
 	case "contains", "contains_role":

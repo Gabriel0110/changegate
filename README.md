@@ -38,6 +38,7 @@ Most IaC scanners inspect source files and produce checklists. ChangeGate gates 
 - **Blast-radius graph:** maps changing resources to public entrypoints, IAM edges, networks, workloads, and sensitive assets.
 - **Attack-path evidence:** highlights deterministic public-to-sensitive-data and IAM privilege-escalation paths.
 - **Review Intelligence:** generates security impact statements, PR/MR comments, GitHub annotations, GitLab Code Quality output, and visual graph artifacts.
+- **AWS architecture visualization:** turns read-only AWS context snapshots into self-contained account, network, public-exposure, data, IAM, compute, and resource diagrams.
 - **Governed adoption:** supports baselines, new-risk-only mode, expiring waivers, audit bundles, and stable finding fingerprints.
 - **External scanner imports:** ingests SARIF, Checkov, Trivy, KICS, Grype, and generic JSON findings for graph-aware correlation.
 - **Optional cloud context:** collects redacted AWS read-only snapshots while keeping normal scans offline and credential-free.
@@ -58,10 +59,36 @@ changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
 changegate review github --report changegate.json --comment --annotations
 changegate review gitlab --report changegate.json --comment
 changegate context aws snapshot --out .changegate/aws-context.json --collect=all
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view account --out aws-architecture.html
 changegate test examples/risk-tests
 ```
 
-These commands reuse the same deterministic scan engine. The default path remains local and credential-free; AWS cloud context is opt-in and produces redacted offline snapshots. See [Review Intelligence](docs/review-intelligence.md), [Security Impact Statement](docs/security-impact-statement.md), [Blast-Radius Graph](docs/graph.md), and [Attack Paths](docs/attack-paths.md).
+These commands reuse the same deterministic scan engine and graph model. The default path remains local and credential-free; AWS cloud context is opt-in and produces redacted offline snapshots. See [Review Intelligence](docs/review-intelligence.md), [Security Impact Statement](docs/security-impact-statement.md), [Blast-Radius Graph](docs/graph.md), [AWS Architecture Visualization](docs/aws-architecture.md), and [Attack Paths](docs/attack-paths.md).
+
+## AWS Architecture Visualization
+
+Use a redacted AWS context snapshot to generate a self-contained architecture map without running a scan:
+
+```bash
+changegate context aws snapshot --collect=network,edge,compute,data,iam --out .changegate/aws-context.json
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view account --out aws-architecture.html
+```
+
+Or collect read-only AWS inventory and render in one command:
+
+```bash
+changegate architecture aws visualize --regions us-east-1 --view account --out aws-architecture.html
+```
+
+Live AWS collection uses the standard AWS SDK credential chain. Use a read-only AWS role or profile for context collection:
+
+```bash
+changegate architecture aws visualize --profile readonly --regions us-east-1 --out aws-architecture.html
+```
+
+![ChangeGate AWS architecture visualization](docs/assets/screenshots/aws-architecture.png)
+
+The HTML viewer includes account, region, VPC, subnet, service, and resource grouping; search and role filters; collapsible containers; draggable resources; edge highlighting; a minimap; saved browser layouts; and a right-side resource inspector. See [AWS architecture visualization](docs/aws-architecture.md) and [Cloud Context](docs/cloud-context.md#live-aws-collection).
 
 ## What It Catches
 
@@ -206,8 +233,13 @@ Generate visual review artifacts:
 changegate graph visualize --plan tfplan.json --out graph.html
 changegate graph visualize --plan tfplan.json --view path --from aws_lb.admin --to aws_db_instance.customer --out path.html
 changegate attack-paths visualize --plan tfplan.json --out attack-paths.html
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view account --out aws-architecture.html
+changegate architecture aws visualize --context-file .changegate/aws-context.json --view public-exposure --out public-exposure.html
+changegate architecture aws diff --before-context-file old-context.json --after-context-file new-context.json
 changegate graph render --plan tfplan.json --view exposure --resource aws_ecs_service.admin --render-format svg --out exposure.svg
 ```
+
+Architecture maps are self-contained HTML files with search, role filters, a resource inventory, collapsible containers, draggable resources and containers, connected-edge highlighting, a minimap, saved browser layouts, and a right-side resource inspector.
 
 Archive audit evidence:
 
@@ -363,7 +395,7 @@ Additional examples:
 
 ## Project Status
 
-ChangeGate is pre-`v1.0`. Start in audit or warning mode against real Terraform/OpenTofu plans, then move to blocking when the signal matches your deployment policy. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, and security reporting.
+ChangeGate is on the stable `v1.x` release line. Start in audit or warning mode against real Terraform/OpenTofu plans, then move to blocking when the signal matches your deployment policy. It includes stable exit codes, JSON/SARIF-oriented output, signed-release infrastructure, baselines, waivers, rule documentation, security reporting, and AWS architecture visualization.
 
 See [known limitations](docs/limitations.md) for current scope and boundaries.
 
@@ -386,6 +418,7 @@ Operators:
 - [Baselines](docs/baselines.md)
 - [Waivers](docs/waivers.md)
 - [Cloud context](docs/cloud-context.md)
+- [AWS architecture visualization](docs/aws-architecture.md)
 - [Security model](docs/security-model.md)
 - [Known limitations](docs/limitations.md)
 
