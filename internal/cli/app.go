@@ -91,6 +91,7 @@ func newRootCommand(ctx context.Context, opts *options, stdin io.Reader, stdout 
 	root.AddCommand(newTestCommand())
 	root.AddCommand(newReviewCommand())
 	root.AddCommand(newGraphCommand())
+	root.AddCommand(newArchitectureCommand())
 	root.AddCommand(newExplainCommand())
 	root.AddCommand(newCICommand())
 	root.AddCommand(newRulesCommand())

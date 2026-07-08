@@ -410,6 +410,90 @@ func TestGraphVisualizeHTML(t *testing.T) {
 	}
 }
 
+func TestArchitectureAWSCommands(t *testing.T) {
+	t.Parallel()
+
+	contextPath := "testdata/aws-architecture-context.json"
+	stdout, stderr, code := runCLI("--format", "json", "architecture", "aws", "summary", "--context-file", contextPath, "--view", "public-exposure")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	if stderr != "" {
+		t.Fatalf("stderr = %q, want empty", stderr)
+	}
+	var envelope struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			View            string   `json:"view"`
+			Nodes           int      `json:"nodes"`
+			Edges           int      `json:"edges"`
+			PublicResources []string `json:"public_resources"`
+			SensitiveAssets []string `json:"sensitive_assets"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal([]byte(stdout), &envelope); err != nil {
+		t.Fatalf("invalid architecture summary JSON: %v\n%s", err, stdout)
+	}
+	if !envelope.OK || envelope.Result.View != "public-exposure" || envelope.Result.Nodes == 0 || envelope.Result.Edges == 0 {
+		t.Fatalf("unexpected architecture summary: %#v", envelope)
+	}
+	if len(envelope.Result.PublicResources) == 0 || len(envelope.Result.SensitiveAssets) == 0 {
+		t.Fatalf("summary missing public or sensitive resources: %#v", envelope.Result)
+	}
+
+	stdout, stderr, code = runCLI("--format", "mermaid", "architecture", "aws", "export", "--context-file", contextPath, "--view", "data")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	for _, want := range []string{"flowchart LR", "AWS Data Architecture", "aws:rds:us-east-1:123456789012:db:customer"} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("architecture mermaid missing %q:\n%s", want, stdout)
+		}
+	}
+
+	stdout, stderr, code = runCLI("architecture", "aws", "visualize", "--context-file", contextPath, "--view", "resource", "--resource", "arn:aws:lambda:us-east-1:123456789012:function:api")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	for _, want := range []string{"<!doctype html>", "AWS Resource Architecture", "arn:aws:lambda:us-east-1:123456789012:function:api", "Inventory", "Connections", "Properties"} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("architecture HTML missing %q:\n%s", want, stdout)
+		}
+	}
+
+	afterPath := filepath.Join(t.TempDir(), "aws-architecture-context-after.json")
+	body, err := os.ReadFile(contextPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	afterContext := strings.Replace(string(body), `"Name": "admin-api"`, `"Name": "admin-api-v2"`, 1)
+	if err := os.WriteFile(afterPath, []byte(afterContext), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	stdout, stderr, code = runCLI("architecture", "aws", "diff", "--before-context-file", contextPath, "--after-context-file", afterPath, "--view", "account")
+	if code != exitAllowed {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitAllowed, stdout, stderr)
+	}
+	for _, want := range []string{"AWS architecture diff: account", "Changed resources:", "arn:aws:apigateway:us-east-1::/restapis/admin"} {
+		if !strings.Contains(stdout, want) {
+			t.Fatalf("architecture diff missing %q:\n%s", want, stdout)
+		}
+	}
+}
+
+func TestArchitectureAWSRejectsContextAndCollectTogether(t *testing.T) {
+	t.Parallel()
+
+	contextPath := filepath.Join("testdata", "aws-architecture-context.json")
+	stdout, stderr, code := runCLI("architecture", "aws", "summary", "--context-file", contextPath, "--collect=all")
+	if code != exitUsage {
+		t.Fatalf("exit code = %d, want %d\nstdout:\n%s\nstderr:\n%s", code, exitUsage, stdout, stderr)
+	}
+	if !strings.Contains(stderr, "use either --context-file or --collect") {
+		t.Fatalf("stderr missing guidance:\n%s", stderr)
+	}
+}
+
 func TestImpactJSONOutputIsStableAndRoundTrips(t *testing.T) {
 	t.Parallel()
 

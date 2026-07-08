@@ -378,6 +378,9 @@ func graphNodeDetails(node *graphpkg.Node) []string {
 		return nil
 	}
 	details := make([]string, 0, 4)
+	if node.Name != "" && node.Name != node.Address && node.Name != string(node.ID) {
+		details = append(details, "name: "+node.Name)
+	}
 	if node.Type != "" {
 		details = append(details, "type: "+node.Type)
 	}
@@ -387,6 +390,7 @@ func graphNodeDetails(node *graphpkg.Node) []string {
 	if node.Environment != "" {
 		details = append(details, "environment: "+node.Environment)
 	}
+	details = append(details, graphIdentityDetails(node.Values)...)
 	if node.Changed {
 		actions := make([]string, 0, len(node.Actions))
 		for _, action := range node.Actions {
@@ -399,6 +403,51 @@ func graphNodeDetails(node *graphpkg.Node) []string {
 		}
 	}
 	return details
+}
+
+func graphIdentityDetails(values map[string]any) []string {
+	if len(values) == 0 {
+		return nil
+	}
+	details := make([]string, 0, 8)
+	for _, key := range []string{"account_id", "region", "availability_zone", "arn", "id", "cidr_block", "state", "vpc_id", "subnet_id"} {
+		if value := detailString(values, key); value != "" {
+			details = append(details, strings.ReplaceAll(key, "_", " ")+": "+value)
+		}
+	}
+	for _, key := range []string{"public", "endpoint_public_access", "sensitive_data", "encryption_enabled", "public_access_blocked", "deletion_protection"} {
+		if value, ok := detailBool(values, key); ok {
+			details = append(details, strings.ReplaceAll(key, "_", " ")+": "+fmt.Sprintf("%t", value))
+		}
+	}
+	if value := detailString(values, "sensitivity_reason"); value != "" {
+		details = append(details, "sensitivity: "+value)
+	}
+	return details
+}
+
+func detailString(values map[string]any, key string) string {
+	value, ok := values[key]
+	if !ok {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return typed
+	case fmt.Stringer:
+		return typed.String()
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func detailBool(values map[string]any, key string) (bool, bool) {
+	value, ok := values[key]
+	if !ok {
+		return false, false
+	}
+	typed, ok := value.(bool)
+	return typed, ok
 }
 
 func graphEdgeDetails(edge graphpkg.Edge) []string {
