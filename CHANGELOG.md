@@ -4,6 +4,12 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.0.2 - 2026-07-07
+
+### Fixed
+
+- Moved release GoReleaser configuration validation out of the shell validation step and into the official GoReleaser GitHub Action to avoid long-running module/toolchain resolution during tag releases.
+
 ## v1.0.1 - 2026-07-07
 
 ### Fixed

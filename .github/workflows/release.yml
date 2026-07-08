@@ -40,7 +40,6 @@ jobs:
           go vet ./...
           go test ./...
           go run ./cmd/changegate --no-color test examples/risk-tests
-          go run github.com/goreleaser/goreleaser/v2@v2.16.0 check
 
       - name: Distribution smoke tests
         run: |
@@ -64,6 +63,13 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check GoReleaser config
+        uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: check
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@5daf1e915a5f0af01ddbcd89a43b8061ff4f1a89 # v7.2.2
