@@ -51,10 +51,18 @@ type Collector interface {
 
 // AWSCollectRequest configures AWS snapshot collection.
 type AWSCollectRequest struct {
-	Profile string
-	Regions []string
-	Groups  []string
-	Now     time.Time
+	Profile    string
+	Regions    []string
+	Groups     []string
+	TagFilters []TagFilter
+	Now        time.Time
+}
+
+// TagFilter limits collected resources to resources with matching AWS tags.
+type TagFilter struct {
+	Key      string
+	Value    string
+	HasValue bool
 }
 
 // AWSCallerIdentity is safe caller identity metadata returned by STS.
@@ -155,6 +163,35 @@ func ParseRegions(value string) []string {
 	}
 	sort.Strings(regions)
 	return regions
+}
+
+// ParseTagFilters parses repeated --tag values. A filter may be "key" to match
+// tag presence or "key=value" to match an exact tag value.
+func ParseTagFilters(values []string) ([]TagFilter, error) {
+	filters := make([]TagFilter, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		key, tagValue, hasValue := strings.Cut(value, "=")
+		key = strings.TrimSpace(key)
+		if key == "" {
+			return nil, fmt.Errorf("tag filter %q is missing a tag key", value)
+		}
+		filters = append(filters, TagFilter{
+			Key:      key,
+			Value:    strings.TrimSpace(tagValue),
+			HasValue: hasValue,
+		})
+	}
+	sort.Slice(filters, func(i int, j int) bool {
+		if filters[i].Key == filters[j].Key {
+			return filters[i].Value < filters[j].Value
+		}
+		return filters[i].Key < filters[j].Key
+	})
+	return filters, nil
 }
 
 // Collect builds a deterministic, redacted AWS cloud-context snapshot.
@@ -277,9 +314,79 @@ func (c *AWSCollector) Collect(ctx context.Context, req AWSCollectRequest) (Snap
 	}
 	diagnostics = append(diagnostics, pendingGroupDiagnostics(groups)...)
 	sortRegions(snapshot.Regions)
+	if len(req.TagFilters) > 0 {
+		applyTagFilters(&snapshot, req.TagFilters)
+	}
 	snapshot.Diagnostics = diagnostics
 	Normalize(&snapshot)
 	return snapshot, diagnostics, nil
+}
+
+func applyTagFilters(snapshot *Snapshot, filters []TagFilter) {
+	if snapshot == nil || len(filters) == 0 {
+		return
+	}
+	kept := make(map[string]bool)
+	filterResourceSet(&snapshot.Network, filters, kept)
+	filterResourceSet(&snapshot.IAM, filters, kept)
+	filterResourceSet(&snapshot.Data, filters, kept)
+	filterResourceSet(&snapshot.Compute, filters, kept)
+	filterResourceSet(&snapshot.Edge, filters, kept)
+	snapshot.Relationships = filterRelationshipsByResources(snapshot.Relationships, kept)
+}
+
+func filterResourceSet(set *ResourceSet, filters []TagFilter, kept map[string]bool) {
+	if set.Resources == nil {
+		return
+	}
+	next := make(map[string]Resource)
+	for key, resource := range set.Resources {
+		if !tagFiltersMatch(resource.Tags, filters) {
+			continue
+		}
+		next[key] = resource
+		kept[key] = true
+		for _, candidate := range []string{resource.TerraformAddress, resource.ARN, resource.ID} {
+			if candidate != "" {
+				kept[candidate] = true
+			}
+		}
+	}
+	set.Resources = next
+}
+
+func tagFiltersMatch(tags map[string]string, filters []TagFilter) bool {
+	if len(filters) == 0 {
+		return true
+	}
+	if len(tags) == 0 {
+		return false
+	}
+	for _, filter := range filters {
+		value, ok := tags[filter.Key]
+		if !ok {
+			return false
+		}
+		if filter.HasValue && value != filter.Value {
+			return false
+		}
+	}
+	return true
+}
+
+func filterRelationshipsByResources(relationships []Relationship, kept map[string]bool) []Relationship {
+	if len(relationships) == 0 {
+		return nil
+	}
+	out := make([]Relationship, 0, len(relationships))
+	for _, relationship := range relationships {
+		fromKept := kept[relationship.From] || relationship.From == internetResourceID
+		toKept := kept[relationship.To] || relationship.To == internetResourceID
+		if fromKept && toKept {
+			out = append(out, relationship)
+		}
+	}
+	return out
 }
 
 type sdkAWSClientSet struct {

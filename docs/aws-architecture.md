@@ -33,7 +33,7 @@ changegate architecture aws visualize \
   --out aws-architecture.html
 ```
 
-The default `account` view uses an architecture-map layout: account, region, VPC, subnet, regional services, global services, and resource cards are grouped so the result reads like an AWS environment map instead of a generic dependency graph.
+The default `account` view uses an architecture-map layout: account, region, VPC, subnet, regional services, global services, and resource cards are grouped so the result reads like an AWS environment map instead of a generic dependency graph. It focuses on deployed account resources such as networks, gateways, load balancers, compute, data stores, secrets, and keys. IAM policy internals such as individual AWS API actions are kept out of the architecture map so the diagram stays readable.
 
 The HTML file is self-contained. It does not load external scripts or call a hosted service. The viewer includes search, role filters, zoom, pan, a minimap, collapsible containers, draggable resource cards and containers, connected-edge highlighting, an inventory list, and a right-side resource inspector.
 
@@ -57,11 +57,11 @@ Use `--view` to keep large environments readable:
 
 | View | Use it for |
 | ---- | ---------- |
-| `account` | Complete collected topology as a grouped architecture map, capped by `--max-nodes`. |
+| `account` | Deployed account resource footprint as a grouped architecture map, capped by `--max-nodes`. |
 | `network` | VPCs, subnets, route tables, gateways, load balancers, security groups, and related attachments. |
 | `public-exposure` | Internet-reachable resources and downstream paths from public entrypoints. This view uses the graph layout by default because path direction is the main signal. |
 | `data` | Sensitive data stores, secrets, KMS keys, and connected workloads or principals. |
-| `iam` | IAM roles, policies, trust relationships, permission boundaries, and OIDC relationships. |
+| `iam` | IAM roles, policies, trust relationships, permission boundaries, and OIDC relationships without expanding every granted AWS API action into a visual node. |
 | `compute` | EC2, ECS, Lambda, EKS, and directly connected network, data, and IAM resources. |
 | `resource` | A local neighborhood around a single resource address, ARN, or ID. |
 
@@ -159,6 +159,19 @@ changegate architecture aws visualize \
   --view public-exposure \
   --out public-exposure.html
 ```
+
+Use `--tag` when you want a team- or environment-scoped diagram from live AWS inventory:
+
+```bash
+changegate architecture aws visualize \
+  --regions us-east-1 \
+  --tag team=payments \
+  --tag environment=prod \
+  --view account \
+  --out payments-prod-architecture.html
+```
+
+Tag filters use AND semantics and only apply to live collection. When you render an existing `--context-file`, create the snapshot with the same `--tag` filters first if you want the saved file to be scoped.
 
 Supported collection groups are:
 

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	// ViewAccount shows the complete collected account topology.
+	// ViewAccount shows the collected account resource footprint.
 	ViewAccount = "account"
 	// ViewNetwork shows VPC, subnet, route, security-group, and edge networking.
 	ViewNetwork = "network"
@@ -187,7 +187,7 @@ func normalizeView(view string) string {
 func selectedNodes(g *graph.Graph, opts Options) (map[graph.ResourceID]bool, error) {
 	switch opts.View {
 	case ViewAccount:
-		return allNodes(g), nil
+		return selectMatching(g, isAccountArchitectureNode), nil
 	case ViewNetwork:
 		return selectMatching(g, isNetworkNode), nil
 	case ViewPublicExposure:
@@ -206,7 +206,7 @@ func selectedNodes(g *graph.Graph, opts Options) (map[graph.ResourceID]bool, err
 		if !ok {
 			return nil, fmt.Errorf("resource %q was not found in the architecture graph", opts.Resource)
 		}
-		return expandUndirected(g, map[graph.ResourceID]bool{id: true}, opts.MaxDepth), nil
+		return expandUndirectedFiltered(g, map[graph.ResourceID]bool{id: true}, opts.MaxDepth, isArchitectureViewNode), nil
 	default:
 		return nil, fmt.Errorf("--view must be one of: %s", strings.Join(ValidViews(), ", "))
 	}
@@ -291,7 +291,7 @@ func addAccountRegionContext(g *graph.Graph, snapshot cloudcontext.Snapshot) {
 
 func selectByPredicate(g *graph.Graph, depth int, pred func(*graph.Node) bool) map[graph.ResourceID]bool {
 	seeds := selectMatching(g, pred)
-	return expandUndirected(g, seeds, depth)
+	return expandUndirectedFiltered(g, seeds, depth, isArchitectureViewNode)
 }
 
 func selectMatching(g *graph.Graph, pred func(*graph.Node) bool) map[graph.ResourceID]bool {
@@ -311,28 +311,20 @@ func selectPublicExposure(g *graph.Graph, depth int) map[graph.ResourceID]bool {
 			seeds[id] = true
 		}
 	}
-	return expandDirected(g, seeds, depth)
+	return expandDirectedFiltered(g, seeds, depth, isArchitectureViewNode)
 }
 
-func allNodes(g *graph.Graph) map[graph.ResourceID]bool {
-	selected := make(map[graph.ResourceID]bool, len(g.Nodes))
-	for id := range g.Nodes {
-		selected[id] = true
-	}
-	return selected
-}
-
-func expandUndirected(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int) map[graph.ResourceID]bool {
+func expandUndirectedFiltered(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int, allowed func(*graph.Node) bool) map[graph.ResourceID]bool {
 	selected := copySelection(seeds)
 	frontier := copySelection(seeds)
 	for step := 0; step < depth; step++ {
 		next := make(map[graph.ResourceID]bool)
 		for _, edge := range g.Edges {
-			if frontier[edge.From] && !selected[edge.To] {
+			if frontier[edge.From] && !selected[edge.To] && allowed(g.Nodes[edge.To]) {
 				selected[edge.To] = true
 				next[edge.To] = true
 			}
-			if frontier[edge.To] && !selected[edge.From] {
+			if frontier[edge.To] && !selected[edge.From] && allowed(g.Nodes[edge.From]) {
 				selected[edge.From] = true
 				next[edge.From] = true
 			}
@@ -345,13 +337,13 @@ func expandUndirected(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int
 	return selected
 }
 
-func expandDirected(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int) map[graph.ResourceID]bool {
+func expandDirectedFiltered(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int, allowed func(*graph.Node) bool) map[graph.ResourceID]bool {
 	selected := copySelection(seeds)
 	frontier := copySelection(seeds)
 	for step := 0; step < depth; step++ {
 		next := make(map[graph.ResourceID]bool)
 		for _, edge := range g.Edges {
-			if frontier[edge.From] && !selected[edge.To] {
+			if frontier[edge.From] && !selected[edge.To] && allowed(g.Nodes[edge.To]) {
 				selected[edge.To] = true
 				next[edge.To] = true
 			}
@@ -362,6 +354,40 @@ func expandDirected(g *graph.Graph, seeds map[graph.ResourceID]bool, depth int) 
 		frontier = next
 	}
 	return selected
+}
+
+func isAccountArchitectureNode(node *graph.Node) bool {
+	if !isArchitectureViewNode(node) {
+		return false
+	}
+	if node.ID == graph.InternetNodeID || node.Type == "aws_account" || node.Type == "aws_region" {
+		return true
+	}
+	if isIAMNode(node) {
+		return false
+	}
+	return isNetworkNode(node) || isPublicNode(node) || isSensitiveNode(node) || isComputeNode(node) || strings.HasPrefix(node.Type, "aws_")
+}
+
+func isArchitectureViewNode(node *graph.Node) bool {
+	if node == nil {
+		return false
+	}
+	if isPolicyDetailNode(node) {
+		return false
+	}
+	return true
+}
+
+func isPolicyDetailNode(node *graph.Node) bool {
+	if node == nil {
+		return false
+	}
+	id := string(node.ID)
+	if node.Type == "external" {
+		return true
+	}
+	return id == "*" || strings.HasPrefix(id, "action:")
 }
 
 func applyMaxNodes(g *graph.Graph, selected map[graph.ResourceID]bool, maxNodes int) bool {

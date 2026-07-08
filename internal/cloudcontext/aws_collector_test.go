@@ -238,6 +238,64 @@ func TestAWSCollectorMergesIAMComputeAndDataInventory(t *testing.T) {
 	}
 }
 
+func TestAWSCollectorAppliesTagFilters(t *testing.T) {
+	t.Parallel()
+
+	albARN := "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/payments/abc"
+	dbARN := "arn:aws:rds:us-east-1:123456789012:db:orders"
+	policyARN := "arn:aws:iam::123456789012:policy/payments"
+	collector := NewAWSCollectorWithClients(fakeAWSClientSet{
+		identity: AWSCallerIdentity{AccountID: "123456789012"},
+		edge: AWSInventory{Edge: ResourceSet{Resources: map[string]Resource{
+			albARN: {ARN: albARN, Type: "aws_lb", Tags: map[string]string{"team": "payments", "environment": "prod"}},
+			"arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/unowned/def": {
+				Type: "aws_lb", Tags: map[string]string{"team": "platform"},
+			},
+		}}, Relationships: []Relationship{
+			{From: "internet", To: albARN, Type: "routes_to", Source: relationshipSourceELBV2, Confidence: "high"},
+			{From: albARN, To: dbARN, Type: "routes_to", Source: relationshipSourceELBV2, Confidence: "medium"},
+		}},
+		data: AWSInventory{Data: ResourceSet{Resources: map[string]Resource{
+			dbARN: {ARN: dbARN, Type: "aws_db_instance", Tags: map[string]string{"team": "payments", "environment": "prod"}},
+		}}},
+		iam: AWSInventory{IAM: ResourceSet{Resources: map[string]Resource{
+			policyARN: {ARN: policyARN, Type: "aws_iam_policy", Tags: map[string]string{"team": "payments", "environment": "prod"}},
+		}}, Relationships: []Relationship{{From: policyARN, To: "action:s3:GetObject", Type: "grants_action", Source: relationshipSourceIAM, Confidence: "high"}}},
+	})
+	filters, err := ParseTagFilters([]string{"team=payments", "environment"})
+	if err != nil {
+		t.Fatalf("ParseTagFilters returned error: %v", err)
+	}
+	snapshot, diagnostics, err := collector.Collect(context.Background(), AWSCollectRequest{
+		Groups:     []string{CollectIdentity, CollectEdge, CollectData, CollectIAM},
+		Regions:    []string{"us-east-1"},
+		TagFilters: filters,
+	})
+	if err != nil {
+		t.Fatalf("Collect returned error: %v", err)
+	}
+	if len(diagnostics) != 0 {
+		t.Fatalf("diagnostics = %+v, want none", diagnostics)
+	}
+	if len(snapshot.Edge.Resources) != 1 || snapshot.Edge.Resources[albARN].ARN == "" {
+		t.Fatalf("edge resources were not filtered by tag: %+v", snapshot.Edge.Resources)
+	}
+	if len(snapshot.Data.Resources) != 1 || snapshot.Data.Resources[dbARN].ARN == "" {
+		t.Fatalf("data resources were not filtered by tag: %+v", snapshot.Data.Resources)
+	}
+	if len(snapshot.IAM.Resources) != 1 || snapshot.IAM.Resources[policyARN].ARN == "" {
+		t.Fatalf("IAM resources were not filtered by tag: %+v", snapshot.IAM.Resources)
+	}
+	if len(snapshot.Relationships) != 2 {
+		t.Fatalf("relationships = %+v, want internet edge and kept resource edge only", snapshot.Relationships)
+	}
+	for _, relationship := range snapshot.Relationships {
+		if strings.HasPrefix(relationship.To, "action:") {
+			t.Fatalf("relationship to omitted action pseudo-node survived tag filtering: %+v", snapshot.Relationships)
+		}
+	}
+}
+
 func TestAWSCollectorDataPolicyDiagnosticsReduceCoverage(t *testing.T) {
 	t.Parallel()
 
@@ -320,6 +378,16 @@ func TestParseCollectGroupsAndRegions(t *testing.T) {
 	regions := ParseRegions("us-west-2, us-east-1,us-west-2")
 	if strings.Join(regions, ",") != "us-east-1,us-west-2" {
 		t.Fatalf("regions = %v", regions)
+	}
+	tagFilters, err := ParseTagFilters([]string{"team=payments", "environment"})
+	if err != nil {
+		t.Fatalf("ParseTagFilters returned error: %v", err)
+	}
+	if len(tagFilters) != 2 || tagFilters[0].Key != "environment" || tagFilters[0].HasValue || tagFilters[1].Value != "payments" {
+		t.Fatalf("tag filters = %+v", tagFilters)
+	}
+	if _, err := ParseTagFilters([]string{"=payments"}); err == nil {
+		t.Fatalf("expected missing tag key error")
 	}
 }
 

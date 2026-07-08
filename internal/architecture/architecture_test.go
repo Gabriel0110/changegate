@@ -34,6 +34,12 @@ func TestBuildViewFiltersArchitectureViews(t *testing.T) {
 			avoidNode: "arn:aws:rds:us-east-1:123456789012:db:customer",
 		},
 		{
+			name:      "iam avoids policy action internals",
+			opts:      Options{View: ViewIAM, MaxDepth: 2, MaxNodes: 100},
+			wantNode:  "arn:aws:iam::123456789012:policy/app",
+			avoidNode: "action:s3:GetObject",
+		},
+		{
 			name:     "resource resolves by arn",
 			opts:     Options{View: ViewResource, Resource: "arn:aws:lambda:us-east-1:123456789012:function:api", MaxDepth: 1, MaxNodes: 100},
 			wantNode: "arn:aws:lambda:us-east-1:123456789012:function:api",
@@ -58,6 +64,42 @@ func TestBuildViewFiltersArchitectureViews(t *testing.T) {
 				t.Fatalf("view unexpectedly included %s", tt.avoidNode)
 			}
 		})
+	}
+}
+
+func TestAccountViewExcludesIAMPolicyInternals(t *testing.T) {
+	t.Parallel()
+
+	g, diagnostics := BuildGraph(testSnapshot())
+	if len(diagnostics) != 0 {
+		t.Fatalf("diagnostics = %+v, want none", diagnostics)
+	}
+	view, truncated, err := BuildView(g, Options{View: ViewAccount, MaxNodes: 100})
+	if err != nil {
+		t.Fatalf("BuildView returned error: %v", err)
+	}
+	if truncated {
+		t.Fatalf("view was unexpectedly truncated")
+	}
+	for _, unwanted := range []graph.ResourceID{
+		"arn:aws:iam::123456789012:role/app",
+		"arn:aws:iam::123456789012:policy/app",
+		"action:s3:GetObject",
+		"*",
+	} {
+		if view.Nodes[unwanted] != nil {
+			t.Fatalf("account architecture view included non-architecture node %s", unwanted)
+		}
+	}
+	for _, wanted := range []graph.ResourceID{
+		"aws-account:123456789012",
+		"aws-region:us-east-1",
+		"arn:aws:lambda:us-east-1:123456789012:function:api",
+		"arn:aws:rds:us-east-1:123456789012:db:customer",
+	} {
+		if view.Nodes[wanted] == nil {
+			t.Fatalf("account architecture view missing %s", wanted)
+		}
 	}
 }
 
@@ -136,9 +178,8 @@ func TestMapDataAddsReadableServiceIdentity(t *testing.T) {
 	if rds.Service != "RDS" {
 		t.Fatalf("rds service = %q, want RDS", rds.Service)
 	}
-	iamRole := nodes["arn:aws:iam::123456789012:role/app"]
-	if iamRole.Service != "IAM Role" {
-		t.Fatalf("iam role service = %q, want IAM Role", iamRole.Service)
+	if got := serviceLabelForType("aws_iam_role"); got != "IAM Role" {
+		t.Fatalf("iam role service = %q, want IAM Role", got)
 	}
 }
 
@@ -188,6 +229,11 @@ func testSnapshot() cloudcontext.Snapshot {
 				Type:      "aws_iam_role",
 				AccountID: "123456789012",
 			},
+			"arn:aws:iam::123456789012:policy/app": {
+				ARN:       "arn:aws:iam::123456789012:policy/app",
+				Type:      "aws_iam_policy",
+				AccountID: "123456789012",
+			},
 		}},
 		Data: cloudcontext.ResourceSet{Resources: map[string]cloudcontext.Resource{
 			"arn:aws:rds:us-east-1:123456789012:db:customer": {
@@ -205,6 +251,9 @@ func testSnapshot() cloudcontext.Snapshot {
 			{From: "arn:aws:elasticloadbalancing:us-east-1:123456789012:loadbalancer/app/public/1", To: "arn:aws:lambda:us-east-1:123456789012:function:api", Type: "invokes", Source: "aws_elbv2", Confidence: "high"},
 			{From: "arn:aws:lambda:us-east-1:123456789012:function:api", To: "arn:aws:rds:us-east-1:123456789012:db:customer", Type: "network_reaches", Source: "aws_ec2", Confidence: "high"},
 			{From: "arn:aws:lambda:us-east-1:123456789012:function:api", To: "arn:aws:iam::123456789012:role/app", Type: "uses_role", Source: "aws_lambda", Confidence: "high"},
+			{From: "arn:aws:iam::123456789012:role/app", To: "arn:aws:iam::123456789012:policy/app", Type: "attached_policy", Source: "aws_iam", Confidence: "high"},
+			{From: "arn:aws:iam::123456789012:policy/app", To: "action:s3:GetObject", Type: "grants_action", Source: "aws_iam", Confidence: "high"},
+			{From: "arn:aws:iam::123456789012:policy/app", To: "*", Type: "grants_resource", Source: "aws_iam", Confidence: "high"},
 		},
 	}
 }

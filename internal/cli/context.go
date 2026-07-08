@@ -68,6 +68,7 @@ func newContextAWSSnapshotCommand() *cobra.Command {
 	var regionsValue string
 	var profile string
 	var timeoutValue string
+	var tagValues []string
 	cmd := &cobra.Command{
 		Use:   "snapshot --out .changegate/aws-context.json",
 		Short: "Create an offline AWS context snapshot",
@@ -79,7 +80,7 @@ func newContextAWSSnapshotCommand() *cobra.Command {
 			if outPath == "" {
 				return usageError("context aws snapshot requires --out", "Write the snapshot to .changegate/aws-context.json.")
 			}
-			snapshot, diagnostics, collected, err := buildAWSSnapshot(cmd, collectValue, regionsValue, profile, timeoutValue)
+			snapshot, diagnostics, collected, err := buildAWSSnapshot(cmd, collectValue, regionsValue, profile, timeoutValue, tagValues)
 			if err != nil {
 				return err
 			}
@@ -124,20 +125,28 @@ func newContextAWSSnapshotCommand() *cobra.Command {
 	cmd.Flags().StringVar(&regionsValue, "regions", "", "comma-separated AWS regions to collect")
 	cmd.Flags().StringVar(&profile, "profile", "", "AWS shared config profile to use for collection")
 	cmd.Flags().StringVar(&timeoutValue, "timeout", "2m", "AWS collection timeout")
+	cmd.Flags().StringArrayVar(&tagValues, "tag", nil, "only keep resources matching AWS tag key=value or key; repeatable")
 	if flag := cmd.Flags().Lookup("collect"); flag != nil {
 		flag.NoOptDefVal = cloudcontext.CollectAll
 	}
 	return cmd
 }
 
-func buildAWSSnapshot(cmd *cobra.Command, collectValue string, regionsValue string, profile string, timeoutValue string) (cloudcontext.Snapshot, []model.Diagnostic, bool, error) {
+func buildAWSSnapshot(cmd *cobra.Command, collectValue string, regionsValue string, profile string, timeoutValue string, tagValues []string) (cloudcontext.Snapshot, []model.Diagnostic, bool, error) {
 	if collectValue == "" {
+		if len(tagValues) > 0 {
+			return cloudcontext.Snapshot{}, nil, false, usageError("--tag requires --collect", "Use --collect all with --tag to collect and filter live AWS resources.")
+		}
 		identity := cloudcontext.DetectAWSIdentity(environMap(os.Environ()))
 		return cloudcontext.NewAWSSnapshot(identity, time.Now().UTC()), nil, false, nil
 	}
 	groups, err := cloudcontext.ParseCollectGroups(collectValue)
 	if err != nil {
 		return cloudcontext.Snapshot{}, nil, false, usageError(err.Error(), "Use --collect all or a comma-separated list of identity,network,edge,iam,data,compute.")
+	}
+	tagFilters, err := cloudcontext.ParseTagFilters(tagValues)
+	if err != nil {
+		return cloudcontext.Snapshot{}, nil, false, usageError(err.Error(), "Use --tag team=payments or --tag environment=prod.")
 	}
 	timeout, err := time.ParseDuration(timeoutValue)
 	if err != nil || timeout <= 0 {
@@ -146,10 +155,11 @@ func buildAWSSnapshot(cmd *cobra.Command, collectValue string, regionsValue stri
 	ctx, cancel := context.WithTimeout(cmd.Context(), timeout)
 	defer cancel()
 	req := cloudcontext.AWSCollectRequest{
-		Profile: profile,
-		Regions: cloudcontext.ParseRegions(regionsValue),
-		Groups:  groups,
-		Now:     time.Now().UTC(),
+		Profile:    profile,
+		Regions:    cloudcontext.ParseRegions(regionsValue),
+		Groups:     groups,
+		TagFilters: tagFilters,
+		Now:        time.Now().UTC(),
 	}
 	collector, err := cloudcontext.NewAWSCollector(ctx, req)
 	if err != nil {

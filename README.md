@@ -67,7 +67,7 @@ These commands reuse the same deterministic scan engine and graph model. The def
 
 ## AWS Architecture Visualization
 
-Use a redacted AWS context snapshot to generate a self-contained architecture map without running a scan:
+Use a redacted AWS context snapshot to generate a self-contained architecture map without running a scan. The default account map focuses on deployed resources, not IAM policy internals or individual AWS API action nodes:
 
 ```bash
 changegate context aws snapshot --collect=network,edge,compute,data,iam --out .changegate/aws-context.json
@@ -86,9 +86,16 @@ Live AWS collection uses the standard AWS SDK credential chain. Use a read-only 
 changegate architecture aws visualize --profile readonly --regions us-east-1 --out aws-architecture.html
 ```
 
+Scope live snapshots or diagrams to tagged resources when you want a team-specific view:
+
+```bash
+changegate context aws snapshot --collect=all --regions us-east-1 --tag team=payments --out .changegate/payments-context.json
+changegate architecture aws visualize --regions us-east-1 --tag team=payments --out payments-architecture.html
+```
+
 ![ChangeGate AWS architecture visualization](docs/assets/screenshots/aws-architecture.png)
 
-The HTML viewer includes account, region, VPC, subnet, service, and resource grouping; search and role filters; collapsible containers; draggable resources; edge highlighting; a minimap; saved browser layouts; and a right-side resource inspector. See [AWS architecture visualization](docs/aws-architecture.md) and [Cloud Context](docs/cloud-context.md#live-aws-collection).
+The HTML viewer includes account, region, VPC, subnet, service, and resource grouping; search and role filters; collapsible containers; draggable resources; edge highlighting; a minimap; saved browser layouts; and a right-side resource inspector. IAM detail is available through the IAM view without expanding every granted AWS API action into the main architecture map. See [AWS architecture visualization](docs/aws-architecture.md) and [Cloud Context](docs/cloud-context.md#live-aws-collection).
 
 ## What It Catches
 

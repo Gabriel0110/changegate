@@ -23,6 +23,7 @@ type architectureOptions struct {
 	regionsValue      string
 	profile           string
 	timeoutValue      string
+	tagValues         []string
 	view              string
 	resource          string
 	maxDepth          int
@@ -304,6 +305,7 @@ func addArchitectureSnapshotFlags(cmd *cobra.Command, opts *architectureOptions)
 	cmd.Flags().StringVar(&opts.regionsValue, "regions", "", "comma-separated AWS regions to collect")
 	cmd.Flags().StringVar(&opts.profile, "profile", "", "AWS shared config profile to use for collection")
 	cmd.Flags().StringVar(&opts.timeoutValue, "timeout", opts.timeoutValue, "AWS collection timeout")
+	cmd.Flags().StringArrayVar(&opts.tagValues, "tag", nil, "only keep resources matching AWS tag key=value or key; repeatable")
 	if flag := cmd.Flags().Lookup("collect"); flag != nil {
 		flag.NoOptDefVal = cloudcontext.CollectAll
 	}
@@ -320,6 +322,9 @@ func loadArchitectureSnapshot(cmd *cobra.Command, opts *architectureOptions) (cl
 	if opts.contextFile != "" && opts.collectValue != "" {
 		return cloudcontext.Snapshot{}, nil, usageError("use either --context-file or --collect, not both", "Use --context-file for an offline snapshot or --collect all for live read-only collection.")
 	}
+	if opts.contextFile != "" && len(opts.tagValues) > 0 {
+		return cloudcontext.Snapshot{}, nil, usageError("use --tag only with live AWS collection", "Create a tagged snapshot first, then render it with --context-file.")
+	}
 	if opts.contextFile != "" {
 		snapshot, err := cloudcontext.LoadFile(opts.contextFile)
 		if err != nil {
@@ -328,10 +333,10 @@ func loadArchitectureSnapshot(cmd *cobra.Command, opts *architectureOptions) (cl
 		return snapshot, nil, nil
 	}
 	if opts.collectValue != "" {
-		snapshot, diagnostics, _, err := buildAWSSnapshot(cmd, opts.collectValue, opts.regionsValue, opts.profile, opts.timeoutValue)
+		snapshot, diagnostics, _, err := buildAWSSnapshot(cmd, opts.collectValue, opts.regionsValue, opts.profile, opts.timeoutValue, opts.tagValues)
 		return snapshot, diagnostics, err
 	}
-	snapshot, diagnostics, _, err := buildAWSSnapshot(cmd, cloudcontext.CollectAll, opts.regionsValue, opts.profile, opts.timeoutValue)
+	snapshot, diagnostics, _, err := buildAWSSnapshot(cmd, cloudcontext.CollectAll, opts.regionsValue, opts.profile, opts.timeoutValue, opts.tagValues)
 	return snapshot, diagnostics, err
 }
 

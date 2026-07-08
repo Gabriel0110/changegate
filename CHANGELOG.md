@@ -4,6 +4,24 @@ All notable changes to ChangeGate are documented here.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and ChangeGate uses semantic versioning before and after `v1.0`.
 
+## v1.1.0 - 2026-07-07
+
+### Added
+
+- Added AWS tag-scoped live collection with repeatable `--tag` filters for `context aws snapshot` and live `architecture aws` commands.
+- Added exact tag-value matching with `--tag key=value` and tag-presence matching with `--tag key`; repeated tag filters use AND semantics.
+- Added documentation for team- and environment-scoped AWS context snapshots and architecture diagrams.
+
+### Changed
+
+- Refined AWS account architecture maps so the default view focuses on deployed resources instead of IAM policy internals or individual AWS API action nodes.
+- Improved architecture map filtering so IAM detail remains available in the IAM view without overwhelming account-level diagrams.
+
+### Fixed
+
+- Fixed live AWS architecture maps that could render thousands of IAM action pseudo-nodes when IAM collection was enabled.
+- Added CLI guardrails so `--tag` is not silently ignored with non-collecting snapshots or saved `--context-file` renders.
+
 ## v1.0.3 - 2026-07-07
 
 ### Security

@@ -30,6 +30,19 @@ changegate context aws snapshot \
 
 Use `--collect=all` or the shorthand `--collect` to collect every supported group. Use a comma-separated list such as `--collect=network,edge,data` when you want narrower coverage.
 
+Use repeatable `--tag` filters when you want the snapshot to include only resources with specific AWS tags:
+
+```bash
+changegate context aws snapshot \
+  --collect=all \
+  --regions us-east-1 \
+  --tag team=payments \
+  --tag environment=prod \
+  --out .changegate/aws-context.json
+```
+
+Tag filters use AND semantics: every `--tag` filter must match. `--tag owner` matches resources that have an `owner` tag, while `--tag owner=payments` matches an exact tag value. If no `--tag` filter is provided, tags do not limit collection.
+
 Or through an explicit provider flag with a cached snapshot:
 
 ```bash
@@ -76,7 +89,7 @@ changegate context aws validate-permissions --context-file .changegate/aws-conte
 
 `identity` reads non-secret AWS metadata from environment variables such as `AWS_ACCOUNT_ID`, `AWS_REGION`, and `AWS_PROFILE`. It does not call AWS APIs.
 
-`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect caller identity, enabled regions, network inventory, edge inventory, IAM metadata, compute metadata, and data-service metadata.
+`snapshot` writes a redacted context file shell by default and does not make network calls. With `--collect`, it uses AWS SDK for Go v2 and read-only AWS APIs to collect caller identity, enabled regions, network inventory, edge inventory, IAM metadata, compute metadata, and data-service metadata. With `--tag`, the written snapshot keeps only matching tagged resources and relationships between kept resources; public `internet` edges to matching resources are preserved.
 
 Network collection covers VPCs, subnets, route tables and route associations, internet gateways, NAT gateways, transit gateways, security groups, and network interfaces. Edge collection covers ALB/NLB listener and target-group routing, CloudFront distributions, API Gateway v2 APIs/routes/integrations, and Lambda Function URLs. IAM collection covers roles, trust policy shapes, permission boundaries, attached and inline policy action/resource shapes, instance profiles, and OIDC providers. Compute collection covers EC2 instances, Lambda functions, ECS services/task definitions, and EKS clusters/node groups. Data collection covers RDS instances/clusters/subnet groups, S3 public access block/encryption/logging/versioning/policy metadata, Secrets Manager secret metadata and resource policies, KMS key metadata and key policies, OpenSearch domains, ElastiCache clusters/replication groups, and EFS file systems/mount targets.
 
