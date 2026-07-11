@@ -16,7 +16,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/iam v1.54.4
 	github.com/aws/aws-sdk-go-v2/service/kms v1.52.2
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.90.3
-	github.com/aws/aws-sdk-go-v2/service/opensearch v1.70.7
+	github.com/aws/aws-sdk-go-v2/service/opensearch v1.74.0
 	github.com/aws/aws-sdk-go-v2/service/rds v1.119.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.41.9

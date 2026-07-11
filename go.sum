@@ -50,8 +50,8 @@ github.com/aws/aws-sdk-go-v2/service/kms v1.52.2 h1:J0TorhKhXYPjIgLWd/J+q2bJVGyw
 github.com/aws/aws-sdk-go-v2/service/kms v1.52.2/go.mod h1:oqZYP0JN0ih1JTsoiT10Un/Ivg8LeVOMTK+UDNBq3sU=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.3 h1:6W7ioomB49eiBJLHRK4mg9VsqpTJSK/S1iiqoZt+TnM=
 github.com/aws/aws-sdk-go-v2/service/lambda v1.90.3/go.mod h1:LSQ3Y3dkCd0hDGFtb00WUXeMzSOZLGCidlmhwo0DDxo=
-github.com/aws/aws-sdk-go-v2/service/opensearch v1.70.7 h1:Tmn0KTMJ1ZhQ5C/BCBNfztC/R5VIuhjqDsSU9XBmxaE=
-github.com/aws/aws-sdk-go-v2/service/opensearch v1.70.7/go.mod h1:fvtcPQCRRe0S/W0hqLNiKnjkURzynwv9dNXJcSaYeog=
+github.com/aws/aws-sdk-go-v2/service/opensearch v1.74.0 h1:HEqOuIakrhUHgRt9dqayCkGRvJoE7q6J8TGWNSTBIGk=
+github.com/aws/aws-sdk-go-v2/service/opensearch v1.74.0/go.mod h1:ESVhnGt6gZMcitF7aXN5/nTNZfGSy61QV+B0ovHEDxc=
 github.com/aws/aws-sdk-go-v2/service/rds v1.119.2 h1:sqAj/4zLlTTqSgvzbRWbYKgaT/IyGVXtwJZKoWcgBdM=
 github.com/aws/aws-sdk-go-v2/service/rds v1.119.2/go.mod h1:zCRPUdp05FEZG3OO7LmJq9xkSDjMEhkiVrZV0oJs2a0=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.105.0 h1:XptwLL+UHXgafYMIHTy59IRovLbhz3znkxY2uS/pbXU=
